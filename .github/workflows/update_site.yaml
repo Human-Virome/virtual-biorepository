@@ -10,4 +10,4 @@ jobs:
     steps:
     
       - name: Run `git pull` on EC2 instance
-        run: curl -so /dev/null https://ec2.jplab.net/api?action=git_pull || true
+        run: curl -so /dev/null https://hvp.jplab.net/api?action=git_pull || true

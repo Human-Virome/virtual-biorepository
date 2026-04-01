@@ -68,7 +68,7 @@ snap install aws-cli --classic
 apt-get install -y apache2 libapache2-mod-r-base mysql-server libssl-dev libmysqlclient-dev libicu-dev
 R -e "install.packages(c('bcrypt', 'DBI', 'jsonlite', 'openssl', 'openxlsx2', 'RMariaDB'))"
 
-git clone https://github.com/HVP-Virtual-Biorepository/hvp.jplab.net.git /var/www/hvp
+git clone https://github.com/Human-Virome/virtual-biorepository.git /var/www/hvp
 git config --global --add safe.directory /var/www/hvp
 chown -R www-data:www-data /var/www/hvp
 ln -s /var/www/hvp/config/httpd.conf /etc/apache2/sites-enabled/hvp.conf
