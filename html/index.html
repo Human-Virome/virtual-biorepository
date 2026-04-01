@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+    
+    
+    <title>Virtual Biorepository</title>
+
+    <style>
+      header .fa   { cursor: pointer }
+      nav li       { padding-top: 0; padding-bottom: 0; margin-bottom: 12px }
+      nav a        { text-underline-offset: 8px }
+      nav a.active { text-decoration: underline }
+      section      { margin-top: 20px; margin-bottom: 40px }
+      .ml          { margin-left: 10px }
+
+      body.guest       #action_panel { display:    none   }
+      body.guest       nav           { visibility: hidden }
+      body.guest       #uac          { visibility: hidden }
+      body:not(.guest) #login_panel  { display:    none   }
+
+      section:not(.active) { display: none }
+    </style>
+
+  </head>
+  <body class="guest">
+
+    <main class="container">
+
+      <header class="grid">
+        
+        <div>
+          <small>Human Virome Project</small>
+          <h3>Virtual Biorepository</h3>
+        </div>
+
+        <div class="" style="display:flex; flex-direction:column; justify-content:space-between">
+          <div style="text-align:right">
+            <small>
+              <span id="uac">
+                <span id="username">Daniel Smith</span>
+                <i id="log_out_icon"   title="Log Out"    class="ml fa fa-sign-out"  aria-hidden="true"></i>
+                <i id="my_acct_icon"   title="My Account" class="ml fa fa-cog"       aria-hidden="true"></i>
+                <i id="add_users_icon" title="Add Users"  class="ml fa fa-user-plus" aria-hidden="true"></i>
+              </span>
+              <i id="theme_btn" title="Toggle Light/Dark Theme" class="ml fa fa-moon-o" aria-hidden="true"></i>
+            </small>
+          </div>
+          <nav>
+            <small>
+              <ul>
+                <li><a href="#" data-target="home_page"    class="secondary active" id="home_link">Home</a></li>
+                <li><a href="#" data-target="add_metadata" class="secondary"        id="md_link">Add Metadata</a></li>
+                <li><a href="#" data-target="sra_template" class="secondary"        id="sra_link">SRA Template</a></li>
+              </ul>
+            </small>
+          </nav>
+        </div>
+
+      </header>
+      
+      <hr style="border-top-width:6px; margin:0"><br>
+
+      <section id="home_page" class="active">
+
+        <div class="grid">
+          <div>
+            <p>
+              Metadata for the Human Virome Project should be uploaded here.
+              Information on projects, cohorts, subjects, samples, libraries, files, 
+              and analyses can then be exported in a format compatible with NCBI's 
+              SRA submission process.
+            </p>
+            <p>
+              For assistance with registering an account, uploading data, or to 
+              request changes to the workflow, please create an issue on this site's 
+              <a class="secondary" href="https://github.com/HVP-Virtual-Biorepository/hvp.jplab.net">GitHub project page</a>.
+            </p>
+          </div>
+
+          <div id="login_panel">
+            <input id="email" type="email" placeholder="Email Address" aria-label="Email Address" autocomplete="username"/>
+            <input id="password" type="password" placeholder="Password" aria-label="Password" autocomplete="current-password"/>
+            <button id="login_btn" style="width:100%">Log in</button>
+            <hr>
+            <div class="grid">
+              <div style="text-align:center">
+                <small><a id="register_acct_link" href="#" class="secondary">Register Account</a></small>
+              </div>
+              <div style="text-align:center">
+                <small><a id="forgot_pw_link" href="#" class="secondary">Forgot Password</a></small>
+              </div>
+            </div>
+          </div>
+
+          <div id="action_panel">
+            <p>
+              <button data-target="md_link" style="width:100%">
+                Upload Sample Metadata &nbsp; 
+                <i class="fa fa-arrow-circle-right" aria-hidden="true"></i>
+              </button>
+            </p>
+            <p>
+              <button data-target="sra_link" style="width:100%">
+                SRA Submission Template &nbsp; 
+                <i class="fa fa-arrow-circle-right" aria-hidden="true"></i>
+              </button>
+            </p>
+          </div>
+
+        </div>
+
+
+      </section> <!-- /#home_page -->
+      
+
+
+      <section id="add_metadata">
+
+        <h4>1. Download Metadata Template</h4>
+        <div class="grid">
+          <div>
+            <p>
+              The metadata template is an Excel file with separate worksheets for
+              projects, cohorts, subjects, samples, libraries, files, and analyses.
+            </p>
+            <p>
+              Use the blank template for adding new entries; the current data file
+              can be used to update or delete your previous entries.
+            </p>
+          </div>
+          <div style="margin:0 auto; text-align:center">
+            <button style="width:100%" disabled>
+              <i class="fa fa-download"></i> &nbsp; Download Blank Template
+            </button>
+            <br><br>
+            <button style="width:100%" disabled>
+              <i class="fa fa-download"></i> &nbsp; Download Current Data
+            </button>
+          </div>
+        </div>
+        
+        <br><hr><br>
+        
+        <div class="grid">
+          <div>
+            <h4>2. Fill In Your Metadata</h4>
+            <p>
+              Any given row may be left blank. When filling in a row, all red 
+              fields are required, green fields are optional, and yellow fields are 
+              special cases. 
+            </p><p>
+              Selecting a header cell will display details on whether it needs to 
+              be filled in, and what type of data is expected.
+            </p>
+          </div>
+            <img style="margin:0 auto" src="workbook.png"/>
+        </div>
+        
+        <br><hr><br>
+        
+        <h4>3. Upload Completed File</h4>
+        <div class="grid">
+          <div>
+            <p>
+              To run validation checks on your completed metadata file, select it here.
+            </p>
+            <p>
+              If your data passes all validation checks, you can then click 
+              <b>Save to HVP</b> to import it into the Human Virome Project's 
+              Virtual Biorepository database.
+            </p>
+            <p>
+              If problems are found, they will be detailed below.
+            </p>
+          </div>
+          <div style="margin:0 auto; text-align:center">
+            <input id="md_file_input" type="file" accept=".xlsx">
+            <br>
+            <div id="md_file_status">&nbsp</div>
+            <br>
+            <button id="md_file_save" style="width:100%" disabled>
+              <i class="fa fa-cloud-upload"></i> &nbsp; Save to HVP
+            </button>
+          </div>
+        </div>
+        <pre id="md_file_issues" style="white-space:pre-wrap; overflow:scroll"></pre>
+
+      </section> <!-- /#add_metadata -->
+      
+
+
+      <section id="sra_template">
+      </section> <!-- /#sra_template -->
+      
+
+      <hr style="border-top-width:6px; margin:10px auto">
+
+      <footer style="text-align:center">
+      <small>
+        <a class="secondary" href="https://www.bcm.edu/research/research-centers/alkek-center-for-metagenomics-and-microbiome-research">Alkek Center for Metagenomics and Microbiome Research</a>
+        &bull; 
+        <a class="secondary" href="https://www.bcm.edu">Baylor College of Medicine</a>
+      </small>
+      </footer>
+
+    </main>
+    
+    
+    <!-- Modals -->
+    <dialog id="my_acct_modal">
+      <article>
+        <header>
+          <button aria-label="Close" rel="prev" class="close_modal"></button>
+          <h3>My Account</h3>
+        </header>
+        <fieldset>
+          <label for="full_name">Full Name</label>
+          <input id="full_name" type="text" placeholder="Full Name" autocomplete="name"/>
+          <label for="affiliation">Affiliation</label>
+          <input id="affiliation" type="text" placeholder="Affiliation" autocomplete="organization"/>
+        </fieldset>
+        <footer>
+          <button class="secondary close_modal">Cancel</button>
+          <button id="my_acct_save" autofocus>Save</button>
+        </footer>
+      </article>
+    </dialog>
+    
+    <dialog id="add_users_modal">
+      <article>
+        <header>
+          <button aria-label="Close" rel="prev" class="close_modal"></button>
+          <h3>Add Users</h3>
+        </header>
+        <fieldset>
+          <label for="emails">Enter email addresses of new users, one per line.</label>
+          <textarea id="emails" placeholder="Type email addresses here..."></textarea>
+        </fieldset>
+        <footer>
+          <button class="secondary close_modal">Cancel</button>
+          <button id="add_users_save" autofocus>Save</button>
+        </footer>
+      </article>
+    </dialog>
+    
+    <dialog id="forgot_pw_modal">
+      <article>
+        <header>
+          <button aria-label="Close" rel="prev" class="close_modal"></button>
+          <h3>Forgot Password</h3>
+        </header>
+        <fieldset>
+          <label for="forgot_pw_email">Email Address</label>
+          <input id="forgot_pw_email" type="email" placeholder="Email Address" autocomplete="email"/>
+        </fieldset>
+        <footer>
+          <button class="secondary close_modal">Cancel</button>
+          <button id="forgot_pw_send" autofocus>Send Reset Email</button>
+        </footer>
+      </article>
+    </dialog>
+    
+    <dialog id="message_modal">
+      <article>
+        <header>
+          <button aria-label="Close" rel="prev" class="close_modal"></button>
+          <h3 id="message_title_text"></h3>
+        </header>
+        <pre id="message_text" style="white-space:pre-wrap; overflow:scroll"></pre>
+        <footer>
+          <button class="close_modal" autofocus>Dismiss</button>
+        </footer>
+      </article>
+    </dialog>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    
+    <script src="api.js"></script>
+    <script src="modal.js"></script>
+    <script src="nav.js"></script>
+    <script src="theme.js"></script>
+    <script src="upload.js"></script>
+    <script src="users.js"></script>
+    
+  </body>
+</html>
