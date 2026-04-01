@@ -1,0 +1,13 @@
+name: Update Production Website
+
+on: 
+  push: 
+    branches: main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    
+      - name: Run `git pull` on EC2 instance
+        run: curl -so /dev/null https://ec2.jplab.net/api?action=git_pull || true
