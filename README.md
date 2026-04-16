@@ -32,6 +32,8 @@ R -e "install.packages('pak', repos='https://r-lib.github.io/p/pak/stable/source
       options(repos = c(CRAN = 'https://packagemanager.posit.co/cran/__linux__/noble/latest'));      \
       pak::pak(c('bcrypt', 'DBI', 'jsonlite', 'plumber', 'pool', 'openssl', 'openxlsx2', 'RMariaDB'))"
 
+certbot certonly --webroot -w /var/www/html -d hvp.jplab.net -m dansmith01@gmail.com --agree-tos --no-eff-email -n
+
 git clone https://github.com/Human-Virome/virtual-biorepository.git /var/www/hvp
 git config --global --add safe.directory /var/www/hvp
 chown -R www-data:www-data /var/www/hvp
@@ -44,9 +46,6 @@ ln -s /var/www/hvp/config/mariadb.cnf         /etc/mysql/mariadb.cnf
 ln -s /var/www/hvp/config/plumber@.service    /etc/systemd/system/plumber@.service
 ln -s /var/www/hvp/config/hvp-updater.service /etc/systemd/system/hvp-updater.service
 ln -s /var/www/hvp/config/hvp-updater.path    /etc/systemd/system/hvp-updater.path
-
-mkdir /var/www/certbot
-certbot certonly --webroot -w /var/www/certbot -d hvp.jplab.net -m dansmith01@gmail.com --no-eff-email -n
 
 # Setup Systemd
 systemctl daemon-reload
