@@ -1,27 +1,44 @@
 
-resp <- tryCatch(
-  error = function (e) { list(error = e$message) },
-  expr  = {
+# Initialize the global database connection pool. 
+POOL <- pool::dbPool(
+  drv      = RMariaDB::MariaDB(),
+  dbname   = "hvp",
+  host     = "localhost", 
+  port     = 3306,
+  user     = "hvp_local", 
+  password = "",
+  minSize  = 1, 
+  maxSize  = 3 )
 
-    # action should be the unprefixed function name
-    handler_args <- c(GET, POST, FILES)
-    action       <- handler_args[['action']]
-    action       <- assert_string(action, 3, 20)
-    stopifnot(grepl('^[a-z_]+$', action))
 
-    # Find the api_* function and its incoming args.
-    action_function <- get(paste0('api_', action))
-    action_params   <- formalArgs(action_function)
-    action_args     <- handler_args[action_params]
+# Load all logic and endpoint functions.
+invisible(sapply(list.files("R", pattern = "\\.r$", full.names = TRUE), source))
 
-    if (length(missing_args <- setdiff(action_params, names(action_args))) > 0)
-      stop(action, ' is missing argument(s): ', paste(collapse = ', ', missing_args))
 
-    # Call the api_* function.
-    do.call(action_function, action_args)
-  }
-)
+# Initialize the empty Plumber router.
+pr <- plumber::pr()
 
-setContentType("application/json")
-cat(jsonlite::toJSON(resp, auto_unbox = TRUE, null = "null"))
-OK
+
+# Dynamically mount routes to functions starting with "api_".
+for (fn in ls(pattern = "^api_")) {
+  path <- sub('api_', '/api/', fn, fixed = TRUE)
+  pr   <- plumber::pr_post(pr, path, handler = get(fn))
+}
+remove(list = intersect(ls(), c('fn', 'path')))
+
+
+# Handle `stop()` by returning the error message.
+pr <- plumber::pr_set_error(pr, fun = function (req, res, err) {
+  res$status <- 200
+  list(error = err$message)
+})
+
+
+# Clean up resources on exit.
+pr <- plumber::pr_hook(pr, "exit", function () {
+  pool::poolClose(POOL)
+})
+
+
+# Start the API.
+plumber::pr_run(pr)

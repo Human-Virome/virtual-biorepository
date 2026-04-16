@@ -1,0 +1,16 @@
+[Unit]
+Description=Plumber API on port %i
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+Environment="PLUMBER_PORT=%i"
+WorkingDirectory=/var/www/hvp/api
+ExecStart=/usr/bin/Rscript handler.r
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

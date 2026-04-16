@@ -1,28 +1,3 @@
-db_connect <- function (DATA_DIR) {
-  
-  db <- tryCatch(
-    error = function (e) stop("Unable to connect to MySQL.\n", e$message),
-    expr  = {
-      DBI::dbConnect(
-        drv    = RMariaDB::MariaDB(), 
-        port   = 3306,
-        user   = 'website',
-        dbname = 'hvp' )
-    })
-  
-  assert_dbi(db)
-  return (db)
-}
-
-
-db_close <- function (db) {
-  assert_dbi(db)
-  tryCatch(
-    error = function (e) stop("Unable to disconnect from MySQL.\n", e$message),
-    expr  = DBI::dbDisconnect(db) )
-}
-
-
 
 #______________________________________________________________________________
 #' Wrapper around DBI's dbGetQuery and dbExecute.
@@ -49,7 +24,6 @@ db_query <- function (db, sql, err_code, params = NULL, simplify = TRUE, req1 = 
     
     expr = local({
       
-      
       sql  <- trimws(gsub("[\n\r\t\ ]+", " ", sql))
       verb <- toupper(strsplit(substr(sql, 1, 10), ' ', fixed = TRUE)[[1]][[1]])
       if (!verb %in% c("SELECT", "INSERT", "UPDATE", "DELETE", "BEGIN", "COMMIT"))
@@ -64,7 +38,6 @@ db_query <- function (db, sql, err_code, params = NULL, simplify = TRUE, req1 = 
         args = list(conn = db, statement = sql, params = params) )
       
       
-      
       #________________________________________________________
       # For INSERT statements, the result is the new row_id
       #________________________________________________________
@@ -74,12 +47,10 @@ db_query <- function (db, sql, err_code, params = NULL, simplify = TRUE, req1 = 
           expr  = DBI::dbGetQuery(db, "SELECT LAST_INSERT_ID()")[1,1]  )
       
       
-      
       #________________________________________________________
       # Only concerned with SELECT output from here on down.
       #________________________________________________________
       if (verb != "SELECT") return (result)
-      
       
       
       #________________________________________________________
@@ -91,7 +62,6 @@ db_query <- function (db, sql, err_code, params = NULL, simplify = TRUE, req1 = 
       }
       
       
-      
       #________________________________________________________
       # Use column names to convert to boolean and POSIXct.
       #________________________________________________________
@@ -100,7 +70,6 @@ db_query <- function (db, sql, err_code, params = NULL, simplify = TRUE, req1 = 
         } else if (startsWith(k, "has_")) { result[[k]] <- as.logical(result[[k]])
         } else if (endsWith(  k, "_utc")) { result[[k]] <- as.POSIXct(result[[k]], tz = "UTC") }
       }
-      
       
       
       #________________________________________________________
@@ -115,4 +84,35 @@ db_query <- function (db, sql, err_code, params = NULL, simplify = TRUE, req1 = 
       return (result)
       
     }))
+}
+
+
+create_hvp_ids <- function (tbl = "participants", n = 1) {
+  
+  stopifnot(is.character(tbl), isTRUE(nzchar(tbl)))
+  stopifnot(is.numeric(n), isTRUE(n %% 1 == 0))
+  
+  if (n < 1) return (character(0))
+  
+  prefix <- switch(
+    EXPR = tbl,
+    'participants' = "hvp:p-",
+    'timepoints'   = "hvp:t-",
+    'samples'      = "hvp:s-",
+    stop('No table to prefix mapping for table ', tbl) )
+  
+  # Avoid colliding with existing IDs.
+  current <- db_query(sprintf('SELECT hvp_id FROM `%s`', tbl))
+  current <- sub(prefix, '', current)
+  
+  # Generate 5 extra IDs in case of collisions.
+  ch <- pmax(1, ceiling(c(openssl::rand_num(10 * (n + 5)) * 62)))
+  ch <- matrix(c(letters, LETTERS, 0:9)[ch], ncol = 10)
+  new_ids <- apply(ch, 1L, paste, collapse = "")
+  new_ids <- setdiff(new_ids, current)[seq_len(n)]
+  
+  # Too many collisions (highly unlikely).
+  stopifnot(!anyNA(new_ids))
+  
+  return (paste0(prefix, new_ids))
 }

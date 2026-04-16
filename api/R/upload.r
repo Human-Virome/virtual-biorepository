@@ -3,9 +3,7 @@ api_metadata_upload <- function (auth_token, md_file_input, save) {
   
   stopifnot(isTRUE(save) || isFALSE(save))
   
-  db <- db_connect()
-  on.exit(db_close(db))
-  
+  db   <- pool::localCheckout(POOL)
   user <- authenticate(db, auth_token)
   
   tryCatch(
@@ -20,7 +18,8 @@ api_metadata_upload <- function (auth_token, md_file_input, save) {
       
       projects_import_wb(db, user, wb)
       cohorts_import_wb(db, user, wb)
-      subjects_import_wb(db, user, wb)
+      participants_import_wb(db, user, wb)
+      timepoints_import_wb(db, user, wb)
       samples_import_wb(db, user, wb)
       libraries_import_wb(db, user, wb)
       files_import_wb(db, user, wb)

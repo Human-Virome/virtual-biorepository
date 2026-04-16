@@ -28,10 +28,8 @@ authenticate <- function (db, auth_token) {
 
 
 api_add_users <- function (auth_token, emails) {
-
-  db <- db_connect()
-  on.exit(db_close(db))
-
+  
+  db   <- pool::localCheckout(POOL)
   user <- authenticate(db, auth_token)
   
   emails <- strsplit(emails, '\n', fixed = TRUE)[[1]]
@@ -94,10 +92,8 @@ api_my_acct <- function (auth_token, full_name, affiliation) {
 
   assert_string(full_name,   3,   100)
   assert_string(affiliation, 3,   100)
-
-  db <- db_connect()
-  on.exit(db_close(db))
-
+  
+  db   <- pool::localCheckout(POOL)
   user <- authenticate(db, auth_token)
 
   sql <- 'UPDATE users SET full_name = ?, affiliation = ? WHERE user_id = ?'
@@ -113,9 +109,8 @@ api_my_acct <- function (auth_token, full_name, affiliation) {
 api_forgot_pw <- function (email) {
 
   assert_string(email, 3, 100)
-
-  db <- db_connect()
-  on.exit(db_close(db))
+  
+  db <- pool::localCheckout(POOL)
 
   sql <- 'SELECT * FROM users WHERE email = ?'
   res <- db_query(db, sql, 'RPass1', list(trimws(tolower(email))))
@@ -146,9 +141,8 @@ api_forgot_pw <- function (email) {
 
 
 api_token_login <- function (auth_token) {
-
-  db <- db_connect()
-  on.exit(db_close(db))
+  
+  db <- pool::localCheckout(POOL)
 
   tryCatch(
     error = function (e) list(auth_token = ''),
@@ -165,9 +159,8 @@ api_log_in <- function (email, password) {
 
   assert_string(email,    3, 100)
   assert_string(password, 3, 100)
-
-  db <- db_connect()
-  on.exit(db_close(db))
+  
+  db <- pool::localCheckout(POOL)
 
   sql  <- 'SELECT * FROM users WHERE email = ?'
   user <- db_query(db, sql, 'LIn1', list(trimws(tolower(email))))
@@ -178,14 +171,9 @@ api_log_in <- function (email, password) {
 
   # user is switching to a newly emailed password
   if (nzchar(user$alt_password) && bcrypt::checkpw(password, user$alt_password)) {
-
     sql <- 'UPDATE users SET password=alt_password WHERE user_id = ?'
     db_query(db, sql, 'LIn2', list(user$user_id))
     user$password <- user$alt_password
-  
-    sql <- 'UPDATE users SET alt_password="" WHERE user_id = ?'
-    db_query(db, sql, 'LIn3', list(user$user_id))
-    user$alt_password <- ''
   }
 
 
@@ -193,7 +181,7 @@ api_log_in <- function (email, password) {
     stop('Incorrect password.')
   
   
-  # user remembered their old password
+  # no longer need the alt_password field's value
   if (!nzchar(user$alt_password)) {
     sql <- 'UPDATE users SET alt_password="" WHERE user_id = ?'
     db_query(db, sql, 'LIn4', list(user$user_id))
@@ -221,12 +209,10 @@ api_log_in <- function (email, password) {
 api_log_out <- function (auth_token) {
 
   assert_string(auth_token, 100, 100)
-
-  db <- db_connect()
-  on.exit(db_close(db))
   
   auth_token_sha <- as.character(openssl::sha512(auth_token))
   
+  db  <- pool::localCheckout(POOL)
   sql <- 'DELETE FROM auth_tokens WHERE auth_token_sha = ?'
   db_query(db, sql, 'LOut1', list(auth_token_sha))
   

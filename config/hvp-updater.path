@@ -1,0 +1,9 @@
+[Unit]
+Description=Watch for HVP webhook trigger file
+
+[Path]
+# This triggers the service whenever the file is modified or created
+PathModified=/tmp/hvp-update-trigger
+
+[Install]
+WantedBy=multi-user.target
