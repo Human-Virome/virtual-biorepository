@@ -4,8 +4,8 @@ authenticate <- function (db, auth_token) {
   
   assert_dbi(db)
   assert_string(auth_token, 100, 100)
-
-  auth_token_sha <- as.character(openssl::sha512(auth_token))
+  
+  auth_token_sha <- sodium::bin2hex(sodium::sha512(sodium::hex2bin(auth_token)))
   
   sql <- 'DELETE FROM auth_tokens WHERE valid_until_utc < UTC_TIMESTAMP'
   db_query(db, sql, 'Auth1')
@@ -54,7 +54,7 @@ api_add_users <- function (auth_token, emails) {
 
         password <- random_string(20)
         sql      <- 'INSERT INTO users (email, password) VALUES (?, ?)'
-        db_query(db, sql, 'CAcct2', list(tolower(email), bcrypt::hashpw(password) ))
+        db_query(db, sql, 'CAcct2', list(tolower(email), sodium::password_store(password) ))
 
         inviter <- ifelse(
           test = nzchar(user$full_name),
@@ -120,7 +120,7 @@ api_forgot_pw <- function (email) {
 
   alt_password <- random_string(20)
   sql <- 'UPDATE users SET alt_password = ? WHERE user_id = ?'
-  db_query(db, sql, 'RPass2', list(bcrypt::hashpw(alt_password), res$user_id))
+  db_query(db, sql, 'RPass2', list(sodium::password_store(alt_password), res$user_id))
 
   send_email(
     to      = res$email, 
@@ -170,14 +170,14 @@ api_log_in <- function (email, password) {
 
 
   # user is switching to a newly emailed password
-  if (nzchar(user$alt_password) && bcrypt::checkpw(password, user$alt_password)) {
+  if (nzchar(user$alt_password) && sodium::password_verify(user$alt_password, password)) {
     sql <- 'UPDATE users SET password=alt_password WHERE user_id = ?'
     db_query(db, sql, 'LIn2', list(user$user_id))
     user$password <- user$alt_password
   }
 
 
-  if (!bcrypt::checkpw(password, user$password))
+  if (!sodium::password_verify(user$password, password))
     stop('Incorrect password.')
   
   
@@ -188,8 +188,8 @@ api_log_in <- function (email, password) {
   }
 
   # create a new auth_token
-  auth_token     <- random_string(100)
-  auth_token_sha <- as.character(openssl::sha512(auth_token))
+  auth_token     <- sodium::bin2hex(sodium::random(50))
+  auth_token_sha <- sodium::bin2hex(sodium::sha512(sodium::hex2bin(auth_token)))
   sql <- 'INSERT INTO auth_tokens (user_id, auth_token_sha, valid_until_utc)'
   sql <- paste(sql, 'VALUES (?, ?, DATE_ADD(UTC_TIMESTAMP, INTERVAL 30 DAY))')
   db_query(db, sql, 'LIn5', list(user$user_id, auth_token_sha))
@@ -210,7 +210,7 @@ api_log_out <- function (auth_token) {
 
   assert_string(auth_token, 100, 100)
   
-  auth_token_sha <- as.character(openssl::sha512(auth_token))
+  auth_token_sha <- sodium::bin2hex(sodium::sha512(sodium::hex2bin(auth_token)))
   
   db  <- pool::localCheckout(POOL)
   sql <- 'DELETE FROM auth_tokens WHERE auth_token_sha = ?'
@@ -239,7 +239,9 @@ assert_dbi <- function (db) {
 }
 
 random_string <- function (len) {
-  paste(collapse = '', sample(c(LETTERS, letters, 0:9), len, replace = TRUE))
+  chars <- c(LETTERS, letters, 0:9)
+  rands <- (as.integer(sodium::random(len)) %% 62) + 1
+  paste(collapse = '', chars[rands])
 }
 
 if_empty <- function (val, alt) {

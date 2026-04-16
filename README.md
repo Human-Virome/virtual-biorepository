@@ -30,9 +30,9 @@ apt install -y nginx certbot mariadb-server r-base
 snap install aws-cli --classic
 R -e "install.packages('pak', repos='https://r-lib.github.io/p/pak/stable/source/linux-gnu/x86_64'); \
       options(repos = c(CRAN = 'https://packagemanager.posit.co/cran/__linux__/noble/latest'));      \
-      pak::pak(c('bcrypt', 'DBI', 'jsonlite', 'plumber', 'pool', 'openssl', 'openxlsx2', 'RMariaDB'))"
+      pak::pak(c('DBI', 'jsonlite', 'plumber', 'pool', 'openxlsx2', 'RMariaDB', 'sodium'))"
 
-certbot certonly --webroot -w /var/www/html -d hvp.jplab.net -m dansmith01@gmail.com --agree-tos --no-eff-email -n
+certbot certonly --webroot -w /var/www/html -d hvp.jplab.net --register-unsafely-without-email --agree-tos
 
 git clone https://github.com/Human-Virome/virtual-biorepository.git /var/www/hvp
 git config --global --add safe.directory /var/www/hvp

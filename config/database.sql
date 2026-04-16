@@ -1,7 +1,7 @@
-CREATE DATABASE hvp;
+CREATE DATABASE IF NOT EXISTS hvp;
 use hvp;
 
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
   user_id        INTEGER AUTO_INCREMENT PRIMARY KEY,
   full_name      VARCHAR(100) NOT NULL DEFAULT '',
   affiliation    VARCHAR(100) NOT NULL DEFAULT '',
@@ -13,7 +13,7 @@ CREATE TABLE users (
   added_utc      DATETIME     NOT NULL DEFAULT (UTC_TIMESTAMP())
 ) ENGINE=InnoDB;
 
-CREATE TABLE auth_tokens (
+CREATE TABLE IF NOT EXISTS auth_tokens (
   auth_token_id    INTEGER AUTO_INCREMENT PRIMARY KEY,
   user_id          INTEGER   NOT NULL,
   auth_token_sha   CHAR(128) NOT NULL,
@@ -21,12 +21,12 @@ CREATE TABLE auth_tokens (
   FOREIGN KEY (user_id) REFERENCES users (user_id)
 ) ENGINE=InnoDB;
 
-CREATE TABLE uid_suffixes (
+CREATE TABLE IF NOT EXISTS uid_suffixes (
   uid_suffix CHAR(6) NOT NULL PRIMARY KEY
 ) ENGINE=InnoDB;
 
 # hvp:ptt-abcdef
-CREATE TABLE participants (
+CREATE TABLE IF NOT EXISTS participants (
   uuid                           VARCHAR(50) NOT NULL DEFAULT '',
   participant_uid                VARCHAR(50) NOT NULL PRIMARY KEY,
   cohort_id                      VARCHAR(50) NOT NULL DEFAULT '',
@@ -43,14 +43,14 @@ CREATE TABLE participants (
 ) ENGINE=InnoDB;
 
 # hvp:tpt-abcdef
-CREATE TABLE timepoints (
+CREATE TABLE IF NOT EXISTS timepoints (
   uuid                                    VARCHAR(50) NOT NULL DEFAULT '',
   participant_uid                         VARCHAR(50) NOT NULL PRIMARY KEY,
   timepoint_uid                           VARCHAR(50) NOT NULL DEFAULT '',
   age                                     DOUBLE      NOT NULL DEFAULT -1,
   age_units                               TINYTEXT    NOT NULL DEFAULT (''),
   age_range                               TINYTEXT    NOT NULL DEFAULT (''),
-  state/province_of_residence             TINYTEXT    NOT NULL DEFAULT (''),
+  state_or_province_of_residence          TINYTEXT    NOT NULL DEFAULT (''),
   vital_status                            TINYTEXT    NOT NULL DEFAULT (''),
   weight                                  DOUBLE      NOT NULL DEFAULT -1,
   weight_units                            TINYTEXT    NOT NULL DEFAULT (''),
@@ -74,7 +74,7 @@ CREATE TABLE timepoints (
   systemic_antibiotic_or_antiviral_use    TEXT        NOT NULL DEFAULT (''),
   topical_antibiotic_or_antiviral_use     TEXT        NOT NULL DEFAULT (''),
   otc_medications                         TEXT        NOT NULL DEFAULT (''),
-  supplements/vitamins/herbal             TEXT        NOT NULL DEFAULT (''),
+  supplements_or_vitamins_or_herbal       TEXT        NOT NULL DEFAULT (''),
   lifetime_vaccinations                   TEXT        NOT NULL DEFAULT (''),
   seasonal_vaccinations                   TEXT        NOT NULL DEFAULT (''),
   alcohol_consumption                     TINYTEXT    NOT NULL DEFAULT (''),
@@ -84,7 +84,7 @@ CREATE TABLE timepoints (
   other_tobacco_exposure                  TEXT        NOT NULL DEFAULT (''),
   vaping_behavior                         TEXT        NOT NULL DEFAULT (''),
   cannabis                                TEXT        NOT NULL DEFAULT (''),
-  recreational/illicit_drugs              TEXT        NOT NULL DEFAULT (''),
+  recreational_or_illicit_drugs           TEXT        NOT NULL DEFAULT (''),
   current_geography                       TINYTEXT    NOT NULL DEFAULT (''),
   diet                                    TINYTEXT    NOT NULL DEFAULT (''),
   diet_comment                            TEXT        NOT NULL DEFAULT (''),
@@ -100,7 +100,7 @@ CREATE TABLE timepoints (
 ) ENGINE=InnoDB;
 
 # hvp:sam-abcdef
-CREATE TABLE samples (
+CREATE TABLE IF NOT EXISTS samples (
   uuid                     VARCHAR(50) NOT NULL DEFAULT '',
   sample_uid               VARCHAR(50) NOT NULL PRIMARY KEY,
   timepoint_uid            VARCHAR(50) NOT NULL DEFAULT '',

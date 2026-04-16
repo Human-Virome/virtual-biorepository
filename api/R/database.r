@@ -106,9 +106,7 @@ create_hvp_ids <- function (tbl = "participants", n = 1) {
   current <- sub(prefix, '', current)
   
   # Generate 5 extra IDs in case of collisions.
-  ch <- pmax(1, ceiling(c(openssl::rand_num(10 * (n + 5)) * 62)))
-  ch <- matrix(c(letters, LETTERS, 0:9)[ch], ncol = 10)
-  new_ids <- apply(ch, 1L, paste, collapse = "")
+  new_ids <- replicate(n + 5, random_string(8))
   new_ids <- setdiff(new_ids, current)[seq_len(n)]
   
   # Too many collisions (highly unlikely).
