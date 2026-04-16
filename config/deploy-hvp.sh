@@ -7,13 +7,13 @@ rm -f /tmp/hvp-update-trigger
 cd /var/www/hvp || exit
 
 # 3. Record the current commit hash BEFORE pulling
-BEFORE_PULL=$(git rev-parse HEAD)
+BEFORE_PULL=$(sudo -u www-data git rev-parse HEAD)
 
 # 4. Pull the latest code
 sudo -u www-data git pull origin main
 
 # 5. Record the commit hash AFTER pulling
-AFTER_PULL=$(git rev-parse HEAD)
+AFTER_PULL=$(sudo -u www-data git rev-parse HEAD)
 
 # 6. Compare hashes and restart only if changes occurred
 if [ "$BEFORE_PULL" != "$AFTER_PULL" ]; then
