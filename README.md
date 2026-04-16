@@ -26,7 +26,7 @@ echo '/swapfile none swap sw 0 0' | tee -a /etc/fstab
 
 # System Updates & Dependencies
 apt update && apt upgrade -y
-apt install -y nginx mariadb-server r-base
+apt install -y nginx mariadb-server r-base certbot python3-certbot-nginx
 snap install aws-cli --classic
 R -e "install.packages('pak', repos='https://r-lib.github.io/p/pak/stable/source/linux-gnu/x86_64'); \
       options(repos = c(CRAN = 'https://packagemanager.posit.co/cran/__linux__/noble/latest'));      \
@@ -44,6 +44,8 @@ ln -s /var/www/hvp/config/mariadb.cnf         /etc/mysql/mariadb.cnf
 ln -s /var/www/hvp/config/plumber@.service    /etc/systemd/system/plumber@.service
 ln -s /var/www/hvp/config/hvp-updater.service /etc/systemd/system/hvp-updater.service
 ln -s /var/www/hvp/config/hvp-updater.path    /etc/systemd/system/hvp-updater.path
+
+certbot --nginx -d hvp.jplab.net --agree-tos -m dansmith01@gmail.com --no-eff-email -n
 
 # Setup Systemd
 systemctl daemon-reload
