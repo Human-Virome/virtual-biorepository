@@ -7,8 +7,7 @@ rm -f /tmp/hvp-update-trigger
 cd /var/www/hvp || exit
 
 # 3. Pull the latest code
-git pull origin main
-chown -R www-data:www-data /var/www/hvp
+sudo -u www-data git pull origin main
 
 # 4. Restart the necessary services
 systemctl daemon-reload

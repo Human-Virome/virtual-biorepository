@@ -45,7 +45,7 @@ $( document ).ready(function() {
       $('#md_file_status').html('<span aria-busy="true" aria-invalid="false">saving...</span>');
       
       api({
-        action   : 'metadata_upload'
+        action   : 'metadata_upload',
         file     : 'md_file_input',
         payload  : { save: true },
         callback : function (resp) {
