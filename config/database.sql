@@ -2,21 +2,20 @@ CREATE DATABASE IF NOT EXISTS hvp;
 use hvp;
 
 CREATE TABLE IF NOT EXISTS users (
-  user_id        INTEGER AUTO_INCREMENT PRIMARY KEY,
-  full_name      VARCHAR(100) NOT NULL DEFAULT '',
-  affiliation    VARCHAR(100) NOT NULL DEFAULT '',
-  email          VARCHAR(100) NOT NULL,
-  password       CHAR(60)     NOT NULL,
-  alt_password   CHAR(60)     NOT NULL DEFAULT '',
-  last_login_utc DATETIME              DEFAULT NULL,
-  added_by       INTEGER      NOT NULL,
-  added_utc      DATETIME     NOT NULL DEFAULT (UTC_TIMESTAMP())
-) ENGINE=InnoDB;
+  user_id           INTEGER AUTO_INCREMENT PRIMARY KEY,
+  full_name         VARCHAR(100) NOT NULL DEFAULT '',
+  affiliation       VARCHAR(100) NOT NULL DEFAULT '',
+  email             VARCHAR(100) NOT NULL UNIQUE,
+  password          TINYTEXT     NOT NULL,
+  alt_password      TINYTEXT     NOT NULL DEFAULT '',
+  last_login_utc    DATETIME              DEFAULT NULL,
+  added_by          INTEGER      NOT NULL,
+  added_utc         DATETIME     NOT NULL DEFAULT (UTC_TIMESTAMP())
+) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 CREATE TABLE IF NOT EXISTS auth_tokens (
-  auth_token_id    INTEGER AUTO_INCREMENT PRIMARY KEY,
+  auth_token_sha   CHAR(128) NOT NULL PRIMARY KEY,
   user_id          INTEGER   NOT NULL,
-  auth_token_sha   CHAR(128) NOT NULL,
   valid_until_utc  DATETIME  NOT NULL,
   FOREIGN KEY (user_id) REFERENCES users (user_id)
 ) ENGINE=InnoDB;
@@ -27,7 +26,8 @@ CREATE TABLE IF NOT EXISTS uid_suffixes (
 
 # hvp:ptt-abcdef
 CREATE TABLE IF NOT EXISTS participants (
-  uuid                           VARCHAR(50) NOT NULL DEFAULT '',
+  uuid                           VARCHAR(50) NOT NULL UNIQUE,
+  last_modified_by               INTEGER     NOT NULL,
   participant_uid                VARCHAR(50) NOT NULL PRIMARY KEY,
   cohort_id                      VARCHAR(50) NOT NULL DEFAULT '',
   host_taxon                     TINYTEXT    NOT NULL DEFAULT (''),
@@ -39,25 +39,27 @@ CREATE TABLE IF NOT EXISTS participants (
   gestational_age_at_birth       TINYTEXT    NOT NULL DEFAULT (''),
   mode_of_birth_delivery         TINYTEXT    NOT NULL DEFAULT (''),
   blood_type                     TINYTEXT    NOT NULL DEFAULT (''),
-  family_medical_history         TINYTEXT    NOT NULL DEFAULT ('')
-) ENGINE=InnoDB;
+  family_medical_history         TINYTEXT    NOT NULL DEFAULT (''),
+  FOREIGN KEY (last_modified_by) REFERENCES users (user_id)
+) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 # hvp:tpt-abcdef
 CREATE TABLE IF NOT EXISTS timepoints (
-  uuid                                    VARCHAR(50) NOT NULL DEFAULT '',
+  uuid                                    VARCHAR(50) NOT NULL UNIQUE,
+  last_modified_by                        INTEGER     NOT NULL,
   participant_uid                         VARCHAR(50) NOT NULL PRIMARY KEY,
   timepoint_uid                           VARCHAR(50) NOT NULL DEFAULT '',
-  age                                     DOUBLE      NOT NULL DEFAULT -1,
+  age                                     TINYTEXT    NOT NULL DEFAULT (''),
   age_units                               TINYTEXT    NOT NULL DEFAULT (''),
   age_range                               TINYTEXT    NOT NULL DEFAULT (''),
   state_or_province_of_residence          TINYTEXT    NOT NULL DEFAULT (''),
   vital_status                            TINYTEXT    NOT NULL DEFAULT (''),
-  weight                                  DOUBLE      NOT NULL DEFAULT -1,
+  weight                                  TINYTEXT    NOT NULL DEFAULT (''),
   weight_units                            TINYTEXT    NOT NULL DEFAULT (''),
-  height                                  DOUBLE      NOT NULL DEFAULT -1,
+  height                                  TINYTEXT    NOT NULL DEFAULT (''),
   height_units                            TINYTEXT    NOT NULL DEFAULT (''),
-  bmi                                     DOUBLE      NOT NULL DEFAULT -1,
-  number_of_household_members             INTEGER     NOT NULL DEFAULT -1,
+  bmi                                     TINYTEXT    NOT NULL DEFAULT (''),
+  number_of_household_members             TINYTEXT    NOT NULL DEFAULT (''),
   animal_exposure                         TINYTEXT    NOT NULL DEFAULT (''),
   exposure_animal_type                    TEXT        NOT NULL DEFAULT (''),
   family_income                           TINYTEXT    NOT NULL DEFAULT (''),
@@ -79,8 +81,8 @@ CREATE TABLE IF NOT EXISTS timepoints (
   seasonal_vaccinations                   TEXT        NOT NULL DEFAULT (''),
   alcohol_consumption                     TINYTEXT    NOT NULL DEFAULT (''),
   cigarette_smoking                       TINYTEXT    NOT NULL DEFAULT (''),
-  former_pack_years                       DOUBLE      NOT NULL DEFAULT -1,
-  current_pack_years                      DOUBLE      NOT NULL DEFAULT -1,
+  former_pack_years                       TINYTEXT    NOT NULL DEFAULT (''),
+  current_pack_years                      TINYTEXT    NOT NULL DEFAULT (''),
   other_tobacco_exposure                  TEXT        NOT NULL DEFAULT (''),
   vaping_behavior                         TEXT        NOT NULL DEFAULT (''),
   cannabis                                TEXT        NOT NULL DEFAULT (''),
@@ -96,12 +98,14 @@ CREATE TABLE IF NOT EXISTS timepoints (
   soc_det_health_comment                  TEXT        NOT NULL DEFAULT (''),
   acute_health_status_at_sampling         TINYTEXT    NOT NULL DEFAULT (''),
   acute_health_status_at_sampling_comment TEXT        NOT NULL DEFAULT (''),
-  time_last_toothbrush                    DOUBLE      NOT NULL DEFAULT -1
-) ENGINE=InnoDB;
+  time_last_toothbrush                    TINYTEXT    NOT NULL DEFAULT (''),
+  FOREIGN KEY (last_modified_by) REFERENCES users (user_id)
+) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 # hvp:sam-abcdef
 CREATE TABLE IF NOT EXISTS samples (
-  uuid                     VARCHAR(50) NOT NULL DEFAULT '',
+  uuid                     VARCHAR(50) NOT NULL UNIQUE,
+  last_modified_by         INTEGER     NOT NULL,
   sample_uid               VARCHAR(50) NOT NULL PRIMARY KEY,
   timepoint_uid            VARCHAR(50) NOT NULL DEFAULT '',
   lab                      TINYTEXT    NOT NULL DEFAULT (''),
@@ -121,21 +125,20 @@ CREATE TABLE IF NOT EXISTS samples (
   sample_additive          TINYTEXT    NOT NULL DEFAULT (''),
   control_sample_id        TINYTEXT    NOT NULL DEFAULT (''),
   sample_processing        TINYTEXT    NOT NULL DEFAULT (''),
-  sample_transit_temp      DOUBLE      NOT NULL DEFAULT (''),
+  sample_transit_temp      TINYTEXT    NOT NULL DEFAULT (''),
   sample_transit_duration  TINYTEXT    NOT NULL DEFAULT (''),
   stool_type               TINYTEXT    NOT NULL DEFAULT (''),
   self_collection          TINYTEXT    NOT NULL DEFAULT (''),
   is_control_sample        TINYTEXT    NOT NULL DEFAULT (''),
   negative_control_type    TINYTEXT    NOT NULL DEFAULT (''),
-  postive_control_type     TINYTEXT    NOT NULL DEFAULT ('')
-) ENGINE=InnoDB;
+  postive_control_type     TINYTEXT    NOT NULL DEFAULT (''),
+  FOREIGN KEY (last_modified_by) REFERENCES users (user_id)
+) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 
 INSERT INTO users (full_name, affiliation, email, password, added_by)
-  VALUES ('Daniel Smith', 'BCM', 'dpsmith@bcm.edu', '$2a$12$Hfj7shdBenM6oJcSJm7CLeVac44mYfb3uAL9T2c9zTigXB1SBwOKO', 1);
+  VALUES ('Daniel Smith', 'BCM', 'dpsmith@bcm.edu', '$7$C6..../....XzwK5ceDoM1kjl341TPT6UzbP8wCyjWtXxRJHoUyv8B$ktk/WHrp8irF7pIS3BOS.R.vrSeDRK5y2wJ.pIrDio.', 1);
 
-CREATE UNIQUE INDEX users_idx1 ON users (email);
-CREATE UNIQUE INDEX auth_tokens_idx1 ON auth_tokens (auth_token_sha);
 ALTER TABLE users ADD CONSTRAINT users_fk1 FOREIGN KEY (added_by) REFERENCES users(user_id);
 
 

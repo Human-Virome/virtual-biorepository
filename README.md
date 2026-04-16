@@ -18,11 +18,9 @@ On 'Networking' tab, allow ports 22 (ssh), 80 (http), 443 (https), and 3306 (mys
 sudo bash
 
 # Create 2GB Swap
-fallocate -l 2G /swapfile
-chmod 600 /swapfile
-mkswap /swapfile
-swapon /swapfile
-echo '/swapfile none swap sw 0 0' | tee -a /etc/fstab
+fallocate -l 2G /swapfile && chmod 600 /swapfile
+mkswap /swapfile && swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
 
 # System Updates & Dependencies
 apt update && apt upgrade -y
