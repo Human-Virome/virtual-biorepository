@@ -9,5 +9,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     
-      - name: Run `git pull` on EC2 instance
-        run: curl -so /dev/null https://hvp.jplab.net/api?action=git_pull || true
+      - name: Trigger `git pull` from Lightsail Instance
+        run: curl -so /dev/null https://hvp.jplab.net/api/git_pull || true
