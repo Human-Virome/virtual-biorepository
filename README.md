@@ -12,7 +12,7 @@ be used in submitting sequencing reads to SRA.
 
 An AWS Lightsail Ubuntu 24.04 instance was configured as follows:
 
-* Security group = ports 22, 80, 443, and 3306
+On 'Networking' tab, allow ports 22 (ssh), 80 (http), 443 (https), and 3306 (mysql).
 
 ```bash
 sudo bash
@@ -26,10 +26,11 @@ echo '/swapfile none swap sw 0 0' | tee -a /etc/fstab
 
 # System Updates & Dependencies
 apt update && apt upgrade -y
-apt install -y nginx mariadb-server r-base libcurl4-openssl-dev libssl-dev libxml2-dev
+apt install -y nginx mariadb-server r-base
 snap install aws-cli --classic
-R -e "install.packages('pak', repos='https://cloud.r-project.org')"
-R -e "pak::pak(c('bcrypt', 'DBI', 'jsonlite', 'plumber', 'pool', 'openssl', 'openxlsx2', 'RMariaDB'))"
+R -e "install.packages('pak', repos='https://r-lib.github.io/p/pak/stable/source/linux-gnu/x86_64'); \
+      options(repos = c(CRAN = 'https://packagemanager.posit.co/cran/__linux__/noble/latest'));      \
+      pak::pak(c('bcrypt', 'DBI', 'jsonlite', 'plumber', 'pool', 'openssl', 'openxlsx2', 'RMariaDB'))"
 
 git clone https://github.com/Human-Virome/virtual-biorepository.git /var/www/hvp
 git config --global --add safe.directory /var/www/hvp

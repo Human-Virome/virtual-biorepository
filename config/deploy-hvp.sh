@@ -11,4 +11,5 @@ git pull origin main
 chown -R www-data:www-data /var/www/hvp
 
 # 4. Restart the necessary services
+systemctl daemon-reload
 systemctl restart plumber@8000 plumber@8001 mariadb nginx
