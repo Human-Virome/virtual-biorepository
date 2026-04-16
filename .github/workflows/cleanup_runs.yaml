@@ -1,0 +1,49 @@
+name: Deduplicate Workflow Runs
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 3:00 AM PST every day
+    - cron: '0 11 * * *'
+
+permissions:
+  actions: write
+
+jobs:
+  deduplicate-runs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete older workflow runs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          echo "Fetching runs for $GH_REPO..."
+          
+          # 1. List runs (up to 1000)
+          # 2. Use jq to group them by workflowDatabaseId
+          # 3. Sort each group by databaseId (oldest to newest), then reverse (newest first)
+          # 4. Use .[1:] to drop the first item (the newest run) from the deletion list
+          # 5. Flatten the remaining arrays and extract the databaseIds to delete
+          
+          run_ids=$(gh run list --limit 1000 --json databaseId,workflowDatabaseId -q '
+            group_by(.workflowDatabaseId) | 
+            map(sort_by(.databaseId) | reverse | .[1:]) | 
+            flatten | 
+            .[].databaseId
+          ')
+          
+          if [ -z "$run_ids" ]; then
+            echo "No duplicate runs found to delete."
+            exit 0
+          fi
+
+          echo "Found older runs to delete. Processing..."
+
+          for run_id in $run_ids; do
+            echo "Deleting Run ID: $run_id"
+            gh run delete "$run_id" --repo "$GH_REPO" || echo "Failed to delete $run_id"
+          done
+
+          echo "Cleanup complete."
+          
