@@ -18,6 +18,7 @@ $( document ).ajaxError(function(event, jqXHR, params, thrownError) {
 //___________________________________________________________________
 function api (args) {
   
+  const url = 'api/' + args['action'];
   
   //-------------------------------------------------------
   // Add a spinner to a button until xhr returns.
@@ -42,7 +43,7 @@ function api (args) {
     });
     
     xhr = $.ajax({
-      url         : 'api',
+      url         : url,
       type        : 'POST',
       data        : form_data,
       contentType : false,
@@ -50,7 +51,7 @@ function api (args) {
     });
     
   } else {
-    xhr = $.post('api', payload);
+    xhr = $.post(url, payload);
   }
   
   

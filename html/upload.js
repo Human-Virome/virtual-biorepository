@@ -15,8 +15,9 @@ $( document ).ready(function() {
       $('#md_file_status').html('<span aria-busy="true" aria-invalid="false">validating...</span>');
       
       api({
+        action   : 'metadata_upload'
         file     : 'md_file_input',
-        payload  : { action: 'metadata_upload', save: false },
+        payload  : { save: false },
         callback : function (resp) {
           if (resp['issues']) {
             $('#md_file_issues').html(resp['issues']);
@@ -44,8 +45,9 @@ $( document ).ready(function() {
       $('#md_file_status').html('<span aria-busy="true" aria-invalid="false">saving...</span>');
       
       api({
+        action   : 'metadata_upload'
         file     : 'md_file_input',
-        payload  : { action: 'metadata_upload', save: true },
+        payload  : { save: true },
         callback : function (resp) {
           if (resp['issues']) {
             $('#md_file_save').prop('disabled', false);

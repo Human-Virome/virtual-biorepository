@@ -25,8 +25,8 @@ $( document ).ready(function() {
   
   /* Auto Log In */
   api({
-    callback : update_user,
-    payload  : { action: "token_login" }
+    action   : 'token_login',
+    callback : update_user
   });
 
   
@@ -34,10 +34,10 @@ $( document ).ready(function() {
   $('#login_btn').on('click', function(e) {
 
     api({
+      action   : 'log_in',
       busy     : $(this),
       callback : update_user,
       payload  : { 
-        action   : "log_in",
         email    : $('#email').val(),
         password : $('#password').val() }
     });
@@ -47,7 +47,7 @@ $( document ).ready(function() {
   
   /* Log Out */
   $('#log_out_icon').on('click', function(e) {
-    api({ payload: { action: "log_out" } });
+    api({ action: "log_out" });
     update_user({ auth_token: "" });
   });
   
@@ -62,11 +62,11 @@ $( document ).ready(function() {
   
   $('#my_acct_save').on('click', function(e) {
     api({
+      action   : 'my_acct',
       busy     : $(this),
       modal    : $('#my_acct_modal')[0],
       callback : update_user,
       payload  : {
-        action      : "my_acct", 
         full_name   : $('#full_name').val(),
         affiliation : $('#affiliation').val()
       }
@@ -81,12 +81,10 @@ $( document ).ready(function() {
   
   $('#add_users_save').on('click', function(e) {
     api({
+      action  : 'add_users',
       busy    : $(this),
       modal   : $('#add_users_modal')[0],
-      payload : {
-        action : "add_users", 
-        emails : $('#emails').val()
-      }
+      payload : { emails : $('#emails').val() }
     });
   });
   
@@ -107,12 +105,10 @@ $( document ).ready(function() {
   
   $('#forgot_pw_send').on('click', function(e) {
     api({
+      action  : 'forgot_pw',
       busy    : $(this),
       modal   : $('#forgot_pw_modal')[0],
-      payload : {
-        action : "forgot_pw", 
-        email  : $('#forgot_pw_email').val()
-      }
+      payload : { email : $('#forgot_pw_email').val() }
     });
   });
   
