@@ -18,7 +18,7 @@ invisible(sapply(list.files("R", pattern = "\\.r$", full.names = TRUE), source))
 # Initialize the empty Plumber router.
 pr <- plumber::pr()
 
-pr <- plumber::pr_get(pr, '/req', handler = function (req) { as.list(req$HEADERS) })
+pr <- plumber::pr_get(pr, '/req', handler = function (req) { 'Hello' })
 
 
 # Dynamically mount routes to functions starting with "api_".
