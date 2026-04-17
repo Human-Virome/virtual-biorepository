@@ -45,16 +45,15 @@ api_add_users <- function (auth_token, emails) {
       error = function (e) e$message,
       expr  = {
         
-        email    <- trimws(assert_string(email, 5, 100))
-        if (!grepl('.+@.+\\..+', email)) stop('not an email address')
+        assert_email(email)
 
         sql <- 'SELECT * FROM users WHERE email = ?'
-        res <- db_query(db, sql, 'CAcct1', list(trimws(tolower(email))))
+        res <- db_query(db, sql, 'CAcct1', list(email))
         if (!is.null(res)) stop('account already exists')
 
         password <- random_string(20)
-        sql      <- 'INSERT INTO users (email, password) VALUES (?, ?)'
-        db_query(db, sql, 'CAcct2', list(tolower(email), sodium::password_store(password) ))
+        sql      <- 'INSERT INTO users (email, password, added_by) VALUES (?, ?, ?)'
+        db_query(db, sql, 'CAcct2', list(email, sodium::password_store(password), user$user_id ))
 
         inviter <- ifelse(
           test = nzchar(user$full_name),
@@ -88,19 +87,27 @@ api_add_users <- function (auth_token, emails) {
 }
 
 
-api_my_acct <- function (auth_token, full_name, affiliation) {
+api_my_acct <- function (auth_token, full_name, email, affiliation, password) {
 
-  assert_string(full_name,   3,   100)
-  assert_string(affiliation, 3,   100)
+  assert_string(full_name,   0,   100)
+  assert_string(affiliation, 0,   100)
+  assert_string(password,    0,   100)
+  assert_email(email)
   
   db   <- pool::localCheckout(POOL)
   user <- authenticate(db, auth_token)
 
-  sql <- 'UPDATE users SET full_name = ?, affiliation = ? WHERE user_id = ?'
-  db_query(db, sql, 'UAcct1', list(full_name, affiliation, user$user_id))
+  sql <- 'UPDATE users SET full_name = ?, email = ?, affiliation = ? WHERE user_id = ?'
+  db_query(db, sql, 'UAcct1', list(full_name, email, affiliation, user$user_id))
+  
+  if (nzchar(password)) {
+    sql <- 'UPDATE users SET password = ? WHERE user_id = ?'
+    db_query(db, sql, 'UAcct2', list(sodium::password_store(password), user$user_id))
+  }
   
   return (list(
     full_name   = full_name,
+    email       = email,
     affiliation = affiliation,
     username    = if_empty(full_name, user[['email']]) ))
 }
@@ -108,33 +115,34 @@ api_my_acct <- function (auth_token, full_name, affiliation) {
 
 api_forgot_pw <- function (email) {
 
-  assert_string(email, 3, 100)
+  assert_email(email)
   
   db <- pool::localCheckout(POOL)
 
   sql <- 'SELECT * FROM users WHERE email = ?'
-  res <- db_query(db, sql, 'RPass1', list(trimws(tolower(email))))
+  res <- db_query(db, sql, 'RPass1', list(email))
 
   if (is.null(res))
     stop('Email address not registered.')
 
-  alt_password <- random_string(20)
-  sql <- 'UPDATE users SET alt_password = ? WHERE user_id = ?'
-  db_query(db, sql, 'RPass2', list(sodium::password_store(alt_password), res$user_id))
+  reset_code <- random_string(20)
+  sql <- 'UPDATE users SET reset_code = ? WHERE user_id = ?'
+  db_query(db, sql, 'RPass2', list(sodium::password_store(reset_code), res$user_id))
 
+  url <- paste0("https://hvp.jplab.net/?uid=%s&rc=%s", res$user_id, reset_code)
+  
   send_email(
     to      = res$email, 
     subject = "Password Reset",
     message = sprintf(paste(
       sep = "<br><br>", 
-      "You can now log in with this alternate password: %s",
-      "Once you log in using the alternate password, your old password will no longer work.",
+      "Please <a href='%s'>click here to reset your password</a> or paste this link to a browser: %s",
       "<span style='font-size:11px; font-style:italic'>",
       "If you are not trying to reset your password, this email can be safely ignored.",
-      "</span>"), alt_password ))
+      "</span>"), url, url ))
   
   
-  message <- 'Check your email for your new password.'
+  message <- 'Check your email for a link to reset your password.'
   
   return (list(message = message))
 }
@@ -150,20 +158,45 @@ api_token_login <- function (auth_token) {
       user <- authenticate(db, auth_token)
       list(
         full_name   = user[['full_name']],
+        email       = user[['email']],
+        affiliation = user[['affiliation']], 
+        username    = if_empty(user[['full_name']], user[['email']]) ) })
+}
+
+
+api_reset_code <- function (user_id, reset_code) {
+  
+  assert_string(reset_code, 20, 20)
+  
+  db <- pool::localCheckout(POOL)
+  
+  sql <- 'SELECT * FROM users WHERE email = ?'
+  res <- db_query(db, sql, 'RPass1', list(email))
+  
+  if (is.null(res))
+    stop('Email address not registered.')
+  
+  tryCatch(
+    error = function (e) list(auth_token = ''),
+    expr  = {
+      user <- authenticate(db, auth_token)
+      list(
+        full_name   = user[['full_name']],
+        email       = user[['email']],
         affiliation = user[['affiliation']], 
         username    = if_empty(user[['full_name']], user[['email']]) ) })
 }
 
 
 api_log_in <- function (email, password) {
-
-  assert_string(email,    3, 100)
+  
+  assert_email(email)
   assert_string(password, 3, 100)
   
   db <- pool::localCheckout(POOL)
 
   sql  <- 'SELECT * FROM users WHERE email = ?'
-  user <- db_query(db, sql, 'LIn1', list(trimws(tolower(email))))
+  user <- db_query(db, sql, 'LIn1', list(email))
 
   if (is.null(user))
     stop('Email address not registered.')
@@ -201,6 +234,7 @@ api_log_in <- function (email, password) {
   return (list(
     auth_token  = auth_token,
     full_name   = user[['full_name']],
+    email       = user[['email']],
     affiliation = user[['affiliation']], 
     username    = if_empty(user[['full_name']], user[['email']]) ))
 }
@@ -236,6 +270,13 @@ assert_dbi <- function (db) {
     stop('MySQL connection is class <', paste(collapse='/', class(db)), '>, not DBIConnection.')
   if (!DBI::dbIsValid(db)) stop('MySQL connection is not valid.')
   invisible(db)
+}
+
+assert_email <- function (email) {
+  assert_string(email, 0, 100)
+  if (!isTRUE(grepl("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$", email)))
+    stop(paste0("Assertion failed: '", email, "' is not a valid email address."))
+  invisible(email)
 }
 
 random_string <- function (len) {

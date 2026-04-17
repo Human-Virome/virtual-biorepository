@@ -6,8 +6,8 @@ CREATE TABLE IF NOT EXISTS users (
   full_name         VARCHAR(100) NOT NULL DEFAULT '',
   affiliation       VARCHAR(100) NOT NULL DEFAULT '',
   email             VARCHAR(100) NOT NULL UNIQUE,
-  password          TINYTEXT     NOT NULL,
-  alt_password      TINYTEXT     NOT NULL DEFAULT '',
+  password          CHAR(101)             DEFAULT NULL,
+  reset_code        CHAR(101)             DEFAULT NULL,
   last_login_utc    DATETIME              DEFAULT NULL,
   added_by          INTEGER      NOT NULL,
   added_utc         DATETIME     NOT NULL DEFAULT (UTC_TIMESTAMP())
@@ -137,7 +137,7 @@ CREATE TABLE IF NOT EXISTS samples (
 
 
 INSERT INTO users (full_name, affiliation, email, password, added_by)
-  VALUES ('Daniel Smith', 'BCM', 'dpsmith@bcm.edu', '$7$C6..../....XzwK5ceDoM1kjl341TPT6UzbP8wCyjWtXxRJHoUyv8B$ktk/WHrp8irF7pIS3BOS.R.vrSeDRK5y2wJ.pIrDio.', 1);
+  VALUES ('Daniel Smith', 'BCM', 'dpsmith@bcm.edu', '$7$C6..../....VxFncHtNlaQcYfyx7jlfGqq7OlrX3dU2nfUjItiPxA4$UL8DDeHbkfOcyumhtbKXODkLz2wsHCVioESbLKzB7H9', 1);
 
 ALTER TABLE users ADD CONSTRAINT users_fk1 FOREIGN KEY (added_by) REFERENCES users(user_id);
 

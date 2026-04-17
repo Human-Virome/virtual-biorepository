@@ -83,8 +83,8 @@
           </div>
 
           <div id="login_panel">
-            <input id="email" type="email" placeholder="Email Address" aria-label="Email Address" autocomplete="username"/>
-            <input id="password" type="password" placeholder="Password" aria-label="Password" autocomplete="current-password"/>
+            <input id="login_email" type="email" placeholder="Email Address" aria-label="Email Address" autocomplete="email"/>
+            <input id="login_password" type="password" placeholder="Password" aria-label="Password" autocomplete="current-password"/>
             <button id="login_btn" style="width:100%">Log in</button>
             <hr>
             <div class="grid">
@@ -219,10 +219,14 @@
           <h3>My Account</h3>
         </header>
         <fieldset>
-          <label for="full_name">Full Name</label>
-          <input id="full_name" type="text" placeholder="Full Name" autocomplete="name"/>
-          <label for="affiliation">Affiliation</label>
-          <input id="affiliation" type="text" placeholder="Affiliation" autocomplete="organization"/>
+          <label for="my_acct_full_name">Full Name</label>
+          <input id="my_acct_full_name" type="text" placeholder="Full Name" autocomplete="name"/>
+          <label for="my_acct_email">Email Address</label>
+          <input id="my_acct_email" type="email" placeholder="Email Address" autocomplete="email"/>
+          <label for="my_acct_affiliation">Affiliation</label>
+          <input id="my_acct_affiliation" type="text" placeholder="Affiliation" autocomplete="organization"/>
+          <label for="my_acct_password">New Password (leave blank for no change)</label>
+          <input id="my_acct_password" type="password" placeholder="New Password" autocomplete="new-password"/>
         </fieldset>
         <footer>
           <button class="secondary close_modal">Cancel</button>
@@ -238,8 +242,8 @@
           <h3>Add Users</h3>
         </header>
         <fieldset>
-          <label for="emails">Enter email addresses of new users, one per line.</label>
-          <textarea id="emails" placeholder="Type email addresses here..."></textarea>
+          <label for="add_users_emails">Enter email addresses of new users, one per line.</label>
+          <textarea id="add_users_emails" placeholder="Type email addresses here..."></textarea>
         </fieldset>
         <footer>
           <button class="secondary close_modal">Cancel</button>

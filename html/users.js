@@ -9,8 +9,8 @@ $( document ).ready(function() {
     if (localStorage.getItem('auth_token')) {
       $('#username').text(localStorage.getItem('username'));
       $('body').removeClass('guest');
-      $('#email').val('');
-      $('#password').val('');
+      $('#login_email').val('');
+      $('#login_password').val('');
     }
     else {
       $('body').addClass('guest');
@@ -22,12 +22,31 @@ $( document ).ready(function() {
   
   update_user({});
   
+  const queryString = window.location.search;
+  const urlParams   = new URLSearchParams(queryString);
   
-  /* Auto Log In */
-  api({
-    action   : 'token_login',
-    callback : update_user
-  });
+  /* User arrive here via password reset or invitation email. */
+  if (urlParams.has('rc')) {
+    api({
+      action   : 'reset_login',
+      payload  : {
+        user_id    : urlParams.get('uid'),
+        reset_code : urlParams.get('rc')
+      },
+      callback : function (resp) {
+        $('#set_pw_email').val(resp['email']);
+        $('#set_pw_password').val('');
+        openModal($('#set_pw_modal')[0]);
+      }
+    });
+  }
+  else {
+    /* Auto Log In */
+    api({
+      action   : 'token_login',
+      callback : update_user
+    });
+  }
 
   
   /* Log In */
@@ -38,8 +57,8 @@ $( document ).ready(function() {
       busy     : $(this),
       callback : update_user,
       payload  : { 
-        email    : $('#email').val(),
-        password : $('#password').val() }
+        email    : $('#login_email').val(),
+        password : $('#login_password').val() }
     });
     
   });
@@ -55,8 +74,8 @@ $( document ).ready(function() {
   
   /* My Account */
   $('#my_acct_icon').on('click', function(e) {
-    $('#full_name').val(localStorage.getItem('full_name'));
-    $('#affiliation').val(localStorage.getItem('affiliation'));
+    $('#my_acct_full_name').val(localStorage.getItem('full_name'));
+    $('#my_acct_affiliation').val(localStorage.getItem('affiliation'));
     openModal($('#my_acct_modal')[0]);
   });
   
@@ -67,8 +86,10 @@ $( document ).ready(function() {
       modal    : $('#my_acct_modal')[0],
       callback : update_user,
       payload  : {
-        full_name   : $('#full_name').val(),
-        affiliation : $('#affiliation').val()
+        full_name   : $('#my_acct_full_name').val(),
+        email       : $('#my_acct_email').val(),
+        affiliation : $('#my_acct_affiliation').val(),
+        password    : $('#my_acct_password').val()
       }
     });
   });
@@ -84,7 +105,7 @@ $( document ).ready(function() {
       action  : 'add_users',
       busy    : $(this),
       modal   : $('#add_users_modal')[0],
-      payload : { emails : $('#emails').val() }
+      payload : { emails : $('#add_users_emails').val() }
     });
   });
   
