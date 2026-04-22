@@ -1,293 +1,49 @@
 
 # returns row from `users` as a list
-authenticate <- function (db, auth_token) {
+authenticate <- function (db, req) {
   
-  assert_dbi(db)
-  assert_string(auth_token, 100, 100)
+  oauth_email <- req$HTTP_X_FORWARDED_EMAIL
+  oauth_uid   <- req$HTTP_X_FORWARDED_UID
   
-  auth_token_sha <- sodium::bin2hex(sodium::sha512(sodium::hex2bin(auth_token)))
+  # If the headers are missing return an error
+  if (!isTRUE(nzchar(email)) || !isTRUE(nzchar(uid)))
+    stop("Unauthenticated session")
   
-  sql <- 'DELETE FROM auth_tokens WHERE valid_until_utc < UTC_TIMESTAMP'
-  db_query(db, sql, 'Auth1')
-
-  sql <- 'UPDATE auth_tokens'
-  sql <- paste(sql, 'SET valid_until_utc = DATE_ADD(UTC_TIMESTAMP, INTERVAL 30 DAY)')
-  sql <- paste(sql, 'WHERE auth_token_sha = ?')
-  db_query(db, sql, 'Auth2', list(auth_token_sha))
-
-  sql <- 'SELECT * FROM auth_tokens WHERE auth_token_sha = ?'
-  res <- db_query(db, sql, 'Auth3', list(auth_token_sha))
-
-  if (is.null(res)) stop('Session expired. Please log in again.')
-
-  sql <- 'SELECT * FROM users WHERE user_id = ?'
-  res <- db_query(db, sql, 'Auth4', list(res$user_id))
-
+  
+  sql <- 'SELECT * FROM users WHERE oauth_uid = ?'
+  res <- db_query(db, sql, 'Auth1', list(oauth_uid))
+  
+  
+  # First time logging into the Virtual Biorepository.
+  if (is.null(res)) {
+    
+    sql <- 'INSERT INTO users (oauth_uid, oauth_email) VALUES (?, ?)'
+    db_query(db, sql, 'Auth2', list(oauth_uid, oauth_email))
+    
+    sql <- 'SELECT * FROM users WHERE oauth_uid = ?'
+    res <- db_query(db, sql, 'Auth3', list(oauth_uid))
+  }
+  
+  # Logging in with a different email address than before.
+  else if (!identical(tolower(res$oauth_email), tolower(oauth_email))) {
+    
+    sql <- 'UPDATE users SET oauth_email=? WHERE user_id=?'
+    db_query(db, sql, 'Auth4', list(oauth_email, res$user_id))
+    
+    res$oauth_email <- oauth_email
+  }
+  
+  sql <- 'UPDATE users SET last_login_utc=CURRENT_TIMESTAMP WHERE user_id=?'
+  db_query(db, sql, 'Auth4', list(oauth_email, res$user_id))
+  
   return (res)
 }
 
 
-api_add_users <- function (auth_token, emails) {
+api_whoami <- function (req) {
   
   db   <- pool::localCheckout(POOL)
-  user <- authenticate(db, auth_token)
+  user <- authenticate(db, req)
   
-  emails <- strsplit(emails, '\n', fixed = TRUE)[[1]]
-  emails <- emails[nzchar(emails)]
-  
-  # Maximum emails per second that AWS allows us to send
-  max_rate    <- as.numeric(Sys.getenv('SMTP_MAX_RATE', unset = '10'))
-  emails_sent <- 0
-  
-  results <- lapply(emails, function (email) {
-    
-    tryCatch(
-      error = function (e) e$message,
-      expr  = {
-        
-        assert_email(email)
-
-        sql <- 'SELECT * FROM users WHERE email = ?'
-        res <- db_query(db, sql, 'CAcct1', list(email))
-        if (!is.null(res)) stop('account already exists')
-
-        password <- random_string(20)
-        sql      <- 'INSERT INTO users (email, password, added_by) VALUES (?, ?, ?)'
-        db_query(db, sql, 'CAcct2', list(email, sodium::password_store(password), user$user_id ))
-
-        inviter <- ifelse(
-          test = nzchar(user$full_name),
-          yes  = sprintf('%s (%s)', user$full_name, user$email),
-          no   = user$email )
-        
-        emails_sent <<- emails_sent + 1
-        if (emails_sent %% max_rate == 0) Sys.sleep(1)
-        
-        send_email(
-          to      = email, 
-          subject = "Welcome to HVP's Virtual Biorepository!",
-          message = sprintf(
-            fmt = paste(
-              sep = "<br><br>", 
-              "%s has created an account for you at <https://hvp.jplab.net>.",
-              "This website facilitates uploading metadata for the Human Virome Project, and exporting metadata formatted for SRA submissions.",
-              "You can log in with the following credentials:",
-              "Email Address: %s",
-              "Password: %s" ), inviter, email, password ))
-        
-        'email sent'
-      }
-    )
-
-  })
-  
-  message <- paste0(collapse = '\n', emails, ": ", unlist(results))
-
-  return (list(message = message))
-}
-
-
-api_my_acct <- function (auth_token, full_name, email, affiliation, password) {
-
-  assert_string(full_name,   0,   100)
-  assert_string(affiliation, 0,   100)
-  assert_string(password,    0,   100)
-  assert_email(email)
-  
-  db   <- pool::localCheckout(POOL)
-  user <- authenticate(db, auth_token)
-
-  sql <- 'UPDATE users SET full_name = ?, email = ?, affiliation = ? WHERE user_id = ?'
-  db_query(db, sql, 'UAcct1', list(full_name, email, affiliation, user$user_id))
-  
-  if (nzchar(password)) {
-    sql <- 'UPDATE users SET password = ? WHERE user_id = ?'
-    db_query(db, sql, 'UAcct2', list(sodium::password_store(password), user$user_id))
-  }
-  
-  return (list(
-    full_name   = full_name,
-    email       = email,
-    affiliation = affiliation,
-    username    = if_empty(full_name, user[['email']]) ))
-}
-
-
-api_forgot_pw <- function (email) {
-
-  assert_email(email)
-  
-  db <- pool::localCheckout(POOL)
-
-  sql <- 'SELECT * FROM users WHERE email = ?'
-  res <- db_query(db, sql, 'RPass1', list(email))
-
-  if (is.null(res))
-    stop('Email address not registered.')
-
-  reset_code <- random_string(20)
-  sql <- 'UPDATE users SET reset_code = ? WHERE user_id = ?'
-  db_query(db, sql, 'RPass2', list(sodium::password_store(reset_code), res$user_id))
-
-  url <- paste0("https://hvp.jplab.net/?uid=%s&rc=%s", res$user_id, reset_code)
-  
-  send_email(
-    to      = res$email, 
-    subject = "Password Reset",
-    message = sprintf(paste(
-      sep = "<br><br>", 
-      "Please <a href='%s'>click here to reset your password</a> or paste this link to a browser: %s",
-      "<span style='font-size:11px; font-style:italic'>",
-      "If you are not trying to reset your password, this email can be safely ignored.",
-      "</span>"), url, url ))
-  
-  
-  message <- 'Check your email for a link to reset your password.'
-  
-  return (list(message = message))
-}
-
-
-api_token_login <- function (auth_token) {
-  
-  db <- pool::localCheckout(POOL)
-
-  tryCatch(
-    error = function (e) list(auth_token = ''),
-    expr  = {
-      user <- authenticate(db, auth_token)
-      list(
-        full_name   = user[['full_name']],
-        email       = user[['email']],
-        affiliation = user[['affiliation']], 
-        username    = if_empty(user[['full_name']], user[['email']]) ) })
-}
-
-
-api_reset_code <- function (user_id, reset_code) {
-  
-  assert_string(reset_code, 20, 20)
-  
-  db <- pool::localCheckout(POOL)
-  
-  sql <- 'SELECT * FROM users WHERE email = ?'
-  res <- db_query(db, sql, 'RPass1', list(email))
-  
-  if (is.null(res))
-    stop('Email address not registered.')
-  
-  tryCatch(
-    error = function (e) list(auth_token = ''),
-    expr  = {
-      user <- authenticate(db, auth_token)
-      list(
-        full_name   = user[['full_name']],
-        email       = user[['email']],
-        affiliation = user[['affiliation']], 
-        username    = if_empty(user[['full_name']], user[['email']]) ) })
-}
-
-
-api_log_in <- function (email, password) {
-  
-  assert_email(email)
-  assert_string(password, 3, 100)
-  
-  db <- pool::localCheckout(POOL)
-
-  sql  <- 'SELECT * FROM users WHERE email = ?'
-  user <- db_query(db, sql, 'LIn1', list(email))
-
-  if (is.null(user))
-    stop('Email address not registered.')
-
-
-  # user is switching to a newly emailed password
-  if (nzchar(user$alt_password) && sodium::password_verify(user$alt_password, password)) {
-    sql <- 'UPDATE users SET password=alt_password WHERE user_id = ?'
-    db_query(db, sql, 'LIn2', list(user$user_id))
-    user$password <- user$alt_password
-  }
-
-
-  if (!sodium::password_verify(user$password, password))
-    stop('Incorrect password.')
-  
-  
-  # no longer need the alt_password field's value
-  if (!nzchar(user$alt_password)) {
-    sql <- 'UPDATE users SET alt_password="" WHERE user_id = ?'
-    db_query(db, sql, 'LIn4', list(user$user_id))
-  }
-
-  # create a new auth_token
-  auth_token     <- sodium::bin2hex(sodium::random(50))
-  auth_token_sha <- sodium::bin2hex(sodium::sha512(sodium::hex2bin(auth_token)))
-  sql <- 'INSERT INTO auth_tokens (user_id, auth_token_sha, valid_until_utc)'
-  sql <- paste(sql, 'VALUES (?, ?, DATE_ADD(UTC_TIMESTAMP, INTERVAL 30 DAY))')
-  db_query(db, sql, 'LIn5', list(user$user_id, auth_token_sha))
-
-  # update last login time
-  sql <- 'UPDATE users SET last_login_utc=UTC_TIMESTAMP where user_id=?'
-  db_query(db, sql, 'LIn6', list(user$user_id))
-
-  return (list(
-    auth_token  = auth_token,
-    full_name   = user[['full_name']],
-    email       = user[['email']],
-    affiliation = user[['affiliation']], 
-    username    = if_empty(user[['full_name']], user[['email']]) ))
-}
-
-
-api_log_out <- function (auth_token) {
-
-  assert_string(auth_token, 100, 100)
-  
-  auth_token_sha <- sodium::bin2hex(sodium::sha512(sodium::hex2bin(auth_token)))
-  
-  db  <- pool::localCheckout(POOL)
-  sql <- 'DELETE FROM auth_tokens WHERE auth_token_sha = ?'
-  db_query(db, sql, 'LOut1', list(auth_token_sha))
-  
-  return (list(auth_token = ''))
-}
-
-
-
-assert_string <- function (str, min_len, max_len) {
-  if (!is.character(str))   stop(substitute(str), ' must be a string')
-  if (length(str) != 1)     stop(substitute(str), ' must be a string')
-  if (is.na(str))           stop(substitute(str), ' must be a string')
-  if (nchar(str) < min_len) stop(substitute(str), ' must be at least ', min_len, ' characters long')
-  if (nchar(str) > max_len) stop(substitute(str), ' must be at most ',  max_len, ' characters long')
-  invisible(str)
-}
-
-
-assert_dbi <- function (db) {
-  if (!inherits(db, "DBIConnection"))
-    stop('MySQL connection is class <', paste(collapse='/', class(db)), '>, not DBIConnection.')
-  if (!DBI::dbIsValid(db)) stop('MySQL connection is not valid.')
-  invisible(db)
-}
-
-assert_email <- function (email) {
-  assert_string(email, 0, 100)
-  if (!isTRUE(grepl("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$", email)))
-    stop(paste0("Assertion failed: '", email, "' is not a valid email address."))
-  invisible(email)
-}
-
-random_string <- function (len) {
-  chars <- c(LETTERS, letters, 0:9)
-  rands <- (as.integer(sodium::random(len)) %% 62) + 1
-  paste(collapse = '', chars[rands])
-}
-
-if_empty <- function (val, alt) {
-  if (is.null(val))     return (alt)
-  if (length(val) == 0) return (alt)
-  if (nchar(val) == 0)  return (alt)
-  return (val)
+  return (user)
 }

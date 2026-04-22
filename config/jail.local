@@ -1,0 +1,16 @@
+# fail2ban configuration file
+# Ban IPs for 1 hour if they fail 5 times within a 10-minute window.
+
+[DEFAULT]
+bantime  = 1h
+findtime = 10m
+maxretry = 5
+
+[sshd]
+enabled = true
+
+[nginx-botsearch]
+enabled = true
+
+[mysqld-auth]
+enabled = true

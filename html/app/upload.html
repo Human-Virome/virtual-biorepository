@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Virtual Biorepository - Upload</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <link href="style.css" rel="stylesheet"/>
+</head>
+
+<body>
+  
+    <!--#include virtual="/app/header.html" -->
+
+    <main class="mpa-container">
+        <div id="view-upload">
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <button class="btn-action-secondary">
+                        <span class="material-symbols-outlined">download</span>
+                        Download Template
+                    </button>
+                </div>
+                
+                <div class="status-badge">
+                    <span class="material-symbols-outlined animate-pulse">pending</span>
+                    <span>Waiting for upload...</span>
+                </div>
+
+                <div class="toolbar-right">
+                    <button class="btn-action-primary">
+                        <span class="material-symbols-outlined">upload</span>
+                        Upload Template
+                    </button>
+                    <button class="btn-action-secondary btn-disabled" disabled>
+                        <span class="material-symbols-outlined">save</span>
+                        Save to Repository
+                    </button>
+                </div>
+            </div>
+
+            <div class="workspace">
+                <aside class="sidebar">
+                    <div class="sidebar-search">
+                        <span class="material-symbols-outlined">search</span>
+                        <input placeholder="Search columns..." type="text"/>
+                    </div>
+                    
+                    <div class="sidebar-content">
+                        <div class="column-group">
+                            <h3>Required Columns</h3>
+                            <ul class="column-list">
+                                <li class="column-item border-error">
+                                    <span class="material-symbols-outlined">database</span>
+                                    <span>specimen_id</span>
+                                </li>
+                                <li class="column-item border-error">
+                                    <span class="material-symbols-outlined">calendar_today</span>
+                                    <span>collection_date</span>
+                                </li>
+                                <li class="column-item border-error">
+                                    <span class="material-symbols-outlined">biotech</span>
+                                    <span>tissue_type</span>
+                                </li>
+                            </ul>
+                        </div>
+                        
+                        <div class="column-group">
+                            <h3>Conditional Columns</h3>
+                            <ul class="column-list">
+                                <li class="column-item border-warning">
+                                    <span class="material-symbols-outlined">person</span>
+                                    <span>patient_age</span>
+                                </li>
+                                <li class="column-item border-warning">
+                                    <span class="material-symbols-outlined">monitor_heart</span>
+                                    <span>diagnosis_code</span>
+                                </li>
+                            </ul>
+                        </div>
+                        
+                        <div class="column-group">
+                            <h3>Optional Columns</h3>
+                            <ul class="column-list">
+                                <li class="column-item border-secondary">
+                                    <span class="material-symbols-outlined">science</span>
+                                    <span>preservation_method</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </aside>
+
+                <section class="main-panel">
+                    <div class="instructions-container">
+                        <div class="instructions-header">
+                            <span class="material-symbols-outlined">description</span>
+                            <h2>General Instructions</h2>
+                            <p>Follow these steps to accurately format and upload your metadata template.</p>
+                        </div>
+                        
+                        <div class="instructions-card">
+                            <div class="instruction-step">
+                                <div class="step-number">1</div>
+                                <div class="step-content">
+                                    <h4>Download Master Template</h4>
+                                    <p>Obtain the latest Excel template file using the download action in the top control bar.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="instruction-step">
+                                <div class="step-number">2</div>
+                                <div class="step-content">
+                                    <h4>Populate Data Adhering to Logic</h4>
+                                    <p>Fill the spreadsheet according to the strict color-coding requirements:</p>
+                                    <div class="legend-grid">
+                                        <div class="legend-item">
+                                            <div class="dot dot-error"></div>
+                                            <span>Required</span>
+                                        </div>
+                                        <div class="legend-item">
+                                            <div class="dot dot-warning"></div>
+                                            <span>Conditional</span>
+                                        </div>
+                                        <div class="legend-item">
+                                            <div class="dot dot-secondary"></div>
+                                            <span>Optional</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="instruction-step">
+                                <div class="step-number">3</div>
+                                <div class="step-content">
+                                    <h4>Consult Dictionary</h4>
+                                    <p>Select columns from the sidebar to view detailed descriptions, expected formats, and standardized ontology links (e.g., SNOMED, ICD-10).</p>
+                                </div>
+                            </div>
+                            
+                            <div class="instruction-step">
+                                <div class="step-number">4</div>
+                                <div class="step-content">
+                                    <h4>Upload for Validation</h4>
+                                    <p>Submit your completed file. The system will perform automated checks and highlight any discrepancies before allowing submission to the repository.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+  
+    <!--#include virtual="/app/footer.html" -->
+    
+</body>
+</html>

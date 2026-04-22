@@ -25,7 +25,7 @@ echo '/swapfile none swap sw 0 0' >> /etc/fstab
 
 # System Updates & Dependencies
 apt update && apt upgrade -y
-apt install -y nginx certbot mariadb-server r-base awscli git
+apt install -y nginx certbot mariadb-server r-base awscli git fail2ban
 R -e "install.packages('pak', repos='https://r-lib.github.io/p/pak/stable/source/linux-gnu/x86_64'); \
       options(repos = c(CRAN = 'https://packagemanager.posit.co/cran/__linux__/trixie/latest'));      \
       pak::pak(c('DBI', 'jsonlite', 'plumber', 'pool', 'openxlsx2', 'RMariaDB', 'sodium'))"
@@ -56,6 +56,7 @@ mv /etc/nginx/nginx.conf  /etc/nginx/nginx.conf.bak
 mv /etc/mysql/mariadb.cnf /etc/mysql/mariadb.cnf.bak 
 ln -s /var/www/hvp/config/nginx.conf           /etc/nginx/nginx.conf
 ln -s /var/www/hvp/config/mariadb.cnf          /etc/mysql/mariadb.cnf
+ln -s /var/www/hvp/config/jail.local           /etc/fail2ban/jail.local
 ln -s /var/www/hvp/config/oauth2-proxy.conf    /etc/oauth2-proxy.conf
 ln -s /var/www/hvp/config/oauth2-proxy.service /etc/systemd/system/oauth2-proxy.service
 ln -s /var/www/hvp/config/plumber@.service     /etc/systemd/system/plumber@.service
@@ -70,8 +71,7 @@ systemctl enable --now plumber@8000
 systemctl enable --now plumber@8001
 
 # Restart Services
-systemctl restart mariadb
-systemctl restart nginx
+systemctl restart mariadb nginx fail2ban
 
 mysql -u root < /var/www/hvp/config/database.sql
 ```
