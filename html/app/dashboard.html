@@ -16,12 +16,14 @@
 
     <main class="mpa-container">
         <div class="dashboard-wrapper">
+          
             <div class="dashboard-header">
                 <h1>VBR Dashboard</h1>
                 <p>Welcome back. Overview of your virtual biorepository session and global metrics.</p>
             </div>
 
             <section class="dashboard-grid">
+              
                 <div class="dashboard-card" onclick="window.location.href='upload.html'">
                     <div class="dashboard-card-icon icon-primary">
                         <span class="material-symbols-outlined" style="font-size: 24px;">upload_file</span>
@@ -33,7 +35,7 @@
                     </div>
                 </div>
 
-                <div class="dashboard-card">
+                <div class="dashboard-card" onclick="window.location.href='export.html'">
                     <div class="dashboard-card-icon icon-secondary">
                         <span class="material-symbols-outlined" style="font-size: 24px;">account_tree</span>
                     </div>
@@ -44,7 +46,7 @@
                     </div>
                 </div>
 
-                <div class="dashboard-card">
+                <div class="dashboard-card" onclick="window.location.href='browse.html'">
                     <div class="dashboard-card-icon icon-tertiary">
                         <span class="material-symbols-outlined" style="font-size: 24px;">manage_search</span>
                     </div>
@@ -68,20 +70,17 @@
                     <table class="dashboard-table">
                         <thead>
                             <tr>
-                                <th class="col-sticky th-bg" rowspan="2">INSTITUTION</th>
-                                <th class="text-right" rowspan="2">COHORTS</th>
-                                <th class="text-right" rowspan="2">PARTICIPANTS</th>
-                                <th class="text-center" colspan="3" style="border-bottom: 2px solid var(--text-muted); color: var(--text-main);">SAMPLES</th>
-                            </tr>
-                            <tr>
-                                <th class="th-bg text-right">UPLOADED</th>
-                                <th class="th-bg text-right">BIOSAMPLE IDS</th>
-                                <th class="th-bg text-right">EXPORTED</th>
+                                <th>INSTITUTION</th>
+                                <th class="text-right">COHORTS</th>
+                                <th class="text-right">PARTICIPANTS</th>
+                                <th class="text-right">SAMPLES<br>UPLOADED</th>
+                                <th class="text-right">SAMPLES<br>FINALIZED</th>
+                                <th class="text-right">SAMPLES<br>EXPORTED</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td class="col-sticky">
+                                <td>
                                     <div class="inst-info">
                                         <div class="inst-logo logo-primary">BI</div>
                                         <span class="inst-name">Broad Institute</span>
@@ -94,7 +93,7 @@
                                 <td class="text-right">75,000</td>
                             </tr>
                             <tr class="row-dimmed">
-                                <td class="col-sticky">
+                                <td>
                                     <div class="inst-info">
                                         <div class="inst-logo logo-secondary">BCM</div>
                                         <span class="inst-name">Baylor College of Medicine</span>
@@ -107,7 +106,7 @@
                                 <td class="text-right">35,000</td>
                             </tr>
                             <tr>
-                                <td class="col-sticky">
+                                <td>
                                     <div class="inst-info">
                                         <div class="inst-logo logo-tertiary">WU</div>
                                         <span class="inst-name">Washington University</span>
@@ -120,7 +119,7 @@
                                 <td class="text-right">18,500</td>
                             </tr>
                             <tr class="row-dimmed">
-                                <td class="col-sticky">
+                                <td>
                                     <div class="inst-info">
                                         <div class="inst-logo logo-primary">SU</div>
                                         <span class="inst-name">Stanford University</span>
@@ -135,7 +134,7 @@
                         </tbody>
                         <tfoot>
                             <tr>
-                                <td class="col-sticky">Total</td>
+                                <td>Total</td>
                                 <td class="text-right">29</td>
                                 <td class="text-right">32,570</td>
                                 <td class="text-right">164,500</td>
