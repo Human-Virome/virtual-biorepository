@@ -10,7 +10,7 @@ be used in submitting sequencing reads to SRA.
 
 ## Implementation
 
-An AWS Lightsail Debian 13.3 instance was configured as follows:
+An AWS Lightsail Debian 13.3 1GB memory instance was configured as follows:
 
 On 'Networking' tab, allow ports 22 (ssh), 80 (http), 443 (https), and 3306 (mysql).
 
@@ -30,7 +30,7 @@ R -e "install.packages('pak', repos='https://r-lib.github.io/p/pak/stable/source
       options(repos = c(CRAN = 'https://packagemanager.posit.co/cran/__linux__/trixie/latest'));      \
       pak::pak(c('DBI', 'jsonlite', 'plumber', 'pool', 'openxlsx2', 'RMariaDB', 'sodium'))"
 
-certbot certonly --webroot -w /var/www/html -d hvp.jplab.net --register-unsafely-without-email --agree-tos
+certbot certonly --webroot -w /var/www/html -d metadata.human-virome.org --register-unsafely-without-email --agree-tos
 
 
 # Install OAuth2 Proxy

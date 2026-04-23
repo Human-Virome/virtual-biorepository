@@ -10,4 +10,4 @@ jobs:
     steps:
     
       - name: Trigger `git pull` from Lightsail Instance
-        run: curl -X POST -so /dev/null https://hvp.jplab.net/webhook/git-deploy || true
+        run: curl -X POST -so /dev/null https://metadata.human-virome.org/webhook/git-deploy || true

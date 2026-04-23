@@ -3,7 +3,7 @@
 #' Send an email for email verifications, password resets, etc.
 #' 
 
-footer <- 'sent by the <a href="https://hvp.jplab.net">HVP Virtual Biorepository</a>'
+footer <- 'sent by the <a href="https://metadata.human-virome.org">HVP Virtual Biorepository</a>'
 
 send_email <- function (to, subject, message) {
   
