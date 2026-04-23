@@ -15,4 +15,18 @@
   const id   = path.replace("/app/", "nav-link-").replace(".html", "");
   const el   = document.getElementById(id);
   el.classList.add("active");
+  
+  // Wait for the entire page (including CSS and fonts) to load
+  window.addEventListener('load', function() {
+      const overlay = document.getElementById('loading-overlay');
+      
+      // Start the fade out
+      overlay.style.opacity = '0';
+      
+      // Remove the overlay from the DOM after the transition completes
+      setTimeout(() => {
+          overlay.style.display = 'none';
+          document.body.classList.remove('loading'); // Restore scrolling
+      }, 300); // 300ms matches the CSS transition time
+  });
 </script>
