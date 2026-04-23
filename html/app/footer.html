@@ -9,3 +9,10 @@
         </nav>
     </div>
 </footer>
+
+<script>
+  const path = window.location.pathname;
+  const id   = path.replace("/app/", "nav-link-").replace(".html", "");
+  const el   = document.getElementById(id);
+  id.classList.add("active");
+</script>
