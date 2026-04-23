@@ -1,5 +1,5 @@
-CREATE DATABASE IF NOT EXISTS hvp;
-use hvp;
+CREATE DATABASE IF NOT EXISTS vbr;
+use vbr;
 
 CREATE TABLE IF NOT EXISTS permissions (
   oauth_email      VARCHAR(255) NOT NULL,
@@ -171,7 +171,7 @@ CREATE TABLE IF NOT EXISTS sra (
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 
-CREATE USER 'hvp_local'@'localhost';
-GRANT SELECT, INSERT, UPDATE, DELETE ON hvp.* TO 'hvp_local'@'localhost';
+CREATE USER 'vbr_local'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON vbr.* TO 'vbr_local'@'localhost';
 
 FLUSH PRIVILEGES;

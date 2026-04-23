@@ -1,9 +1,9 @@
 [Unit]
-Description=Watch for HVP webhook trigger file
+Description=Watch for VBR webhook trigger file
 
 [Path]
 # This triggers the service whenever the file is modified or created
-PathModified=/var/www/hvp-update-trigger
+PathModified=/var/www/vbr-update-trigger
 
 [Install]
 WantedBy=multi-user.target

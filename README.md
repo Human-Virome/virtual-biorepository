@@ -47,25 +47,25 @@ echo 'OAUTH2_PROXY_COOKIE_SECRET="your_32_byte_cookie_secret"' >> /etc/oauth2-pr
 chmod 600 /etc/oauth2-proxy.env
 
 
-git clone https://github.com/Human-Virome/virtual-biorepository.git /var/www/hvp
-git config --global --add safe.directory /var/www/hvp
-chown -R www-data:www-data /var/www/hvp
+git clone https://github.com/Human-Virome/virtual-biorepository.git /var/www/vbr
+git config --global --add safe.directory /var/www/vbr
+chown -R www-data:www-data /var/www/vbr
 
 # Apply Configs (Backup defaults first to prevent symlink errors)
 mv /etc/nginx/nginx.conf  /etc/nginx/nginx.conf.bak
 mv /etc/mysql/mariadb.cnf /etc/mysql/mariadb.cnf.bak 
-ln -s /var/www/hvp/config/nginx.conf           /etc/nginx/nginx.conf
-ln -s /var/www/hvp/config/mariadb.cnf          /etc/mysql/mariadb.cnf
-ln -s /var/www/hvp/config/jail.local           /etc/fail2ban/jail.local
-ln -s /var/www/hvp/config/oauth2-proxy.conf    /etc/oauth2-proxy.conf
-ln -s /var/www/hvp/config/oauth2-proxy.service /etc/systemd/system/oauth2-proxy.service
-ln -s /var/www/hvp/config/plumber@.service     /etc/systemd/system/plumber@.service
-ln -s /var/www/hvp/config/hvp-updater.service  /etc/systemd/system/hvp-updater.service
-ln -s /var/www/hvp/config/hvp-updater.path     /etc/systemd/system/hvp-updater.path
+ln -s /var/www/vbr/config/nginx.conf           /etc/nginx/nginx.conf
+ln -s /var/www/vbr/config/mariadb.cnf          /etc/mysql/mariadb.cnf
+ln -s /var/www/vbr/config/jail.local           /etc/fail2ban/jail.local
+ln -s /var/www/vbr/config/oauth2-proxy.conf    /etc/oauth2-proxy.conf
+ln -s /var/www/vbr/config/oauth2-proxy.service /etc/systemd/system/oauth2-proxy.service
+ln -s /var/www/vbr/config/plumber@.service     /etc/systemd/system/plumber@.service
+ln -s /var/www/vbr/config/vbr-updater.service  /etc/systemd/system/vbr-updater.service
+ln -s /var/www/vbr/config/vbr-updater.path     /etc/systemd/system/vbr-updater.path
 
 # Setup Systemd
 systemctl daemon-reload
-systemctl enable --now hvp-updater.path
+systemctl enable --now vbr-updater.path
 systemctl enable --now oauth2-proxy
 systemctl enable --now plumber@8000
 systemctl enable --now plumber@8001
@@ -73,5 +73,5 @@ systemctl enable --now plumber@8001
 # Restart Services
 systemctl restart mariadb nginx fail2ban
 
-mysql -u root < /var/www/hvp/config/database.sql
+mysql -u root < /var/www/vbr/config/database.sql
 ```

@@ -2,10 +2,10 @@
 # Initialize the global database connection pool. 
 POOL <- pool::dbPool(
   drv      = RMariaDB::MariaDB(),
-  dbname   = "hvp",
+  dbname   = "vbr",
   host     = "localhost", 
   port     = 3306,
-  user     = "hvp_local", 
+  user     = "vbr_local", 
   password = "",
   minSize  = 1, 
   maxSize  = 3 )

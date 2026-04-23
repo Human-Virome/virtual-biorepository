@@ -30,7 +30,7 @@ send_email <- function (to, subject, message) {
         command = '/snap/bin/aws', 
         args    = c(
           'ses', 'send-email', 
-          '--from',        shQuote("HVP Virtual Biorepository <hvp-no-reply@jplab.net>"),
+          '--from',        shQuote("HVP Virtual Biorepository <vbr-no-reply@jplab.net>"),
           '--destination', 'file://destination.json', 
           '--message',     'file://message.json' ))
     })
