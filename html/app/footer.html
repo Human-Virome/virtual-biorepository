@@ -1,32 +1,34 @@
-<footer class="site-footer">
-    <div class="container">
-        <div class="footer-brand">
-            <span class="footer-copyright">&copy; 2026 Human Virome Project | Baylor College of Medicine</span>
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-brand">
+                <span class="footer-copyright">&copy; 2026 Human Virome Project | Baylor College of Medicine</span>
+            </div>
+            <nav class="footer-nav">
+                <a href="https://github.com/Human-Virome/virtual-biorepository">GitHub Repository</a>
+                <a href="https://github.com/Human-Virome/virtual-biorepository/issues">Issue Tracker</a>
+            </nav>
         </div>
-        <nav class="footer-nav">
-            <a href="https://github.com/Human-Virome/virtual-biorepository">GitHub Repository</a>
-            <a href="https://github.com/Human-Virome/virtual-biorepository/issues">Issue Tracker</a>
-        </nav>
-    </div>
-</footer>
-
-<script>
-  const path = window.location.pathname;
-  const id   = path.replace("/app/", "nav-link-").replace(".html", "");
-  const el   = document.getElementById(id);
-  el.classList.add("active");
-  
-  // Wait for the entire page (including CSS and fonts) to load
-  window.addEventListener('load', function() {
-      const overlay = document.getElementById('loading-overlay');
+    </footer>
+    
+    <script>
       
-      // Start the fade out
-      overlay.style.opacity = '0';
+      // Wait for the entire page (including CSS and fonts) to load
+      window.addEventListener('load', function() {
+        
+        // Add `active` class to appropriate `nav-link`
+        const page = document.title.replace('VBR - ', '');
+        document.querySelectorAll('.nav-link').forEach(link => {
+            if (link.textContent === page) {
+                link.classList.add('active');
+            }
+        });
       
-      // Remove the overlay from the DOM after the transition completes
-      setTimeout(() => {
-          overlay.style.display = 'none';
-          document.body.classList.remove('loading'); // Restore scrolling
-      }, 300); // 300ms matches the CSS transition time
-  });
-</script>
+        // Remove the overlay from the DOM
+        const overlay = document.getElementById('loading-overlay');
+        overlay.style.opacity = '0';
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            document.body.classList.remove('loading'); // Restore scrolling
+        }, 300); // 300ms matches the CSS transition time
+      });
+    </script>
