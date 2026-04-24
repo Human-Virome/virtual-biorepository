@@ -15,13 +15,16 @@
             </div>
             <div class="header-right dropdown">
                 <button class="btn btn-outline dropdown-toggle" id="user-menu-btn" aria-haspopup="true" aria-expanded="false">
+                    <!--# echo var="oauth_email" -->
                     <span class="material-symbols-outlined" style="font-size: 18px; margin-left: 4px;">expand_more</span>
                 </button>
                 
                 <div class="dropdown-menu" id="user-dropdown-menu">
+                    <!--
                     <a href="/app/profile.html" class="dropdown-item">Profile</a>
                     <a href="/app/settings.html" class="dropdown-item">Settings</a>
                     <div class="dropdown-divider"></div>
+                    -->
                     <a href="/oauth2/sign_out" class="dropdown-item text-error">
                         <span class="material-symbols-outlined text-sm">logout</span>
                         Log Out
