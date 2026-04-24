@@ -11,6 +11,31 @@
     </footer>
     
     <script>
+        // User Email Dropdown / Log Out Link
+        document.addEventListener('DOMContentLoaded', () => {
+          const toggleBtn = document.getElementById('user-menu-btn');
+          const dropdownMenu = document.getElementById('user-dropdown-menu');
+      
+          // Toggle menu on button click
+          toggleBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              dropdownMenu.classList.toggle('show');
+              
+              // Update ARIA state for accessibility
+              const isExpanded = dropdownMenu.classList.contains('show');
+              toggleBtn.setAttribute('aria-expanded', isExpanded);
+          });
+      
+          // Close the menu if clicking outside of it
+          window.addEventListener('click', (e) => {
+              if (!e.target.closest('.dropdown')) {
+                  if (dropdownMenu.classList.contains('show')) {
+                      dropdownMenu.classList.remove('show');
+                      toggleBtn.setAttribute('aria-expanded', 'false');
+                  }
+              }
+          });
+      });
       
       // Wait for the entire page (including CSS and fonts) to load
       window.addEventListener('load', function() {
