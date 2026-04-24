@@ -259,35 +259,23 @@
         }
 
         /* --- Footer --- */
-        .site-footer {
+        footer {
             background-color: var(--header-bg);
             border-top: 1px solid var(--header-border);
             margin-top: auto;
-        }
-
-        .site-footer .container {
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 1.5rem;
-            padding-top: 2rem;
-            padding-bottom: 2rem;
+            padding: 2rem;
         }
 
-        .footer-nav {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .footer-nav a, .footer-copyright {
+        footer nav, footer nav a {
             color: #64748b;
             font-size: 0.75rem;
         }
 
-        .footer-nav a:hover {
+        footer nav a:hover {
             color: #f1f5f9;
         }
 
@@ -301,7 +289,7 @@
             .features-grid {
                 grid-template-columns: repeat(3, 1fr);
             }
-            .site-footer .container {
+            footer {
                 flex-direction: row;
                 justify-content: space-between;
             }
@@ -374,20 +362,19 @@
 
     </main>
 
-    <footer class="site-footer">
-        <div class="container">
-            <nav class="footer-nav">
-                <span class="footer-copyright">&copy; 2026</span>
-                <a href="https://human-virome.org/">Human Virome Project</a> 
-                <span class="footer-copyright">|</span>
+    <footer>
+            <nav>
+                &copy; 2026 &nbsp;
+                <a href="https://human-virome.org/">Human Virome Project</a>
+                &nbsp; | &nbsp;
                 <a href="https://www.bcm.edu/">Baylor College of Medicine</a>
             </nav>
             
-            <nav class="footer-nav">
+            <nav>
                 <a href="https://github.com/Human-Virome/virtual-biorepository">GitHub Repository</a>
-                <a href="https://github.com/Human-Virome/virtual-biorepository/issues">Issue Tracker</a>
+                &nbsp; &nbsp;
+                <a href="https://github.com/Human-Virome/virtual-biorepository/issues">Report a Problem</a>
             </nav>
-        </div>
     </footer>
     
     <script>
