@@ -127,7 +127,7 @@ CREATE TABLE IF NOT EXISTS samples (
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 
-CREATE TABLE IF NOT EXISTS sra (
+CREATE TABLE IF NOT EXISTS biosamples (
   sample_uid                  VARCHAR(50) NOT NULL PRIMARY KEY,
   request_date                TIMESTAMP   DEFAULT NULL,
   export_date                 TIMESTAMP   DEFAULT NULL,
