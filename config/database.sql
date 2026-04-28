@@ -171,7 +171,7 @@ CREATE TABLE IF NOT EXISTS biosamples (
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 
-CREATE USER 'vbr_local'@'localhost';
-GRANT SELECT, INSERT, UPDATE, DELETE ON vbr.* TO 'vbr_local'@'localhost';
+CREATE USER 'vbr'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON vbr.* TO 'vbr'@'localhost';
 
 FLUSH PRIVILEGES;

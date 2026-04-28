@@ -28,7 +28,7 @@ apt update && apt upgrade -y
 apt install -y nginx certbot mariadb-server r-base awscli git fail2ban
 R -e "install.packages('pak', repos='https://r-lib.github.io/p/pak/stable/source/linux-gnu/x86_64'); \
       options(repos = c(CRAN = 'https://packagemanager.posit.co/cran/__linux__/trixie/latest'));      \
-      pak::pak(c('DBI', 'jsonlite', 'plumber', 'pool', 'openxlsx2', 'RMariaDB', 'sodium'))"
+      pak::pak(c('DBI', 'httpuv', 'jsonlite', 'pool', 'readxl', 'RMariaDB', 'sodium', 'webutils'))"
 
 certbot certonly --webroot -w /var/www/html -d metadata.human-virome.org --register-unsafely-without-email --agree-tos
 
@@ -59,7 +59,7 @@ ln -s /var/www/vbr/config/mariadb.cnf          /etc/mysql/mariadb.cnf
 ln -s /var/www/vbr/config/jail.local           /etc/fail2ban/jail.local
 ln -s /var/www/vbr/config/oauth2-proxy.conf    /etc/oauth2-proxy.conf
 ln -s /var/www/vbr/config/oauth2-proxy.service /etc/systemd/system/oauth2-proxy.service
-ln -s /var/www/vbr/config/plumber@.service     /etc/systemd/system/plumber@.service
+ln -s /var/www/vbr/config/httpuv@.service      /etc/systemd/system/httpuv@.service
 ln -s /var/www/vbr/config/vbr-updater.service  /etc/systemd/system/vbr-updater.service
 ln -s /var/www/vbr/config/vbr-updater.path     /etc/systemd/system/vbr-updater.path
 
@@ -67,8 +67,8 @@ ln -s /var/www/vbr/config/vbr-updater.path     /etc/systemd/system/vbr-updater.p
 systemctl daemon-reload
 systemctl enable --now vbr-updater.path
 systemctl enable --now oauth2-proxy
-systemctl enable --now plumber@8000
-systemctl enable --now plumber@8001
+systemctl enable --now httpuv@8000
+systemctl enable --now httpuv@8001
 
 # Restart Services
 systemctl restart mariadb nginx fail2ban

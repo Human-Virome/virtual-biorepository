@@ -1,12 +1,12 @@
 [Unit]
-Description=Plumber API on port %i
+Description=httpuv on port %i
 After=network.target
 
 [Service]
 Type=simple
 User=www-data
 Group=www-data
-Environment="PLUMBER_PORT=%i"
+Environment="HTTPUV_PORT=%i"
 WorkingDirectory=/var/www/vbr/api
 ExecStart=/usr/bin/Rscript handler.r
 Restart=always
