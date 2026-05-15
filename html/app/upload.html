@@ -407,7 +407,9 @@
                         "url": "Must be a valid permanent URL.",
                         "text": "Accepts freeform text or complex formatting described in the definition.",
                         "mock": "Accepts the exact string \"mock\" for synthetic/mock inputs.",
-                        "uid": "The data generator's internal ID combined with their center's assigned prefix."
+                        "uid": "The data generator's internal ID combined with their center's assigned prefix.",
+                        "mode": "Accepts one of the following \"mode of administration\" suffixes: <span class='prefix-tag'>:oral</span>, <span class='prefix-tag'>:topical</span>, <span class='prefix-tag'>:injected</span>, <span class='prefix-tag'>:intranasal</span>, <span class='prefix-tag'>:inhalation</span>, <span class='prefix-tag'>:sublingual</span>, <span class='prefix-tag'>:subdermal</span>, <span class='prefix-tag'>:transdermal</span>, <span class='prefix-tag'>:ophthalmic</span>, <span class='prefix-tag'>:rectal</span>, <span class='prefix-tag'>:vaginal</span>.",
+                        "freq": "Accepts one of the following \"frequency of use\" suffixes: <span class='prefix-tag'>:daily</span>, <span class='prefix-tag'>:weekly</span>, <span class='prefix-tag'>:occasionally</span>, <span class='prefix-tag'>:prior_months</span>, or <span class='prefix-tag'>:prior_years</span>. \"Occasionally\" is defined here as 1-3 times per month or less. Use \"prior_months\" or \"prior_years\" when the last use was at least one month or year, respectively, prior to sample collection."
                     };
                     
                     fieldData.fmt.forEach(f => {

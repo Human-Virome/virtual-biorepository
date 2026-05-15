@@ -9,9 +9,13 @@ https://www.ncbi.nlm.nih.gov/biosample/docs/packages/MIMS.me.human-associated.6.
 5/5/2026
   - mode_of_administration: Allow multiple values? How to map to multiple prescriptions?
   - lifetime_vaccinations and seasonal_vaccinations: Ok to use CVX IDs?
-  - sample_transit_duration and samp_store_dur: What units?
+  - sample_transit_duration and samp_store_dur: What units? -> hours
   - lab: CV needed.
 
 5/14/2026
-  - library_aliqout_id: Unclear what this is. Apply uid rules?
+  - library_aliqout_id: Unclear what this is. Apply uid rules? - Yes
   - sequencing_instrument_model: Far fewer CV entries than sequencing_platform.
+
+combine abx systemic and topical
+apply colon seps as optional DB ID addon/suffix
+
