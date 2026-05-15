@@ -1364,7 +1364,7 @@ const vbrDictionary = {
             "prefix":["DB"],
             "urls":{"DrugBank Collection":"https://go.drugbank.com/drugs"},
             "examples":[
-                "DB00126"
+                "DB00126",
                 "DB01373;DBX_multivitamin",
                 "Ascorbic Acid / Vitamin C [DB00126]",
                 "Beta carotene [DB06755]",
