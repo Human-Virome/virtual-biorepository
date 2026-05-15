@@ -16,9 +16,9 @@ CREATE TABLE IF NOT EXISTS uid_suffixes (
 
 # hvp:ptt-abcdef
 CREATE TABLE IF NOT EXISTS participants (
-  uuid                           VARCHAR(50) NOT NULL UNIQUE,
-  participant_uid                VARCHAR(50) NOT NULL PRIMARY KEY,
-  cohort_id                      VARCHAR(50) NOT NULL DEFAULT '',
+  uuid                           VARCHAR(50)  NOT NULL UNIQUE,
+  participant_uid                VARCHAR(255) NOT NULL PRIMARY KEY,
+  cohort_id                      VARCHAR(255) NOT NULL DEFAULT '',
   host_taxon                     TINYTEXT,
   race                           TINYTEXT,
   ethnicity                      TINYTEXT,
@@ -34,10 +34,10 @@ CREATE TABLE IF NOT EXISTS participants (
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 # hvp:tpt-abcdef
-CREATE TABLE IF NOT EXISTS timepoints (
-  uuid                                    VARCHAR(50) NOT NULL UNIQUE,
-  participant_uid                         VARCHAR(50) NOT NULL,
-  timepoint_uid                           VARCHAR(50) NOT NULL PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS events (
+  uuid                                    VARCHAR(50)  NOT NULL UNIQUE,
+  event_uid                               VARCHAR(255) NOT NULL PRIMARY KEY,
+  participant_uid                         VARCHAR(255) NOT NULL,
   age                                     TINYTEXT,
   age_units                               TINYTEXT,
   age_range                               TINYTEXT,
@@ -47,7 +47,6 @@ CREATE TABLE IF NOT EXISTS timepoints (
   weight_units                            TINYTEXT,
   height                                  TINYTEXT,
   height_units                            TINYTEXT,
-  bmi                                     TINYTEXT,
   number_of_household_members             TINYTEXT,
   animal_exposure                         TINYTEXT,
   exposure_animal_type                    TEXT,
@@ -68,7 +67,9 @@ CREATE TABLE IF NOT EXISTS timepoints (
   supplements_or_vitamins_or_herbal       TEXT,
   lifetime_vaccinations                   TEXT,
   seasonal_vaccinations                   TEXT,
+  alcohol_activity_collected              TINYTEXT,
   alcohol_consumption                     TINYTEXT,
+  tobacco_use_collected                   TINYTEXT,
   cigarette_smoking                       TINYTEXT,
   former_pack_years                       TINYTEXT,
   current_pack_years                      TINYTEXT,
@@ -96,8 +97,9 @@ CREATE TABLE IF NOT EXISTS timepoints (
 CREATE TABLE IF NOT EXISTS samples (
   uuid                     VARCHAR(50)  NOT NULL UNIQUE,
   biosample_id             VARCHAR(50)  NOT NULL DEFAULT '',
-  timepoint_uid            VARCHAR(50)  NOT NULL DEFAULT '',
-  sample_uid               VARCHAR(50)  NOT NULL PRIMARY KEY,
+  sample_uid               VARCHAR(255) NOT NULL PRIMARY KEY,
+  participant_uid          VARCHAR(255) NOT NULL DEFAULT '',
+  event_uid                VARCHAR(255) NOT NULL DEFAULT '',
   lab                      TINYTEXT,
   sample_type              TINYTEXT,
   sample_subtype           TINYTEXT,
@@ -123,7 +125,64 @@ CREATE TABLE IF NOT EXISTS samples (
   negative_control_type    TINYTEXT,
   postive_control_type     TINYTEXT,
   last_modified_by         VARCHAR(255) NOT NULL,
-  INDEX (timepoint_uid)
+  INDEX (participant_uid),
+  INDEX (event_uid)
+) ENGINE=InnoDB WITH SYSTEM VERSIONING;
+
+# hvp:lib-abcdef
+CREATE TABLE IF NOT EXISTS libraries (
+  uuid                        VARCHAR(50) NOT NULL UNIQUE,
+  library_uid                 VARCHAR(255) NOT NULL PRIMARY KEY,
+  bioproject_id               TINYTEXT,
+  library_type                TINYTEXT,
+  library_aliquot             TINYTEXT,
+  parent_library_uids         TEXT,
+  technique                   TINYTEXT,
+  subspecimen_type            TINYTEXT,
+  library_processing_url      TINYTEXT,
+  samp_store_dur              TINYTEXT,
+  control_library_uid         TEXT,
+  is_control_library          TINYTEXT,
+  library_pos_cont_type       TINYTEXT,
+  library_neg_cont_type       TINYTEXT,
+  paired_or_single            TINYTEXT,
+  sequencing_platform         TINYTEXT,
+  sequencing_instrument_model TINYTEXT,
+  last_modified_by            VARCHAR(255) NOT NULL,
+  INDEX (library_uid)
+) ENGINE=InnoDB WITH SYSTEM VERSIONING;
+
+# hvp:fil-abcdef
+CREATE TABLE IF NOT EXISTS files (
+  uuid                        VARCHAR(50)  NOT NULL UNIQUE,
+  file_uniq_name              VARCHAR(255) NOT NULL PRIMARY KEY,
+  library_uid                 VARCHAR(255),
+  library_aliqout_id          TINYTEXT,
+  bioproject_id               TINYTEXT,
+  data_type                   TINYTEXT,
+  file_format                 TINYTEXT,
+  md5_checksum                TINYTEXT,
+  file_derived_from           TEXT,
+  analysis_uid                VARCHAR(255),
+  access                      TINYTEXT,
+  data_use_condition          TINYTEXT,
+  data_use_specific_limit     TINYTEXT,
+  last_modified_by            VARCHAR(255) NOT NULL,
+  INDEX (library_uid)
+) ENGINE=InnoDB WITH SYSTEM VERSIONING;
+
+# hvp:ana-abcdef
+CREATE TABLE IF NOT EXISTS analyses (
+  uuid                   VARCHAR(50)  NOT NULL UNIQUE,
+  analysis_uid           VARCHAR(255) NOT NULL PRIMARY KEY,
+  analysis_description   TEXT,
+  pipeline_name          TINYTEXT,
+  pipeline_description   TEXT,
+  pipeline_version       TINYTEXT,
+  sop_url                TINYTEXT,
+  community_workspace    TINYTEXT,
+  pipeline_container_url TINYTEXT,
+  last_modified_by       VARCHAR(255) NOT NULL
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 
@@ -168,6 +227,22 @@ CREATE TABLE IF NOT EXISTS biosamples (
   social_det_collected        TINYTEXT,
   time_last_toothbrush        TINYTEXT,
   last_modified_by            VARCHAR(255) NOT NULL
+) ENGINE=InnoDB WITH SYSTEM VERSIONING;
+
+CREATE TABLE IF NOT EXISTS sra (
+  library_uid          VARCHAR(255) NOT NULL PRIMARY KEY,
+  export_date          TIMESTAMP    DEFAULT NULL,
+  biosample_id         VARCHAR(50)  UNIQUE,
+  bioproject_accession TINYTEXT,    
+  title                TINYTEXT,         
+  library_strategy     TINYTEXT,                    
+  library_source       TINYTEXT,                  
+  library_selection    TINYTEXT,                     
+  library_layout       TINYTEXT,                  
+  platform             TINYTEXT,            
+  instrument_model     TINYTEXT,                    
+  Biosample_accession  TINYTEXT,                       
+  last_modified_by     VARCHAR(255) NOT NULL
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 

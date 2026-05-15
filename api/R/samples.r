@@ -1,4 +1,4 @@
-samples_import_wb <- function (db, user, wb) {
+import_samples <- function (db, data) {
   
-  invisible()
+  
 }

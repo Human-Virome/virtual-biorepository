@@ -1,8 +1,4 @@
 
-# Global functions
-unbox <- jsonlite::unbox
-
-
 # Load all logic and endpoint functions.
 invisible(sapply(list.files("R", pattern = "\\.r$", full.names = TRUE), source))
 

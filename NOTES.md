@@ -3,3 +3,15 @@
 
 * Kemi is working from the MIMS packages/templates; all human-like ones combined
 https://www.ncbi.nlm.nih.gov/biosample/docs/packages/MIMS.me.human-associated.6.0/
+
+
+
+5/5/2026
+  - mode_of_administration: Allow multiple values? How to map to multiple prescriptions?
+  - lifetime_vaccinations and seasonal_vaccinations: Ok to use CVX IDs?
+  - sample_transit_duration and samp_store_dur: What units?
+  - lab: CV needed.
+
+5/14/2026
+  - library_aliqout_id: Unclear what this is. Apply uid rules?
+  - sequencing_instrument_model: Far fewer CV entries than sequencing_platform.

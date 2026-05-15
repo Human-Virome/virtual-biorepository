@@ -1,37 +1,377 @@
 
-
-participants_import_wb <- function (db, user, wb) {
+import_participants <- function (db, env) {
   
   tryCatch(
-    error = function (e) {
-      msg <- 'Unable to process the `%s` worksheet.\n%s'
-      stop(sprintf(msg, 'participants', e$message))
-    },
-    expr = {
-      
-      df <- read_worksheet(wb, 'participants')
-      if (is.null(df)) return (NULL)
-      
-      assert_colnames(
-        present  = colnames(df),
-        required = c(
-          'participant_uid', 'cohort_id', 'host_taxon', 'race', 'ethnicity', 
-          'sex_at_birth', 'country_of_birth', 'country_of_childhood_residence' ),
-        optional = c(
-          'gestational_age_at_birth', 'mode_of_birth_delivery', 'blood_type', 
-          'family_medical_history' ))
-      
-      assert_ids_do_not_exist(db, 'participants', 'participant_uid', df$participant_uid)
-      
-      
+    error = function (e) { stop(paste('participants:', e$message)) },
+    expr  = {
+      validate_par_participant_uid(db, env)
+      validate_par_host_taxon(db, env)
+      validate_par_race(db, env)
+      validate_par_ethnicity(db, env)
+      validate_par_sex_at_birth(db, env)
+      validate_par_state_or_province_of_residence(db, env)
+      validate_par_country(db, env, 'country_of_birth')
+      validate_par_country(db, env, 'country_of_childhood_residence')
   })
   
   invisible()
 }
 
 
-participants_export_wb <- function (db, user, wb) {
-  
-  invisible()
+validate_par_participant_uid <- function (db, env) {
+  stopifnot(hasName(env, 'participant_uid'))
+  assert_ids_do_not_exist(db, 'participants', 'participant_uid', env$participant_uid)
 }
+
+
+validate_par_host_taxon <- function (db, env) {
+  format_ids(env, 'host_taxon', 'NCBI:txid\\d+', multi = FALSE)
+}
+
+
+validate_par_race <- function (db, env) {
+  cv <- c(
+    'Asian',
+    'Black or African American',
+    'American Indian/Alaska Native',
+    'Native Hawaiian or Other Pacific Islander',
+    'Middle Eastern or North African',
+    'White',
+    'Multi-racial',
+    'unavailable' )
+  match_cv(env, 'race', cv)
+}
+
+
+validate_par_ethnicity <- function (db, env) {
+  cv <- c(
+    'Hispanic or Latino',
+    'Not Hispanic or Latino',
+    'unavailable' )
+  match_cv(env, 'ethnicity', cv)
+}
+
+
+validate_par_sex_at_birth <- function (db, env) {
+  cv <- c(
+    'male',
+    'female',
+    'intersex',
+    'unavailable' )
+  match_cv(env, 'sex_at_birth', cv)
+}
+
+
+validate_par_state_or_province_of_residence <- function (db, env) {
+  cv <- c(
+    "Alabama",
+    "Alaska",
+    "Arizona",
+    "Arkansas",
+    "California",
+    "Colorado",
+    "Connecticut",
+    "Delaware",
+    "Florida",
+    "Georgia",
+    "Hawaii",
+    "Idaho",
+    "Illinois",
+    "Indiana",
+    "Iowa",
+    "Kansas",
+    "Kentucky",
+    "Louisiana",
+    "Maine",
+    "Maryland",
+    "Massachusetts",
+    "Michigan",
+    "Minnesota",
+    "Mississippi",
+    "Missouri",
+    "Montana",
+    "Nebraska",
+    "Nevada",
+    "New Hampshire",
+    "New Jersey",
+    "New Mexico",
+    "New York",
+    "North Carolina",
+    "North Dakota",
+    "Ohio",
+    "Oklahoma",
+    "Oregon",
+    "Pennsylvania",
+    "Rhode Island",
+    "South Carolina",
+    "South Dakota",
+    "Tennessee",
+    "Texas",
+    "Utah",
+    "Vermont",
+    "Virginia",
+    "Washington",
+    "West Virginia",
+    "Wisconsin",
+    "Wyoming",
+    "Alberta",
+    "British Columbia",
+    "Manitoba",
+    "New Brunswick",
+    "Newfoundland and Labrador",
+    "Nova Scotia",
+    "Ontario",
+    "Prince Edward Island",
+    "Quebec",
+    "Saskatchewan",
+    "Northwest Territories",
+    "Nunavut",
+    "Yukon",
+    "Aguascalientes",
+    "Baja California",
+    "Baja California Sur",
+    "Campeche",
+    "Chiapas",
+    "Chihuahua",
+    "Coahuila de Zaragoza",
+    "Colima",
+    "Durango",
+    "Guanajuato",
+    "Guerrero",
+    "Hidalgo",
+    "Jalisco",
+    "Mexico",
+    "Michoacan de Ocampo",
+    "Morelos",
+    "Nayarit",
+    "Nuevo Leon",
+    "Oaxaca",
+    "Puebla",
+    "Queretaro de Arteaga",
+    "Quintana Roo",
+    "San Luis Potosi",
+    "Sinaloa",
+    "Sonora",
+    "Tabasco",
+    "Tamaulipas",
+    "Tlaxcala",
+    "Veracruz de Ignacio de la Llave",
+    "Yucatan",
+    "Zacatecas",
+    "other",
+    "unavailable" )
+  match_cv(env, 'state_or_province_of_residence', cv)
+}
+
+
+validate_par_country <- function (db, env, field) {
+  cv <- c(
+    "United States of America",
+    "Canada",
+    "Mexico",
+    "Afghanistan",
+    "Albania",
+    "Algeria",
+    "Andorra",
+    "Angola",
+    "Antigua and Barbuda",
+    "Argentina",
+    "Armenia",
+    "Australia",
+    "Austria",
+    "Azerbaijan",
+    "Bahamas",
+    "Bahrain",
+    "Bangladesh",
+    "Barbados",
+    "Belarus",
+    "Belgium",
+    "Belize",
+    "Benin",
+    "Bhutan",
+    "Bolivia",
+    "Bosnia and Herzegovina",
+    "Botswana",
+    "Brazil",
+    "Brunei",
+    "Bulgaria",
+    "Burkina Faso",
+    "Burundi",
+    "Cabo Verde",
+    "Cambodia",
+    "Cameroon",
+    "Central African Republic",
+    "Chad",
+    "Chile",
+    "China",
+    "Colombia",
+    "Comoros",
+    "Congo (Congo-Brazzaville)",
+    "Costa Rica",
+    "C??te d'Ivoire",
+    "Croatia",
+    "Cuba",
+    "Cyprus",
+    "Czechia (Czech Republic)",
+    "Democratic Republic of the Congo",
+    "Denmark",
+    "Djibouti",
+    "Dominica",
+    "Dominican Republic",
+    "Ecuador",
+    "Egypt",
+    "El Salvador",
+    "Equatorial Guinea",
+    "Eritrea",
+    "Estonia",
+    "Eswatini (fmr. Swaziland)",
+    "Ethiopia",
+    "Fiji",
+    "Finland",
+    "France",
+    "Gabon",
+    "Gambia",
+    "Georgia",
+    "Germany",
+    "Ghana",
+    "Greece",
+    "Grenada",
+    "Guatemala",
+    "Guinea",
+    "Guinea-Bissau",
+    "Guyana",
+    "Haiti",
+    "Holy See",
+    "Honduras",
+    "Hungary",
+    "Iceland",
+    "India",
+    "Indonesia",
+    "Iran",
+    "Iraq",
+    "Ireland",
+    "Israel",
+    "Italy",
+    "Jamaica",
+    "Japan",
+    "Jordan",
+    "Kazakhstan",
+    "Kenya",
+    "Kiribati",
+    "Kuwait",
+    "Kyrgyzstan",
+    "Laos",
+    "Latvia",
+    "Lebanon",
+    "Lesotho",
+    "Liberia",
+    "Libya",
+    "Liechtenstein",
+    "Lithuania",
+    "Luxembourg",
+    "Madagascar",
+    "Malawi",
+    "Malaysia",
+    "Maldives",
+    "Mali",
+    "Malta",
+    "Marshall Islands",
+    "Mauritania",
+    "Mauritius",
+    "Micronesia",
+    "Moldova",
+    "Monaco",
+    "Mongolia",
+    "Montenegro",
+    "Morocco",
+    "Mozambique",
+    "Myanmar (formerly Burma)",
+    "Namibia",
+    "Nauru",
+    "Nepal",
+    "Netherlands",
+    "New Zealand",
+    "Nicaragua",
+    "Niger",
+    "Nigeria",
+    "North Korea",
+    "North Macedonia",
+    "Norway",
+    "Oman",
+    "Pakistan",
+    "Palau",
+    "Palestine State",
+    "Panama",
+    "Papua New Guinea",
+    "Paraguay",
+    "Peru",
+    "Philippines",
+    "Poland",
+    "Portugal",
+    "Qatar",
+    "Romania",
+    "Russia",
+    "Rwanda",
+    "Saint Kitts and Nevis",
+    "Saint Lucia",
+    "Saint Vincent and the Grenadines",
+    "Samoa",
+    "San Marino",
+    "Sao Tome and Principe",
+    "Saudi Arabia",
+    "Senegal",
+    "Serbia",
+    "Seychelles",
+    "Sierra Leone",
+    "Singapore",
+    "Slovakia",
+    "Slovenia",
+    "Solomon Islands",
+    "Somalia",
+    "South Africa",
+    "South Korea",
+    "South Sudan",
+    "Spain",
+    "Sri Lanka",
+    "Sudan",
+    "Suriname",
+    "Sweden",
+    "Switzerland",
+    "Syria",
+    "Tajikistan",
+    "Tanzania",
+    "Thailand",
+    "Timor-Leste",
+    "Togo",
+    "Tonga",
+    "Trinidad and Tobago",
+    "Tunisia",
+    "Turkey",
+    "Turkmenistan",
+    "Tuvalu",
+    "Uganda",
+    "Ukraine",
+    "United Arab Emirates",
+    "United Kingdom",
+    "Uruguay",
+    "Uzbekistan",
+    "Vanuatu",
+    "Venezuela",
+    "Vietnam",
+    "Yemen",
+    "Zambia",
+    "Zimbabwe" )
+  match_cv(env, field, cv)
+}
+
+
+validate_par_vital_status <- function (db, env) {
+  cv <- c(
+    'alive',
+    'deceased',
+    'unavailable' )
+  match_cv(env, 'vital_status', cv)
+}
+
+
 
