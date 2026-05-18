@@ -150,7 +150,7 @@ const vbrDictionary = {
         },
         "age":{
             "def":"Participant's age at time of sample collection. Use \"age_range\" instead when age is 90+ years.",
-            "req":"Either `age` or `age_range` must be provided (not both).",
+            "req":"Either \"age\" or \"age_range\" must be provided (not both).",
             "fmt":["number", "non-negative"]
         },
         "age_units":{
@@ -161,7 +161,7 @@ const vbrDictionary = {
         },
         "age_range":{
             "def":"The range in which the participant's age falls.",
-            "req":"Required if you are unable to fill in the actual age either due to consent restrictions or when age is 90+ years. Either `age` or `age_range` must be provided (not both).",
+            "req":"Required if you are unable to fill in the actual age either due to consent restrictions or when age is 90+ years. Either \"age\" or \"age_range\" must be provided (not both).",
             "fmt":["cv"],
             "cv":[
               "0 to <2", "2 to <4", "4 to <18", "18 to <25", "25 to <35", "35 to <45", 
