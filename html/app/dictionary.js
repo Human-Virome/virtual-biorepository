@@ -229,7 +229,7 @@ const vbrDictionary = {
             "cv":["domestic animal exposure", "wildlife exposure"]
         },
         "exposure_animal_type":{
-            "def":"NCBI Taxonomy IDs of animals that participant has exposure to. Only the ID (e.g. \"NCBI:txid9615\") is needed; the rest of the text is ignored/discarded. Delimit multiple IDs with a semicolon.",
+            "def":"NCBI Taxonomy IDs of animals that participant has exposure to. Only the ID (e.g. \"NCBI:txid9615\") is needed; the rest of the text is ignored/discarded.",
             "req":"no",
             "fmt":["prefix", "multiple"],
             "prefix":["NCBI:txid"],
@@ -2092,7 +2092,24 @@ const vbrDictionary = {
         "bioproject_id":{
             "def":"The NCBI bioproject_id associated with this library/processed sample at the sub_bioproject level that is specific to the study this library is part of.",
             "req":"yes",
-            "fmt":["text"]
+            "fmt":["text", "prefix"],
+            "prefix":["PRJNA"],
+            "urls":{"HVP Umbrella project":"https://www.ncbi.nlm.nih.gov/bioproject/1336838"},
+            "examples":[
+              "Antibody targeting of the virome [PRJNA1336851]",
+              "Single virion analysis of the virome [PRJNA1336854]",
+              "Pregnancy and postpartum [PRJNA1336849]",
+              "Methods for quantitative recovery [PRJNA1336855]",
+              "Antimicrobial and inflammatory perturbations [PRJNA1336853]",
+              "Oral-Gut-Brain Axis [PRJNA1336845]",
+              "Petabase scale to single-cell resolution [PRJNA1336850]",
+              "Oro-Respiratory-Gut Virome Axis [PRJNA1336841]",
+              "Viromes Across Space and Time [PRJNA1336844]",
+              "Vanderbilt VCC (V2C2) [PRJNA1336843]",
+              "Enrichment and Precise Quantification [PRJNA1336856]",
+              "Diverse Human Populations [PRJNA1336842]",
+              "Whole Body Deep Tissue [PRJNA1336852]"
+            ]
         },
         "library_type":{
             "def":"Indicates the composition of the library or processed sample with respect to whether it is a single individual library or a composite library composed of multiple individual libraries/processed samples.",
