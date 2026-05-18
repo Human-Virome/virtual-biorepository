@@ -501,25 +501,4 @@ validate_refs <- function (db, env, tbl) {
 
 
 
-insert_rows <- function (db, env, tbl) {
-  
-  fields <- ls(env)
-  errors <- c()
-  
-  recs <- length(env[[fields[[1]]]])
-  env[['hvp_id']] <- create_hvp_ids(db, tbl, n = recs)
-  
-  DBI::dbWriteTable(
-    conn      = db, 
-    name      = tbl,
-    value     = as.data.frame(as.list(env)),
-    overwrite = FALSE,
-    append    = TRUE,
-    row.names = FALSE )
-  
-  invisible()  
-}
-
-
-
 

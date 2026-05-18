@@ -23,9 +23,6 @@ api_metadata_upload <- function (db, file, save) {
     
     if (nrow(df) == 0) stop('No data records were found in the uploaded file.')
     
-    env <- as.environment(df)
-    remove('df')
-    
     tryCatch(
       error = function (e) {
         db_query(db, 'ROLLBACK')
@@ -33,7 +30,7 @@ api_metadata_upload <- function (db, file, save) {
       },
       expr  = {
         db_query(db, 'START TRANSACTION')
-        ingest_table(db, env, tbl)
+        ingest_table(db, df, tbl)
         db_query(db, ifelse(identical(save, "true"), 'COMMIT', 'ROLLBACK'))
       })
   }
@@ -55,7 +52,7 @@ api_metadata_upload <- function (db, file, save) {
       expr  = {
         db_query(db, 'START TRANSACTION')
         
-        recs <- 0
+        total_rows <- 0
         
         # Control the order in which they're processed
         for (tbl in intersect(valid_sheets, excel_sheets)) {
@@ -66,15 +63,10 @@ api_metadata_upload <- function (db, file, save) {
             col_types    = "text",
             .name_repair = "minimal" )
           
-          if (nrow(df) == 0) next
-          recs <- recs + nrow(df)
-          
-          env <- as.environment(df)
-          remove('df')
-          
-          ingest_table(db, env, tbl)
+          ingest_table(db, df, tbl)
+          total_rows <- total_rows + nrow(df)
         }
-        if (recs == 0) stop('No data records were found in the uploaded file.')
+        if (total_rows == 0) stop('No data records were found in the uploaded file.')
         
         db_query(db, ifelse(identical(save, "true"), 'COMMIT', 'ROLLBACK'))
       })
@@ -85,7 +77,13 @@ api_metadata_upload <- function (db, file, save) {
 
 
 
-ingest_table <- function (db, env, tbl) {
+ingest_table <- function (db, df, tbl) {
+  
+  n_rows <- nrow(df)
+  if (n_rows == 0) return (invisible())
+  
+  env <- as.environment(df)
+  attr(env, 'n_rows') <- n_rows
   
   validate_req_columns(env, tbl)
   reformat_ids(env, tbl)
@@ -106,8 +104,14 @@ ingest_table <- function (db, env, tbl) {
     'libraries'    = condition_check_libraries(db, env, tbl),
     'files'        = condition_check_files(db, env, tbl) )
   
-  insert_rows(db, env, tbl)
+  df <- as.data.frame(as.list(env))
   
+  df[['hvp_id']]      <- create_hvp_ids(db, tbl, n = n_rows)
+  df[['oauth_email']] <- attr(db, 'oauth_email')
+  
+  DBI::dbWriteTable(db, tbl, df, append = TRUE)
+  
+  return (invisible())
 }
 
 

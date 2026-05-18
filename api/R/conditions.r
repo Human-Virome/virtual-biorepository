@@ -3,11 +3,11 @@
 condition_check_events <- function (db, env, tbl) {
   
   errors <- c()
-  recs   <- length(env[[ls(env)[[1]]]])
+  n_rows <- attr(env, 'n_rows')
   
   for (field in c('age', 'age_units', 'age_range', 'height', 'height_units', 'weight', 'weight_units'))
     if (!hasName(env, field))
-      env[[field]] <- character(recs)
+      env[[field]] <- character(n_rows)
   
   age       <- nzchar(env[['age']])
   age_units <- nzchar(env[['age_units']])
@@ -57,11 +57,11 @@ condition_check_events <- function (db, env, tbl) {
 condition_check_samples <- function (db, env, tbl) {
   
   errors <- c()
-  recs   <- length(env[[ls(env)[[1]]]])
+  n_rows <- attr(env, 'n_rows')
   
   for (field in c('anatomical_site', 'body_product', 'negative_control_type', 'postive_control_type'))
     if (!hasName(env, field))
-      env[[field]] <- character(recs)
+      env[[field]] <- character(n_rows)
   
   anatomical_site       <- nzchar(env[['anatomical_site']])
   body_product          <- nzchar(env[['body_product']])
@@ -115,11 +115,11 @@ condition_check_samples <- function (db, env, tbl) {
 condition_check_libraries <- function (db, env, tbl) {
   
   errors <- c()
-  recs   <- length(env[[ls(env)[[1]]]])
+  n_rows <- attr(env, 'n_rows')
   
   for (field in c('is_control_library', 'library_pos_cont_type', 'library_neg_cont_type', 'paired_or_single', 'sequencing_platform', 'sequencing_instrument_model'))
     if (!hasName(env, field))
-      env[[field]] <- character(recs)
+      env[[field]] <- character(n_rows)
   
   
   is_control                  <- env[['is_control_library']] == "yes"
@@ -177,11 +177,11 @@ condition_check_libraries <- function (db, env, tbl) {
 condition_check_files <- function (db, env, tbl) {
   
   errors <- c()
-  recs   <- length(env[[ls(env)[[1]]]])
+  n_rows <- attr(env, 'n_rows')
   
   for (field in c('data_use_condition', 'data_use_specific_limit'))
     if (!hasName(env, field))
-      env[[field]] <- character(recs)
+      env[[field]] <- character(n_rows)
   
   data_use_condition      <- env[['data_use_condition']] == "DUO:0000007"
   data_use_specific_limit <- nzchar(env[['data_use_specific_limit']])

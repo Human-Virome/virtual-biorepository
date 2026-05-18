@@ -41,9 +41,12 @@ app <- list(
         
         # Connect to MariaDB
         if (hasName(formals(api_fun), 'db')) {
+          
           args$db <- DBI::dbConnect(RMariaDB::MariaDB(), dbname = "vbr", port = 3306, user = "vbr")
           on.exit(DBI::dbDisconnect(args$db), add = TRUE)
           stopifnot(DBI::dbIsValid(args$db))
+          
+          attr(args$db, 'oauth_email') <- req$HTTP_X_OAUTH_EMAIL
           db_query(args$db, 'SET @oauth_email = ?;', 'SetEmail', list(req$HTTP_X_OAUTH_EMAIL))
         }
         
