@@ -25,13 +25,13 @@ api_metadata_upload <- function (db, file, save) {
     
     tryCatch(
       error = function (e) {
-        db_query(db, 'ROLLBACK')
+        db_query(db, 'ROLLBACK', 'AMdUp1')
         stop(e$message)
       },
       expr  = {
-        db_query(db, 'START TRANSACTION')
+        db_query(db, 'START TRANSACTION', 'AMdUp2')
         ingest_table(db, df, tbl)
-        db_query(db, ifelse(identical(save, "true"), 'COMMIT', 'ROLLBACK'))
+        db_query(db, ifelse(identical(save, "true"), 'COMMIT', 'ROLLBACK', 'AMdUp3'))
       })
   }
   
@@ -46,11 +46,11 @@ api_metadata_upload <- function (db, file, save) {
     
     tryCatch(
       error = function (e) {
-        db_query(db, 'ROLLBACK')
+        db_query(db, 'ROLLBACK', 'AMdUp4')
         stop(e$message)
       },
       expr  = {
-        db_query(db, 'START TRANSACTION')
+        db_query(db, 'START TRANSACTION', 'AMdUp5')
         
         total_rows <- 0
         
@@ -68,7 +68,7 @@ api_metadata_upload <- function (db, file, save) {
         }
         if (total_rows == 0) stop('No data records were found in the uploaded file.')
         
-        db_query(db, ifelse(identical(save, "true"), 'COMMIT', 'ROLLBACK'))
+        db_query(db, ifelse(identical(save, "true"), 'COMMIT', 'ROLLBACK'), 'AMdUp6')
       })
   }
   
