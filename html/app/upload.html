@@ -554,15 +554,15 @@
                 saveBtn.disabled       = true;
                 errorBox.style.display = 'none'; 
                 hideAllBadges();
-                badgeValidating.style.display = 'flex'; 
-                
-                const formData = new FormData();
-                formData.append('file', file);
+                badgeValidating.style.display = 'flex';
             
                 try {
                     const response = await fetch('/api/metadata_upload?save=false', {
                         method: 'POST',
-                        body: formData
+                        body: file, // Send the raw file object directly
+                        headers: {
+                            'Content-Type': file.type || 'application/octet-stream'
+                        }
                     });
             
                     const result = await response.json(); 
@@ -605,13 +605,13 @@
                 hideAllBadges();
                 badgeSaving.style.display = 'flex';
             
-                const formData = new FormData();
-                formData.append('file', currentValidatedFile);
-            
                 try {
                     const response = await fetch('/api/metadata_upload?save=true', {
                         method: 'POST',
-                        body: formData
+                        body: currentValidatedFile, // Send the raw file object directly
+                        headers: {
+                            'Content-Type': currentValidatedFile.type || 'application/octet-stream'
+                        }
                     });
             
                     const result = await response.json();
