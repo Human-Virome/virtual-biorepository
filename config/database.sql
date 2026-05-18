@@ -248,6 +248,6 @@ CREATE TABLE IF NOT EXISTS sra (
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 
-INSERT INTO `participants` (`hvp_id`, `oauth_email`, `participant_uid`)              VALUES ('hvp:p-mock', 'dpsmith@bcm.edu', 'mock');
-INSERT INTO `events`       (`hvp_id`, `oauth_email`, `participant_uid`, `event_uid`) VALUES ('hvp:e-mock', 'dpsmith@bcm.edu', 'mock', 'mock');
+INSERT INTO `participants` (`hvp_id`, `oauth_email`, `participant_uid`)              VALUES ('hvp:p-mock', 'Daniel.Smith@bcm.edu', 'mock');
+INSERT INTO `events`       (`hvp_id`, `oauth_email`, `participant_uid`, `event_uid`) VALUES ('hvp:e-mock', 'Daniel.Smith@bcm.edu', 'mock', 'mock');
 

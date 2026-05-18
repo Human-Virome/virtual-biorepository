@@ -247,9 +247,11 @@
         document.addEventListener('DOMContentLoaded', () => {
             
             // Panel Containers
-            const defaultInstructions = document.getElementById('default-instructions');
-            const detailsPanel        = document.getElementById('details-panel');
-            const allPanels           = document.querySelectorAll('.main-panel-content');
+            const defaultInstructions  = document.getElementById('default-instructions');
+            const detailsPanel         = document.getElementById('details-panel');
+            const allPanels            = document.querySelectorAll('.main-panel-content');
+            const dictResultsContainer = document.getElementById('dict_results');
+            const searchInput          = document.getElementById('dict_search');
             
             // Details Panel Dynamic Elements
             const elTitle       = document.getElementById('detail-title');
