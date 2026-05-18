@@ -1,24 +1,17 @@
 CREATE DATABASE IF NOT EXISTS vbr;
 use vbr;
 
-CREATE TABLE IF NOT EXISTS permissions (
-  oauth_email      VARCHAR(255) NOT NULL,
-  cohort_id        VARCHAR(255) NOT NULL,
-  permission       VARCHAR(255) NOT NULL,
-  last_modified_by VARCHAR(255) NOT NULL,
-  PRIMARY KEY (oauth_email, cohort_id),
-  INDEX (cohort_id)
-) ENGINE=InnoDB WITH SYSTEM VERSIONING;
+CREATE USER 'vbr'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON vbr.* TO 'vbr'@'localhost';
+FLUSH PRIVILEGES;
 
-CREATE TABLE IF NOT EXISTS uid_suffixes (
-  uid_suffix CHAR(6) NOT NULL PRIMARY KEY
-) ENGINE=InnoDB;
 
-# hvp:ptt-abcdef
+# hvp:p-abcdef
 CREATE TABLE IF NOT EXISTS participants (
-  uuid                           VARCHAR(50)  NOT NULL UNIQUE,
+  hvp_id                         VARCHAR(50)  NOT NULL UNIQUE,
+  oauth_email                    VARCHAR(255) NOT NULL,
   participant_uid                VARCHAR(255) NOT NULL PRIMARY KEY,
-  cohort_id                      VARCHAR(255) NOT NULL DEFAULT '',
+  cohort_id                      TEXT,
   host_taxon                     TINYTEXT,
   race                           TINYTEXT,
   ethnicity                      TINYTEXT,
@@ -29,13 +22,13 @@ CREATE TABLE IF NOT EXISTS participants (
   mode_of_birth_delivery         TINYTEXT,
   blood_type                     TINYTEXT,
   family_medical_history         TINYTEXT,
-  last_modified_by               VARCHAR(255) NOT NULL,
-  INDEX (cohort_id)
+  INDEX (oauth_email)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
-# hvp:tpt-abcdef
+# hvp:e-abcdef
 CREATE TABLE IF NOT EXISTS events (
-  uuid                                    VARCHAR(50)  NOT NULL UNIQUE,
+  hvp_id                                  VARCHAR(50)  NOT NULL UNIQUE,
+  oauth_email                             VARCHAR(255) NOT NULL,
   event_uid                               VARCHAR(255) NOT NULL PRIMARY KEY,
   participant_uid                         VARCHAR(255) NOT NULL,
   age                                     TINYTEXT,
@@ -71,9 +64,9 @@ CREATE TABLE IF NOT EXISTS events (
   cigarette_smoking                       TINYTEXT,
   former_pack_years                       TINYTEXT,
   current_pack_years                      TINYTEXT,
-  other_tobacco_exposure                  TEXT,
-  vaping_behavior                         TEXT,
-  cannabis                                TEXT,
+  other_tobacco_exposure                  TINYTEXT,
+  vaping_behavior                         TINYTEXT,
+  cannabis                                TINYTEXT,
   recreational_or_illicit_drugs           TEXT,
   current_geography                       TINYTEXT,
   diet                                    TINYTEXT,
@@ -87,17 +80,18 @@ CREATE TABLE IF NOT EXISTS events (
   acute_health_status_at_sampling         TINYTEXT,
   acute_health_status_at_sampling_comment TEXT,
   time_last_toothbrush                    TINYTEXT,
-  last_modified_by                        VARCHAR(255) NOT NULL,
-  INDEX (participant_uid)
+  INDEX (oauth_email),
+  FOREIGN KEY (participant_uid) REFERENCES participants(participant_uid)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
-# hvp:sam-abcdef
+# hvp:s-abcdef
 CREATE TABLE IF NOT EXISTS samples (
-  uuid                     VARCHAR(50)  NOT NULL UNIQUE,
+  hvp_id                   VARCHAR(50)  NOT NULL UNIQUE,
+  oauth_email              VARCHAR(255) NOT NULL,
   biosample_id             VARCHAR(50)  NOT NULL DEFAULT '',
   sample_uid               VARCHAR(255) NOT NULL PRIMARY KEY,
-  participant_uid          VARCHAR(255) NOT NULL DEFAULT '',
-  event_uid                VARCHAR(255) NOT NULL DEFAULT '',
+  participant_uid          VARCHAR(255) NOT NULL,
+  event_uid                VARCHAR(255) NOT NULL,
   lab                      TINYTEXT,
   sample_type              TINYTEXT,
   sample_subtype           TINYTEXT,
@@ -113,7 +107,7 @@ CREATE TABLE IF NOT EXISTS samples (
   collection_day_of_week   TINYTEXT,
   sample_storage           TINYTEXT,
   sample_additive          TINYTEXT,
-  control_sample_id        TINYTEXT,
+  control_sample_uid       TEXT,
   sample_processing        TINYTEXT,
   sample_transit_temp      TINYTEXT,
   sample_transit_duration  TINYTEXT,
@@ -122,19 +116,21 @@ CREATE TABLE IF NOT EXISTS samples (
   is_control_sample        TINYTEXT,
   negative_control_type    TINYTEXT,
   postive_control_type     TINYTEXT,
-  last_modified_by         VARCHAR(255) NOT NULL,
-  INDEX (participant_uid),
-  INDEX (event_uid)
+  INDEX (oauth_email),
+  FOREIGN KEY (event_uid)       REFERENCES events(event_uid),
+  FOREIGN KEY (participant_uid) REFERENCES participants(participant_uid)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
-# hvp:lib-abcdef
+# hvp:l-abcdef
 CREATE TABLE IF NOT EXISTS libraries (
-  uuid                        VARCHAR(50) NOT NULL UNIQUE,
+  hvp_id                      VARCHAR(50)  NOT NULL UNIQUE,
+  oauth_email                 VARCHAR(255) NOT NULL,
   library_uid                 VARCHAR(255) NOT NULL PRIMARY KEY,
+  sample_uid                  VARCHAR(255) NOT NULL,
   bioproject_id               TINYTEXT,
   library_type                TINYTEXT,
   library_aliquot             TINYTEXT,
-  parent_library_uids         TEXT,
+  parent_library_uid          TEXT,
   technique                   TINYTEXT,
   subspecimen_type            TINYTEXT,
   library_processing_url      TINYTEXT,
@@ -146,16 +142,33 @@ CREATE TABLE IF NOT EXISTS libraries (
   paired_or_single            TINYTEXT,
   sequencing_platform         TINYTEXT,
   sequencing_instrument_model TINYTEXT,
-  last_modified_by            VARCHAR(255) NOT NULL,
-  INDEX (library_uid)
+  INDEX (oauth_email),
+  FOREIGN KEY (sample_uid) REFERENCES samples(sample_uid)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
-# hvp:fil-abcdef
+# hvp:a-abcdef
+CREATE TABLE IF NOT EXISTS analyses (
+  hvp_id                 VARCHAR(50)  NOT NULL UNIQUE,
+  oauth_email            VARCHAR(255) NOT NULL,
+  analysis_uid           VARCHAR(255) NOT NULL PRIMARY KEY,
+  analysis_description   TEXT,
+  pipeline_name          TINYTEXT,
+  pipeline_description   TEXT,
+  pipeline_version       TINYTEXT,
+  sop_url                TINYTEXT,
+  community_workspace    TINYTEXT,
+  pipeline_container_url TINYTEXT,
+  INDEX (oauth_email),
+  FOREIGN KEY (analysis_uid) REFERENCES analyses(analysis_uid)
+) ENGINE=InnoDB WITH SYSTEM VERSIONING;
+
+# hvp:f-abcdef
 CREATE TABLE IF NOT EXISTS files (
-  uuid                        VARCHAR(50)  NOT NULL UNIQUE,
+  hvp_id                      VARCHAR(50)  NOT NULL UNIQUE,
+  oauth_email                 VARCHAR(255) NOT NULL,
   file_uniq_name              VARCHAR(255) NOT NULL PRIMARY KEY,
   library_uid                 VARCHAR(255),
-  library_aliqout_uid         TINYTEXT,
+  library_aliqout_uid         VARCHAR(255),
   bioproject_id               TINYTEXT,
   data_type                   TINYTEXT,
   file_format                 TINYTEXT,
@@ -165,30 +178,18 @@ CREATE TABLE IF NOT EXISTS files (
   access                      TINYTEXT,
   data_use_condition          TINYTEXT,
   data_use_specific_limit     TINYTEXT,
-  last_modified_by            VARCHAR(255) NOT NULL,
-  INDEX (library_uid)
-) ENGINE=InnoDB WITH SYSTEM VERSIONING;
-
-# hvp:ana-abcdef
-CREATE TABLE IF NOT EXISTS analyses (
-  uuid                   VARCHAR(50)  NOT NULL UNIQUE,
-  analysis_uid           VARCHAR(255) NOT NULL PRIMARY KEY,
-  analysis_description   TEXT,
-  pipeline_name          TINYTEXT,
-  pipeline_description   TEXT,
-  pipeline_version       TINYTEXT,
-  sop_url                TINYTEXT,
-  community_workspace    TINYTEXT,
-  pipeline_container_url TINYTEXT,
-  last_modified_by       VARCHAR(255) NOT NULL
+  INDEX (oauth_email),
+  FOREIGN KEY (library_uid)  REFERENCES libraries(library_uid),
+  FOREIGN KEY (analysis_uid) REFERENCES analyses(analysis_uid)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 
 CREATE TABLE IF NOT EXISTS biosamples (
-  sample_uid                  VARCHAR(50) NOT NULL PRIMARY KEY,
-  request_date                TIMESTAMP   DEFAULT NULL,
-  export_date                 TIMESTAMP   DEFAULT NULL,
-  biosample_id                VARCHAR(50) UNIQUE,
+  oauth_email                 VARCHAR(255) NOT NULL,
+  request_date                TIMESTAMP    DEFAULT NULL,
+  export_date                 TIMESTAMP    DEFAULT NULL,
+  sample_uid                  VARCHAR(50)  NOT NULL PRIMARY KEY,
+  biosample_id                VARCHAR(50)  UNIQUE,
   sample_name                 TINYTEXT,
   organism                    TINYTEXT,
   host_tissue_sampled         TINYTEXT,
@@ -224,27 +225,29 @@ CREATE TABLE IF NOT EXISTS biosamples (
   wellness_collected          TINYTEXT,
   social_det_collected        TINYTEXT,
   time_last_toothbrush        TINYTEXT,
-  last_modified_by            VARCHAR(255) NOT NULL
+  INDEX (oauth_email),
+  FOREIGN KEY (sample_uid) REFERENCES samples(sample_uid)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
-CREATE TABLE IF NOT EXISTS sra (
-  library_uid          VARCHAR(255) NOT NULL PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS sra (         
+  oauth_email          VARCHAR(255) NOT NULL,
   export_date          TIMESTAMP    DEFAULT NULL,
+  library_uid          VARCHAR(255) NOT NULL PRIMARY KEY,
   biosample_id         VARCHAR(50)  UNIQUE,
-  bioproject_accession TINYTEXT,    
-  title                TINYTEXT,         
-  library_strategy     TINYTEXT,                    
-  library_source       TINYTEXT,                  
-  library_selection    TINYTEXT,                     
-  library_layout       TINYTEXT,                  
-  platform             TINYTEXT,            
-  instrument_model     TINYTEXT,                    
-  Biosample_accession  TINYTEXT,                       
-  last_modified_by     VARCHAR(255) NOT NULL
+  bioproject_accession TINYTEXT,
+  title                TINYTEXT,
+  library_strategy     TINYTEXT,   
+  library_source       TINYTEXT, 
+  library_selection    TINYTEXT,    
+  library_layout       TINYTEXT, 
+  platform             TINYTEXT,
+  instrument_model     TINYTEXT,   
+  Biosample_accession  TINYTEXT,
+  INDEX (oauth_email),
+  FOREIGN KEY (library_uid) REFERENCES libraries(library_uid)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 
-CREATE USER 'vbr'@'localhost';
-GRANT SELECT, INSERT, UPDATE, DELETE ON vbr.* TO 'vbr'@'localhost';
+INSERT INTO `participants` (`hvp_id`, `oauth_email`, `participant_uid`)              VALUES ('hvp:p-mock', 'dpsmith@bcm.edu', 'mock');
+INSERT INTO `events`       (`hvp_id`, `oauth_email`, `participant_uid`, `event_uid`) VALUES ('hvp:e-mock', 'dpsmith@bcm.edu', 'mock', 'mock');
 
-FLUSH PRIVILEGES;

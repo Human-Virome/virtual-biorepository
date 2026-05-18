@@ -87,7 +87,7 @@ db_query <- function (db, sql, err_code, params = NULL, simplify = TRUE, req1 = 
 }
 
 
-create_hvp_ids <- function (tbl = "participants", n = 1) {
+create_hvp_ids <- function (db, tbl, n) {
   
   stopifnot(is.character(tbl), isTRUE(nzchar(tbl)))
   stopifnot(is.numeric(n), isTRUE(n %% 1 == 0))
@@ -97,20 +97,23 @@ create_hvp_ids <- function (tbl = "participants", n = 1) {
   prefix <- switch(
     EXPR = tbl,
     'participants' = "hvp:p-",
-    'timepoints'   = "hvp:t-",
+    'events'       = "hvp:e-",
     'samples'      = "hvp:s-",
+    'libraries'    = "hvp:l-",
+    'analyses'     = "hvp:a-",
+    'files'        = "hvp:f-",
     stop('No table to prefix mapping for table ', tbl) )
   
-  # Avoid colliding with existing IDs.
-  current <- db_query(sprintf('SELECT hvp_id FROM `%s`', tbl))
-  current <- sub(prefix, '', current)
-  
   # Generate 5 extra IDs in case of collisions.
-  new_ids <- replicate(n + 5, random_string(8))
+  new_ids <- stringi::stri_rand_strings(n + 5, 8)
+  new_ids <- paste0(prefix, new_ids)
+  
+  # Avoid colliding with existing IDs.
+  current <- db_query(db, sprintf('SELECT hvp_id FROM `%s`', tbl), 'CrHvId')
   new_ids <- setdiff(new_ids, current)[seq_len(n)]
   
   # Too many collisions (highly unlikely).
   stopifnot(!anyNA(new_ids))
   
-  return (paste0(prefix, new_ids))
+  return (new_ids)
 }

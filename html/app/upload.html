@@ -29,10 +29,13 @@
                 
                 <div class="sequence-step" style="flex: 2;">
                     <span class="step-num">02</span>
-                    <button class="btn btn-primary">
+                  
+                    <button id="upload-template-btn" class="btn btn-primary">
                         <span class="material-symbols-outlined">upload</span>
                         Upload Template
                     </button>
+                    
+                    <input type="file" id="hidden-file-input" style="display: none;" />
                     
                     <div class="status-badge-container">
                         <div id="badge-waiting" class="badge badge-pulse">
@@ -76,7 +79,7 @@
             
                 <div class="sequence-step" style="justify-content: flex-start; flex: 1;">
                     <span class="step-num">03</span>
-                    <button class="btn btn-secondary" disabled>
+                    <button id="save-template-btn" class="btn btn-secondary" disabled>
                         <span class="material-symbols-outlined">save</span>
                         Save to Repository
                     </button>
@@ -242,8 +245,6 @@
     <script src="dictionary.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const searchInput          = document.getElementById('dict_search');
-            const dictResultsContainer = document.getElementById('dict_results');
             
             // Panel Containers
             const defaultInstructions = document.getElementById('default-instructions');
@@ -398,9 +399,9 @@
                         "cv": "Must be an exact match to a term in the controlled vocabulary.",
                         "prefix": "Must include one of the specified prefixes.",
                         "multiple": "Accepts multiple values delimited by a semicolon (;).",
-                        "unavailable": "Accepts the exact string \"unavailable\" if data is missing.",
                         "integer": "Must be a whole number (integer).",
                         "number": "Must be a numeric value (decimals allowed).",
+                        "non-negative": "Number cannot be negative.",
                         "md5": "Hexadecimal MD5 checksum, 32 characters in length.",
                         "YYYY-MM": "Four digit year and two digit month.",
                         "YYYY-MM-DD": "Four digit year, two digit month, and two digit day.",
@@ -408,6 +409,8 @@
                         "text": "Accepts freeform text or complex formatting described in the definition.",
                         "mock": "Accepts the exact string \"mock\" for synthetic/mock inputs.",
                         "uid": "The data generator's internal ID combined with their center's assigned prefix.",
+                        "primary": "This identifier must not already exist in the database.",
+                        "ref": "This identifier must already exist in the database or by the uploaded file.",
                         "mode": "Accepts one of the following \"mode of administration\" suffixes: <span class='prefix-tag'>:oral</span>, <span class='prefix-tag'>:topical</span>, <span class='prefix-tag'>:injected</span>, <span class='prefix-tag'>:intranasal</span>, <span class='prefix-tag'>:inhalation</span>, <span class='prefix-tag'>:sublingual</span>, <span class='prefix-tag'>:subdermal</span>, <span class='prefix-tag'>:transdermal</span>, <span class='prefix-tag'>:ophthalmic</span>, <span class='prefix-tag'>:rectal</span>, <span class='prefix-tag'>:vaginal</span>.",
                         "freq": "Accepts one of the following \"frequency of use\" suffixes: <span class='prefix-tag'>:daily</span>, <span class='prefix-tag'>:weekly</span>, <span class='prefix-tag'>:occasionally</span>, <span class='prefix-tag'>:prior_months</span>, or <span class='prefix-tag'>:prior_years</span>. \"Occasionally\" is defined here as 1-3 times per month or less. Use \"prior_months\" or \"prior_years\" when the last use was at least one month or year, respectively, prior to sample collection."
                     };
@@ -494,7 +497,150 @@
                     }
                 });
             });
-        });
+            
+            
+            
+            
+            
+            // --- Template Upload, Validation, and Save Logic ---
+            const uploadBtn = document.getElementById('upload-template-btn');
+            const saveBtn   = document.getElementById('save-template-btn');
+            const fileInput = document.getElementById('hidden-file-input');
+            
+            // Status badges and error UI
+            const badgeWaiting     = document.getElementById('badge-waiting');
+            const badgeValidating  = document.getElementById('badge-validating');
+            const badgeValError    = document.getElementById('badge-val-error');
+            const badgeValSuccess  = document.getElementById('badge-val-success');
+            const badgeSaving      = document.getElementById('badge-saving');
+            const badgeSaveError   = document.getElementById('badge-save-error');
+            const badgeSaveSuccess = document.getElementById('badge-save-success');
+            
+            const errorBox     = document.getElementById('error-alert-box');
+            const errorMessage = document.getElementById('error-alert-message');
+            
+            // State tracking
+            let currentValidatedFile = null;
+            
+            // Helper to hide all badges easily
+            function hideAllBadges() {
+                badgeWaiting.style.display     = 'none';
+                badgeValidating.style.display  = 'none';
+                badgeValError.style.display    = 'none';
+                badgeValSuccess.style.display  = 'none';
+                badgeSaving.style.display      = 'none';
+                badgeSaveError.style.display   = 'none';
+                badgeSaveSuccess.style.display = 'none';
+            }
+            
+            // 1. Trigger file selection
+            uploadBtn.addEventListener('click', () => {
+                fileInput.click(); 
+            });
+            
+            // 2. Handle File Selection & Validation
+            fileInput.addEventListener('change', async (event) => {
+                const file = event.target.files[0];
+                if (!file) return; 
+                
+                // Reset state for a new file selection
+                currentValidatedFile   = null;
+                saveBtn.disabled       = true;
+                errorBox.style.display = 'none'; 
+                hideAllBadges();
+                badgeValidating.style.display = 'flex'; 
+                
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('save', 'false'); // Validation only (ROLLBACK)
+            
+                try {
+                    const response = await fetch('/api/metadata_upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+            
+                    const result = await response.json(); 
+            
+                    if (result.error) {
+                        badgeValidating.style.display = 'none';
+                        badgeValError.style.display   = 'flex';
+                        
+                        errorMessage.textContent = result.error;
+                        errorBox.style.display   = 'block';
+                    } else {
+                        badgeValidating.style.display = 'none';
+                        badgeValSuccess.style.display = 'flex';
+                        
+                        // SUCCESS: Store the file in memory and enable the Save button
+                        currentValidatedFile = file;
+                        saveBtn.disabled     = false;
+                    }
+                } catch (error) {
+                    console.error("Validation error:", error);
+                    badgeValidating.style.display = 'none';
+                    badgeValError.style.display   = 'flex';
+                    errorMessage.textContent      = "A network error occurred during validation.";
+                    errorBox.style.display        = 'block';
+                } finally {
+                    // Clear the input so the change event fires even if they pick the exact same file again.
+                    // (Our 'currentValidatedFile' variable still holds the actual File object safely in memory).
+                    fileInput.value = '';
+                }
+            });
+            
+            // 3. Handle Final Save to Repository
+            saveBtn.addEventListener('click', async () => {
+              
+                if (!currentValidatedFile) return;
+            
+                // Update UI for saving state
+                saveBtn.disabled          = true; // Prevent double-clicks
+                errorBox.style.display    = 'none';
+                hideAllBadges();
+                badgeSaving.style.display = 'flex';
+            
+                const formData = new FormData();
+                formData.append('file', currentValidatedFile);
+                formData.append('save', 'true'); // Commit the data
+            
+                try {
+                    const response = await fetch('/api/metadata_upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+            
+                    const result = await response.json();
+            
+                    if (result.error) {
+                        badgeSaving.style.display    = 'none';
+                        badgeSaveError.style.display = 'flex';
+                        
+                        errorMessage.textContent = result.error;
+                        errorBox.style.display   = 'block';
+                        
+                        // Re-enable the save button so they can try again if it was a transient error
+                        saveBtn.disabled = false; 
+                    } else {
+                        // SUCCESS!
+                        badgeSaving.style.display      = 'none';
+                        badgeSaveSuccess.style.display = 'flex';
+                        
+                        // Clear the file from memory so they can't save it twice
+                        currentValidatedFile = null; 
+                        saveBtn.disabled     = true; 
+                    }
+                } catch (error) {
+                    console.error("Save error:", error);
+                    badgeSaving.style.display    = 'none';
+                    badgeSaveError.style.display = 'flex';
+                    errorMessage.textContent     = "A network error occurred while saving.";
+                    errorBox.style.display       = 'block';
+                    
+                    saveBtn.disabled = false; // Let them try again
+                }
+            });
+        }); // /DOMContentLoaded
     </script>
   
     </body>

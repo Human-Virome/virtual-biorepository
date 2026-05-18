@@ -14,7 +14,7 @@ api_metadata_upload <- function (db, file, save) {
       data.table       = FALSE )
     
     if      (hasName(df, 'host_taxon'))           { tbl <- 'participants' }
-    else if (hasName(df, 'age_units'))            { tbl <- 'events' }
+    else if (hasName(df, 'age_units'))            { tbl <- 'events'       }
     else if (hasName(df, 'sampling_protocol'))    { tbl <- 'samples'      }
     else if (hasName(df, 'library_type'))         { tbl <- 'libraries'    }
     else if (hasName(df, 'file_format'))          { tbl <- 'files'        }
@@ -23,7 +23,8 @@ api_metadata_upload <- function (db, file, save) {
     
     if (nrow(df) == 0) stop('No data records were found in the uploaded file.')
     
-    env <- as.environment(precheck(df, tbl))
+    env <- as.environment(df)
+    remove('df')
     
     tryCatch(
       error = function (e) {
@@ -32,7 +33,7 @@ api_metadata_upload <- function (db, file, save) {
       },
       expr  = {
         db_query(db, 'START TRANSACTION')
-        do.call(paste0('import_', tbl), list(db, env))
+        ingest_table(db, env, tbl)
         db_query(db, ifelse(identical(save, "true"), 'COMMIT', 'ROLLBACK'))
       })
   }
@@ -66,8 +67,10 @@ api_metadata_upload <- function (db, file, save) {
           if (nrow(df) == 0) next
           recs <- recs + nrow(df)
           
-          env <- as.environment(precheck(df, tbl))
-          do.call(paste0('import_', tbl), list(db, env))
+          env <- as.environment(df)
+          remove('df')
+          
+          ingest_table(db, env, tbl)
         }
         if (recs == 0) stop('No data records were found in the uploaded file.')
         
@@ -79,78 +82,32 @@ api_metadata_upload <- function (db, file, save) {
 }
 
 
-# Read the javascript definition of the data dictionaries.
-DICT_ALL <- list()
-DICT_REQ <- list()
-DICT_FMT <- list()
-DICT_SEP <- list()
-DICT_OPT <- list()
-local({
-  fp <- '../html/app/dictionary.js'
-  js <- readChar(con = fp, nchars = file.size(fp))
-  js <- sub('const vbrDictionary = ', '', js)
-  js <- sub('};', '}', js)
-  js <- jsonlite::parse_json(js)
-  for (dict in names(js)) {
-    defs   <- js[[dict]]
-    fields <- unname(sapply(defs, `[[`, 'field'))
-    is_req <- sapply(defs, `[[`, 'req') == "yes"
-    DICT_ALL[[dict]] <<- fields
-    DICT_REQ[[dict]] <<- fields[is_req]
-    DICT_FMT[[dict]] <<- unname(sapply(defs, `[[`, 'fmt'))
-    DICT_FMT[[dict]] <<- unname(sapply(defs, `[[`, 'fmt'))
-  }
-  invisible()
-})
 
-
-
-# Simple validations performed the same for all tables.
-precheck <- function (df, tbl) {
+ingest_table <- function (db, env, tbl) {
   
+  validate_req_columns(env, tbl)
+  reformat_ids(env, tbl)
+  validate_prefixes(env, tbl)
+  validate_suffixes(env, tbl)
+  validate_cv(env, tbl)
+  validate_numbers(env, tbl)
+  validate_dates(env, tbl)
+  validate_urls(env, tbl)
+  validate_keys(db, env, tbl)
+  validate_refs(db, env, tbl)
+  validate_conditions(db, env, tbl)
   
-  # Combine duplicate columns.
-  fields <- names(df)
-  if (any(duplicated(fields))) {
-    merged <- df[,!duplicated(fields),drop=FALSE]
-    for (field in fields) {
-      indices <- which(fields == field)
-      if (length(indices) > 1) {
-        cols <- as.list(df[,indices,drop=FALSE])
-        merged[[field]] <- do.call(paste, c(cols, sep = '; '))
-      }
-    }
-    df <- merged
-  }
+  switch(
+    EXPR = tbl,
+    'events'       = condition_check_events(db, env, tbl),
+    'samples'      = condition_check_samples(db, env, tbl),
+    'libraries'    = condition_check_libraries(db, env, tbl),
+    'files'        = condition_check_files(db, env, tbl) )
   
+  insert_rows(db, env, tbl)
   
-  # Check for missing or extra fields.
-  fields  <- names(df)
-  missing <- setdiff(DICT_REQ[[tbl]], fields)
-  invalid <- setdiff(fields, DICT_ALL[[tbl]])
-  if (length(missing) > 0) {
-    msg <- '%s: Required columns are missing: %s'
-    msg <- sprintf(msg, tbl, paste(collapse = ', ', missing))
-    stop(msg)
-  }
-  if (length(invalid) > 0) {
-    msg <- '%s: Unexpected columns are present: "%s"'
-    msg <- sprintf(msg, tbl, paste(collapse = '", "', invalid))
-    stop(msg)
-  }
-  
-  
-  # Ensure each required column is filled in.
-  for (field in DICT_REQ[[tbl]]) {
-    missing <- which(!nzchar(trimws(df[[field]]))) + 1
-    if (length(missing) > 0) {
-      msg <- '%s: required "%s" values are missing on row(s) %s'
-      msg <- sprintf(msg, tbl, field, paste(collapse = '`, `', head(missing, 20)))
-      stop(msg)
-    }
-  }
-  
-  return (df)
 }
+
+
 
 
