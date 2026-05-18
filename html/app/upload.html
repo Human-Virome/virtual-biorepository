@@ -558,10 +558,9 @@
                 
                 const formData = new FormData();
                 formData.append('file', file);
-                formData.append('save', 'false'); // Validation only (ROLLBACK)
             
                 try {
-                    const response = await fetch('/api/metadata_upload', {
+                    const response = await fetch('/api/metadata_upload?save=false', {
                         method: 'POST',
                         body: formData
                     });
@@ -608,10 +607,9 @@
             
                 const formData = new FormData();
                 formData.append('file', currentValidatedFile);
-                formData.append('save', 'true'); // Commit the data
             
                 try {
-                    const response = await fetch('/api/metadata_upload', {
+                    const response = await fetch('/api/metadata_upload?save=true', {
                         method: 'POST',
                         body: formData
                     });
