@@ -42,7 +42,7 @@ api_metadata_upload <- function (db, file, save) {
   else {
     
     excel_sheets <- setdiff(readxl::excel_sheets(file), 'cv')
-    valid_sheets <- c('participants', 'events', 'samples', 'libraries', 'files', 'analyses')
+    valid_sheets <- c('participants', 'events', 'samples', 'libraries', 'analyses', 'files')
     
     if (length(invalid_sheets <- setdiff(excel_sheets, valid_sheets)))
       stop('Unrecognized Excel worksheet(s): ', paste(collapse = ", ", invalid_sheets))
@@ -56,7 +56,9 @@ api_metadata_upload <- function (db, file, save) {
         db_query(db, 'START TRANSACTION')
         
         recs <- 0
-        for (tbl in excel_sheets) {
+        
+        # Control the order in which they're processed
+        for (tbl in intersect(valid_sheets, excel_sheets)) {
           
           df <- readxl::read_excel(
             path         = file,

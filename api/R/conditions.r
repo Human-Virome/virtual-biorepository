@@ -2,9 +2,10 @@
 
 condition_check_events <- function (db, env, tbl) {
   
-  recs <- length(env[[ls(env)[[1]]]])
+  errors <- c()
+  recs   <- length(env[[ls(env)[[1]]]])
   
-  for (field in c('age', 'age_units', 'age_range'))
+  for (field in c('age', 'age_units', 'age_range', 'height', 'height_units', 'weight', 'weight_units'))
     if (!hasName(env, field))
       env[[field]] <- character(recs)
   
@@ -14,18 +15,10 @@ condition_check_events <- function (db, env, tbl) {
   
   is_missing <- !(age | age_range)
   redundant  <- age & age_range
-  incomplete <- xor(age, age_units)
   
   if (any(is_missing)) {
     bad_rows <- head(which(is_missing))
     msg <- "%s:%d: either `age` or `age_range` must provided."
-    msg <- sprintf(msg, tbl, bad_rows + 1)
-    errors <- c(errors, msg)
-  }
-  
-  if (any(incomplete)) {
-    bad_rows <- head(which(incomplete))
-    msg <- "%s:%d: `age` and `age_units` must always be given together."
     msg <- sprintf(msg, tbl, bad_rows + 1)
     errors <- c(errors, msg)
   }
@@ -35,6 +28,22 @@ condition_check_events <- function (db, env, tbl) {
     msg <- "%s:%d: provide either `age` or `age_range`, not both."
     msg <- sprintf(msg, tbl, bad_rows + 1)
     errors <- c(errors, msg)
+  }
+  
+  for (i in c('age', 'weight', 'height')) {
+    
+    value <- nzchar(env[[i]])
+    units <- nzchar(env[[paste0(i, '_units')]])
+    
+    incomplete <- xor(value, units)
+  
+    if (any(incomplete)) {
+      bad_rows <- head(which(incomplete))
+      msg <- "%s:%d: `%s` and `%s_units` must always be given together."
+      msg <- sprintf(msg, tbl, bad_rows + 1, i, i)
+      errors <- c(errors, msg)
+    }
+    
   }
   
   
@@ -47,7 +56,8 @@ condition_check_events <- function (db, env, tbl) {
 
 condition_check_samples <- function (db, env, tbl) {
   
-  recs <- length(env[[ls(env)[[1]]]])
+  errors <- c()
+  recs   <- length(env[[ls(env)[[1]]]])
   
   for (field in c('anatomical_site', 'body_product', 'negative_control_type', 'postive_control_type'))
     if (!hasName(env, field))
@@ -104,7 +114,8 @@ condition_check_samples <- function (db, env, tbl) {
 
 condition_check_libraries <- function (db, env, tbl) {
   
-  recs <- length(env[[ls(env)[[1]]]])
+  errors <- c()
+  recs   <- length(env[[ls(env)[[1]]]])
   
   for (field in c('is_control_library', 'library_pos_cont_type', 'library_neg_cont_type', 'paired_or_single', 'sequencing_platform', 'sequencing_instrument_model'))
     if (!hasName(env, field))
@@ -165,7 +176,8 @@ condition_check_libraries <- function (db, env, tbl) {
 
 condition_check_files <- function (db, env, tbl) {
   
-  recs <- length(env[[ls(env)[[1]]]])
+  errors <- c()
+  recs   <- length(env[[ls(env)[[1]]]])
   
   for (field in c('data_use_condition', 'data_use_specific_limit'))
     if (!hasName(env, field))
@@ -185,8 +197,8 @@ condition_check_files <- function (db, env, tbl) {
     errors <- c(errors, msg)
   }
   
-  if (any(missing_control_type)) {
-    bad_rows <- head(which(missing_control_type))
+  if (any(missing_limit)) {
+    bad_rows <- head(which(missing_limit))
     msg <- "%s:%d: `data_use_specific_limit` is required when `data_use_condition` = \"DUO:0000007\" (disease specific research)."
     msg <- sprintf(msg, tbl, bad_rows + 1)
     errors <- c(errors, msg)
