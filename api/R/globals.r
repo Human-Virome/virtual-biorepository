@@ -13,7 +13,7 @@ MODE_SUFFIXES <- c(
 
 FREQ_SUFFIXES <- c("daily", "weekly", "occasionally", "prior_months", "prior_years")
 
-UID_REGEX  <- paste0(   "(", paste0(UID_PREFIXES,  collapse = "|"), ")_")
+UID_REGEX  <- paste0(   "(", paste0(UID_PREFIXES,  collapse = "|"), ")")
 MODE_REGEX <- paste0("\\:(", paste0(MODE_SUFFIXES, collapse = "|"), ")")
 FREQ_REGEX <- paste0("\\:(", paste0(FREQ_SUFFIXES, collapse = "|"), ")")
 
