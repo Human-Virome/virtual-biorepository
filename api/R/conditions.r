@@ -15,6 +15,7 @@ condition_check_events <- function (db, env, tbl) {
   
   is_missing <- !(age | age_range)
   redundant  <- age & age_range
+  age_ge_90  <- age & (as.numeric(age) >= 90) & (age_units == "years")
   
   if (any(is_missing)) {
     bad_rows <- head(which(is_missing))
@@ -26,6 +27,13 @@ condition_check_events <- function (db, env, tbl) {
   if (any(redundant)) {
     bad_rows <- head(which(redundant))
     msg <- "%s:%d: provide either `age` or `age_range`, not both."
+    msg <- sprintf(msg, tbl, bad_rows + 1)
+    errors <- c(errors, msg)
+  }
+  
+  if (any(age_ge_90)) {
+    bad_rows <- head(which(age_ge_90))
+    msg <- "%s:%d: use `age_range` instead of `age` when `age` >= 90 years."
     msg <- sprintf(msg, tbl, bad_rows + 1)
     errors <- c(errors, msg)
   }
