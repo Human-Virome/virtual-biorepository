@@ -63,7 +63,7 @@ reformat_ids <- function (env, tbl) {
     x <- env[[field]]
     
     # 1. Prefix and Regex Handling
-    prefix_group  <- paste0("(", paste0(prefix_group, collapse = "|"), ")")
+    prefix_group  <- paste0("(", paste0(prefixes, collapse = "|"), ")")
     if ("uid" %in% fmt)      { regex <- paste0(prefix_group, "[^;\\s]+")          }
     if ("DB"  %in% prefixes) { regex <- paste0(prefix_group, "[a-zA-Z0-9_:\\-]+") }
     else                     { regex <- paste0(prefix_group, "[0-9]+")            }
