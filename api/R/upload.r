@@ -116,4 +116,36 @@ ingest_table <- function (db, df, tbl) {
 
 
 
+create_hvp_ids <- function (db, tbl, n) {
+  
+  stopifnot(is.character(tbl), isTRUE(nzchar(tbl)))
+  stopifnot(is.numeric(n), isTRUE(n %% 1 == 0))
+  
+  if (n < 1) return (character(0))
+  
+  prefix <- switch(
+    EXPR = tbl,
+    'participants' = "hvp:p-",
+    'events'       = "hvp:e-",
+    'samples'      = "hvp:s-",
+    'libraries'    = "hvp:l-",
+    'analyses'     = "hvp:a-",
+    'files'        = "hvp:f-",
+    stop('No table to prefix mapping for table ', tbl) )
+  
+  # Generate 5 extra IDs in case of collisions.
+  new_ids <- stringi::stri_rand_strings(n + 5, 8)
+  new_ids <- paste0(prefix, new_ids)
+  
+  # Avoid colliding with existing IDs.
+  current <- db_query(db, sprintf('SELECT hvp_id FROM `%s`', tbl), 'CrHvId')
+  new_ids <- setdiff(new_ids, current)[seq_len(n)]
+  
+  # Too many collisions (highly unlikely).
+  stopifnot(!anyNA(new_ids))
+  
+  return (new_ids)
+}
+
+
 

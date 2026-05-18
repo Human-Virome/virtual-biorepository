@@ -20,7 +20,7 @@ if [ "$BEFORE_PULL" != "$AFTER_PULL" ]; then
     echo "Updates detected: $BEFORE_PULL -> $AFTER_PULL"
     echo "Restarting services..."
     systemctl daemon-reload
-    systemctl restart plumber@8000 plumber@8001 mariadb nginx oauth2-proxy fail2ban
+    systemctl restart httpuv@8000 httpuv@8001 mariadb nginx oauth2-proxy fail2ban
 else
     echo "No updates found. Skipping service restarts."
 fi
