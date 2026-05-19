@@ -360,7 +360,7 @@ validate_urls  <- function (env) {
     
     # Basic Syntax Check (must start with http:// or https://)
     is_a_url   <- grepl("^https?://", tolower(x))
-    bad_syntax <- which(!is.na(x) && !is_a_url)
+    bad_syntax <- which(!is.na(x) & !is_a_url)
     
     if (length(bad_syntax) > 0) {
       bad_rows <- head(bad_syntax)
@@ -432,7 +432,7 @@ validate_md5  <- function (env) {
     
     # Basic Syntax Check (must start with http:// or https://)
     is_md5     <- grepl("^[a-f0-9]{32}$", tolower(x))
-    bad_syntax <- which(!is.na(x) && !is_md5)
+    bad_syntax <- which(!is.na(x) & !is_md5)
     
     if (length(bad_syntax) > 0) {
       bad_rows <- head(bad_syntax)
