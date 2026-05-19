@@ -99,7 +99,7 @@
                         <span class="material-symbols-outlined" style="font-size: 1.25rem;">close</span>
                     </button>
                 </div>
-                <div style="max-height: 150px; overflow-y: auto; padding-right: 0.5rem;">
+                <div style="max-height: 120px; overflow-y: auto; padding-right: 0.5rem;">
                     <div id="error-alert-message" class="text-sm text-muted pre-wrap mb-0" style="line-height: 1.6;"></div>
                 </div>
             </div>
@@ -557,7 +557,7 @@
                 badgeValidating.style.display = 'flex';
             
                 try {
-                    const response = await fetch('/api/metadata_upload?save=false', {
+                    const response = await fetch('/api/validate_file', {
                         method: 'POST',
                         body: file, // Send the raw file object directly
                         headers: {
@@ -606,7 +606,7 @@
                 badgeSaving.style.display = 'flex';
             
                 try {
-                    const response = await fetch('/api/metadata_upload?save=true', {
+                    const response = await fetch('/api/commit_file', {
                         method: 'POST',
                         body: currentValidatedFile, // Send the raw file object directly
                         headers: {

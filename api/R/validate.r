@@ -3,33 +3,33 @@
 
 # Check for missing or extra fields.
 # Ensure each required column is filled in.
-validate_req_columns <- function (env, tbl) {
+validate_req_columns <- function (env) {
   
-  fields <- ls(env)
+  fields <- names(env$df)
   errors <- c()
   
-  all_dict_fields <- names(DICT[[tbl]])
-  req_dict_fields <- all_dict_fields[sapply(DICT[[tbl]], \(x) identical(x$req, "yes"))]
+  all_dict_fields <- names(DICT[[env$tbl]])
+  req_dict_fields <- all_dict_fields[sapply(DICT[[env$tbl]], \(x) identical(x$req, "yes"))]
   
   missing <- setdiff(req_dict_fields, fields)
   invalid <- setdiff(fields, all_dict_fields)
   
   if (length(missing) > 0) {
     msg <- '%s: Required columns are missing: `%s`'
-    msg <- sprintf(msg, tbl, paste(collapse = '`, `', missing))
+    msg <- sprintf(msg, env$tbl, paste(collapse = '`, `', missing))
     errors <- c(errors, msg)
   }
   if (length(invalid) > 0) {
     msg <- '%s: Unexpected columns are present: `%s`'
-    msg <- sprintf(msg, tbl, paste(collapse = '`, `', invalid))
+    msg <- sprintf(msg, env$tbl, paste(collapse = '`, `', invalid))
     errors <- c(errors, msg)
   }
   
   for (field in intersect(fields, req_dict_fields)) {
-    missing <- which(!nzchar(env[[field]])) + 1
+    missing <- which(is.na(env$df[[field]])) + 1
     if (length(missing) > 0) {
       msg <- '%s: required `%s` values are missing on row(s) %s'
-      msg <- sprintf(msg, tbl, field, paste(collapse = ', ', head(missing, 20)))
+      msg <- sprintf(msg, env$tbl, field, paste(collapse = ', ', head(missing, 20)))
       errors <- c(errors, msg)
     }
   }
@@ -45,31 +45,31 @@ validate_req_columns <- function (env, tbl) {
 # From: "Dog [NCBI:txid9615]; Cat (Domestic) [NCBI:txid9685]"
 # To:   "NCBI:txid9615;NCBI:txid9685"
 
-reformat_ids <- function (env, tbl) {
+reformat_ids <- function (env) {
   
-  fields <- ls(env)
+  fields <- names(env$df)
   errors <- c()
   
   
   for (field in fields) {
     
-    fmt   <- DICT[[tbl]][[field]][['fmt']]
-    req   <- identical(DICT[[tbl]][[field]][['req']], "yes")
-    multi <- "multiple" %in% DICT[[tbl]][[field]][['fmt']]
+    fmt   <- unlist(DICT[[env$tbl]][[field]][['fmt']])
+    req   <- identical(DICT[[env$tbl]][[field]][['req']], "yes")
+    multi <- "multiple" %in% fmt
     if      ("uid"    %in% fmt) { prefixes <- UID_PREFIXES }
-    else if ("prefix" %in% fmt) { prefixes <- DICT[[tbl]][[field]][['prefix']] }
+    else if ("prefix" %in% fmt) { prefixes <- unlist(DICT[[env$tbl]][[field]][['prefix']]) }
     else                        { next }
     
-    x <- env[[field]]
+    x <- env$df[[field]]
     
     # 1. Prefix and Regex Handling
     prefix_group  <- paste0("(", paste0(prefixes, collapse = "|"), ")")
-    if ("uid" %in% fmt)      { regex <- paste0(prefix_group, "[^;\\s]+")          }
-    if ("DB"  %in% prefixes) { regex <- paste0(prefix_group, "[a-zA-Z0-9_:\\-]+") }
-    else                     { regex <- paste0(prefix_group, "[0-9]+")            }
+    if      ("uid" %in% fmt)      { regex <- paste0(prefix_group, "[^;\\s]+")          }
+    else if ("DB"  %in% prefixes) { regex <- paste0(prefix_group, "[a-zA-Z0-9_:\\-]+") }
+    else                          { regex <- paste0(prefix_group, "[0-9]+")            }
     
     # 2. Identify empty records
-    is_empty <- stringi::stri_trim_both(x) == ""
+    is_empty <- is.na(x)
     
     # 3. Process strings based on `multi` parameter
     if (!isTRUE(multi)) {
@@ -80,7 +80,7 @@ reformat_ids <- function (env, tbl) {
       if (any(has_semi, na.rm = TRUE)) {
         bad_rows <- head(which(has_semi))
         msg <- "%s:%d: semicolons in `%s` are not allowed: \"%s\""
-        msg <- sprintf(msg, tbl, bad_rows + 1, field, x[bad_rows])
+        msg <- sprintf(msg, env$tbl, bad_rows + 1, field, x[bad_rows])
         errors <- c(errors, msg)
       }
       
@@ -94,7 +94,7 @@ reformat_ids <- function (env, tbl) {
       is_too_many <- !is_empty & n_matches > 1
       
       # Flatten single results
-      result_list <- lapply(matches, function(m) if(is.na(m[1])) "" else m[1])
+      result_list <- lapply(matches, function(m) m[1])
       
     } else {
       # -- MULTI = TRUE LOGIC --
@@ -135,22 +135,19 @@ reformat_ids <- function (env, tbl) {
     if (any(is_missing)) {
       bad_rows <- head(which(is_missing))
       msg <- "%s:%d: missing or invalid `%s` identifier: \"%s\""
-      msg <- sprintf(msg, tbl, bad_rows + 1, field, x[bad_rows])
+      msg <- sprintf(msg, env$tbl, bad_rows + 1, field, x[bad_rows])
       errors <- c(errors, msg)
     }
     
     if (any(is_too_many)) {
       bad_rows <- head(which(is_too_many))
       msg <- "%s:%d: multiple `%s` identifiers: \"%s\""
-      msg <- sprintf(msg, tbl, bad_rows + 1, field, x[bad_rows])
+      msg <- sprintf(msg, env$tbl, bad_rows + 1, field, x[bad_rows])
       errors <- c(errors, msg)
     }
     
     # 5. Finalize and Assign
-    result <- unlist(result_list)
-    result[is_empty] <- "" # Ensure skipped/empty strings are strictly ""
-    
-    env[[field]] <- result
+    env$df[[field]] <- unlist(result_list)
     
   }
   
@@ -162,21 +159,21 @@ reformat_ids <- function (env, tbl) {
 
 
 
-validate_suffixes  <- function (env, tbl) {
+validate_suffixes  <- function (env) {
   
-  fields <- ls(env)
+  fields <- names(env$df)
   errors <- c()
   
   for (field in fields) {
     
-    fmt  <- DICT[[tbl]][[field]][['fmt']]
+    fmt  <- unlist(DICT[[env$tbl]][[field]][['fmt']])
     freq <- "freq" %in% fmt
     mode <- "mode" %in% fmt
     if (!(freq || mode)) next
     
-    x <- env[[field]]
+    x <- env$df[[field]]
     
-    for (i in which(nzchar(x))) {
+    for (i in which(!is.na(x))) {
       invisible(sapply(strsplit(x[[i]], ";", fixed = TRUE)[[1]], \(str) {
         s <- str
         if (freq) s <- sub(FREQ_REGEX, '', s)
@@ -185,7 +182,7 @@ validate_suffixes  <- function (env, tbl) {
         valid <- valid && startsWith(str, s)
         if (!valid) {
           msg <- "%s:%d: invalid `%s` identifier/suffix: \"%s\""
-          msg <- sprintf(msg, tbl, i + 1, field, str)
+          msg <- sprintf(msg, env$tbl, i + 1, field, str)
           errors <<- c(errors, msg)
         }
       }))
@@ -200,17 +197,17 @@ validate_suffixes  <- function (env, tbl) {
 
 
 
-validate_cv  <- function (env, tbl) {
+validate_cv  <- function (env) {
   
-  fields <- ls(env)
+  fields <- names(env$df)
   errors <- c()
   
   for (field in fields) {
     
-    cv <- DICT[[tbl]][[field]][['cv']]
+    cv <- unlist(DICT[[env$tbl]][[field]][['cv']])
     if (is.null(cv)) next
     
-    invalid <- which(!(env[[field]] %in% c(cv, "")))
+    invalid <- which(!(env$df[[field]] %in% c(cv, NA_character_)))
     
     if (length(invalid) > 0) {
       
@@ -218,7 +215,7 @@ validate_cv  <- function (env, tbl) {
       cv_norm <- stringi::stri_trans_tolower(cv)
       
       for (i in invalid) {
-        user_val <- env[[field]][i]
+        user_val <- env$df[[field]][i]
         
         # 2. Normalize the user input identically
         val_norm <- stringi::stri_trans_tolower(stringi::stri_trans_general(user_val, "Latin-ASCII"))
@@ -234,17 +231,17 @@ validate_cv  <- function (env, tbl) {
         
         # 5. If exactly one match is found, replace the environment value with the CORRECT case CV value
         if (length(matches) == 1) {
-          env[[field]][i] <- cv[matches]
+          env$df[[field]][i] <- cv[matches]
         }
       }
       
       # Re-evaluate invalid entries after the fuzzy matching attempt
-      invalid <- which(!(env[[field]] %in% c(cv, "")))
+      invalid <- which(!(env$df[[field]] %in% c(cv, NA_character_)))
       
       if (length(invalid) > 0) {
         bad_rows <- head(invalid)
         msg <- "%s:%d: `%s` doesn't match controlled vocabulary: \"%s\""
-        msg <- sprintf(msg, tbl, bad_rows + 1, field, env[[field]][bad_rows])
+        msg <- sprintf(msg, env$tbl, bad_rows + 1, field, env$df[[field]][bad_rows])
         errors <- c(errors, msg)
       }
     }
@@ -258,25 +255,25 @@ validate_cv  <- function (env, tbl) {
 
 
 
-validate_numbers <- function (env, tbl) {
+validate_numbers <- function (env) {
   
-  fields <- ls(env)
+  fields <- names(env$df)
   errors <- c()
   
   for (field in fields) {
     
-    fmt <- DICT[[tbl]][[field]][['fmt']]
+    fmt <-unlist(DICT[[env$tbl]][[field]][['fmt']])
     if (!any(c('number', 'integer') %in% fmt)) next
     
-    x <- env[[field]]
+    x <- env$df[[field]]
     
     x_num   <- suppressWarnings(as.numeric(x))
-    not_num <- which(nzchar(x) && !is.finite(x_num))
+    not_num <- which(!is.na(x) & !is.finite(x_num))
     
     if (length(not_num) > 0) {
       bad_rows <- head(not_num)
       msg <- "%s:%d: `%s` is not a number: \"%s\""
-      msg <- sprintf(msg, tbl, bad_rows + 1, field, x[bad_rows])
+      msg <- sprintf(msg, env$tbl, bad_rows + 1, field, x[bad_rows])
       errors <- c(errors, msg)
     }
     
@@ -286,18 +283,18 @@ validate_numbers <- function (env, tbl) {
       if (length(is_frac) > 0) {
         bad_rows <- head(is_frac)
         msg <- "%s:%d: `%s` is not a whole number: \"%s\""
-        msg <- sprintf(msg, tbl, bad_rows + 1, field, x[bad_rows])
+        msg <- sprintf(msg, env$tbl, bad_rows + 1, field, x[bad_rows])
         errors <- c(errors, msg)
       }
     }
     
     if ('non-negative' %in% fmt) {
-      is_neg <- which(x_num < 0 && is.finite(x_num))
+      is_neg <- which(x_num < 0 & is.finite(x_num))
       
       if (length(is_neg) > 0) {
         bad_rows <- head(is_neg)
         msg <- "%s:%d: `%s` cannot be negative: \"%s\""
-        msg <- sprintf(msg, tbl, bad_rows + 1, field, x[bad_rows])
+        msg <- sprintf(msg, env$tbl, bad_rows + 1, field, x[bad_rows])
         errors <- c(errors, msg)
       }
     }
@@ -311,29 +308,29 @@ validate_numbers <- function (env, tbl) {
 
 
 
-validate_dates <- function (env, tbl) {
+validate_dates <- function (env) {
   
-  fields <- ls(env)
+  fields <- names(env$df)
   errors <- c()
   
   for (field in fields) {
     
-    fmt <- DICT[[tbl]][[field]][['fmt']]
+    fmt <- unlist(DICT[[env$tbl]][[field]][['fmt']])
     ymd <- intersect(c('YYYY-MM', 'YYYY-MM-DD'), fmt)
     if (length(ymd) == 0) next
     
-    x <- env[[field]]
+    x <- env$df[[field]]
     
     if (identical(ymd, 'YYYY-MM'))
-      x[nzchar(x)] <- paste0(x[nzchar(x)], "-01")
+      x[!is.na(x)] <- paste0(x[!is.na(x)], "-01")
     
     x_date   <- strptime(x, format="%Y-%m-%d")
-    not_date <- which(nzchar(x) && is.na(x_date))
+    not_date <- which(!is.na(x) && is.na(x_date))
     
     if (length(not_date) > 0) {
       bad_rows <- head(not_date)
       msg <- "%s:%d: `%s` is not a valid %s date: \"%s\""
-      msg <- sprintf(msg, tbl, bad_rows + 1, field, ymd, x[bad_rows])
+      msg <- sprintf(msg, env$tbl, bad_rows + 1, field, ymd, x[bad_rows])
       errors <- c(errors, msg)
     }
     
@@ -346,9 +343,9 @@ validate_dates <- function (env, tbl) {
 
 
 
-validate_urls  <- function (env, tbl) {
+validate_urls  <- function (env) {
   
-  fields <- ls(env)
+  fields <- names(env$df)
   errors <- c()
   
   # Initialize the concurrent pool
@@ -356,19 +353,19 @@ validate_urls  <- function (env, tbl) {
   
   for (field in fields) {
     
-    fmt <- DICT[[tbl]][[field]][['fmt']]
+    fmt <- unlist(DICT[[env$tbl]][[field]][['fmt']])
     if (!('url' %in% fmt)) next
     
-    x <- env[[field]]
+    x <- env$df[[field]]
     
     # Basic Syntax Check (must start with http:// or https://)
     is_a_url   <- grepl("^https?://", tolower(x))
-    bad_syntax <- which(nzchar(x) && !is_a_url)
+    bad_syntax <- which(!is.na(x) && !is_a_url)
     
     if (length(bad_syntax) > 0) {
       bad_rows <- head(bad_syntax)
       msg <- "%s:%d: `%s` is not a URL: \"%s\""
-      msg <- sprintf(msg, tbl, bad_rows + 1, field, x[bad_rows])
+      msg <- sprintf(msg, env$tbl, bad_rows + 1, field, x[bad_rows])
       errors <- c(errors, msg)
     }
     
@@ -394,8 +391,8 @@ validate_urls  <- function (env, tbl) {
         curl::multi_add(
           handle = handle,
           pool   = pool, 
-          done   = \(res) { res_env[[u]] <- (res$status_code >= 200 && res$status_code < 400) },
-          fail   = \(msg) { res_env[[u]] <- FALSE }
+          done   = \(res) { res_env$df[[u]] <- (res$status_code >= 200 && res$status_code < 400) },
+          fail   = \(msg) { res_env$df[[u]] <- FALSE }
         )
       })
     }
@@ -403,12 +400,12 @@ validate_urls  <- function (env, tbl) {
     # Execute all queued requests in parallel
     curl::multi_run(pool = pool)
     
-    failed_reqs <- sapply(which(is_a_url), \(i) !isTRUE(res_env[[x[[i]]]]))
+    failed_reqs <- sapply(which(is_a_url), \(i) !isTRUE(res_env$df[[x[[i]]]]))
     
     if (length(failed_reqs) > 0) {
       bad_rows <- head(failed_reqs)
       msg <- "%s:%d: `%s` is not accessible: %s"
-      msg <- sprintf(msg, tbl, bad_rows + 1, field, x[bad_rows])
+      msg <- sprintf(msg, env$tbl, bad_rows + 1, field, x[bad_rows])
       errors <- c(errors, msg)
     }
     
@@ -421,33 +418,33 @@ validate_urls  <- function (env, tbl) {
 
 
 
-validate_keys <- function (db, env, tbl) {
+validate_keys <- function (env) {
   
-  fields <- ls(env)
+  fields <- names(env$df)
   errors <- c()
   
   for (field in fields) {
     
-    fmt <- DICT[[tbl]][[field]][['fmt']]
+    fmt <- unlist(DICT[[env$tbl]][[field]][['fmt']])
     if (!('primary' %in% fmt)) next
     
-    x <- env[[field]]
+    x <- env$df[[field]]
     
-    current   <- db_query(db, sprintf('SELECT `%s` FROM `%s`', field, tbl), 'VaKe')
+    current   <- db_query(env$db, sprintf('SELECT `%s` FROM `%s`', field, env$tbl), 'VaKe')
     conflicts <- which(x %in% current)
-    duplicate <- which(duplicated(x) && nzchar(x))
+    duplicate <- which(duplicated(x) && !is.na(x))
     
     if (length(conflicts) > 0) {
       bad_rows <- head(conflicts)
       msg <- "%s:%d: `%s` already exists in database: %s"
-      msg <- sprintf(msg, tbl, bad_rows + 1, field, x[bad_rows])
+      msg <- sprintf(msg, env$tbl, bad_rows + 1, field, x[bad_rows])
       errors <- c(errors, msg)
     }
     
     if (length(duplicate) > 0) {
       bad_rows <- head(duplicate)
       msg <- "%s:%d: `%s` appears more than once: %s"
-      msg <- sprintf(msg, tbl, bad_rows + 1, field, x[bad_rows])
+      msg <- sprintf(msg, env$tbl, bad_rows + 1, field, x[bad_rows])
       errors <- c(errors, msg)
     }
     
@@ -460,26 +457,26 @@ validate_keys <- function (db, env, tbl) {
 
 
 
-validate_refs <- function (db, env, tbl) {
+validate_refs <- function (env) {
   
-  fields <- ls(env)
+  fields <- names(env$df)
   errors <- c()
   
   for (field in fields) {
     
-    fmt <- DICT[[tbl]][[field]][['fmt']]
+    fmt <- unlist(DICT[[env$tbl]][[field]][['fmt']])
     if (!('ref' %in% fmt)) next
     
-    x <- env[[field]]
+    x <- env$df[[field]]
     
-    ref_table <- names(DICT[[tbl]][[field]][['ref']])[[1]]
-    ref_field <- DICT[[tbl]][[field]][['ref']][[ref_table]]
-    current   <- db_query(db, sprintf('SELECT `%s` FROM `%s`', ref_field, ref_table), 'VaRe')
+    ref_table <- names(DICT[[env$tbl]][[field]][['ref']])[[1]]
+    ref_field <- DICT[[env$tbl]][[field]][['ref']][[ref_table]]
+    current   <- db_query(env$db, sprintf('SELECT `%s` FROM `%s`', ref_field, ref_table), 'VaRe')
     
-    if (identical(ref_table, tbl))
-      current <- c(current, env[[ref_field]])
+    if (identical(ref_table, env$tbl))
+      current <- c(current, env$df[[ref_field]])
     
-    for (i in which(nzchar(x))) {
+    for (i in which(!is.na(x))) {
       
       ids <- strsplit(x[[i]], ';', fixed = TRUE)[[1]]
       is_missing <- which(!(ids %in% current))
@@ -487,7 +484,7 @@ validate_refs <- function (db, env, tbl) {
       if (length(is_missing) > 0) {
         bad_ids <- head(is_missing)
         msg <- "%s:%d: `%s` does not exist: \"%s\""
-        msg <- sprintf(msg, tbl, i, field, ids[bad_ids])
+        msg <- sprintf(msg, env$tbl, i, field, ids[bad_ids])
         errors <- c(errors, msg)
       }
     }
