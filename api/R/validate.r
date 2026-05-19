@@ -418,7 +418,7 @@ validate_urls  <- function (env) {
 
 
 
-validate_urls  <- function (env) {
+validate_md5  <- function (env) {
   
   fields <- names(env$df)
   errors <- c()
