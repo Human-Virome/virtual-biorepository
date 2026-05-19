@@ -39,7 +39,9 @@ ingest_excel_file <- function (db, file) {
   if (length(invalid_sheets) > 0)
     stop('Unrecognized Excel worksheet(s): ', paste(collapse = ", ", invalid_sheets))
   
+  env <- list2env(list(db = db))
   found_records <- FALSE
+  
   for (tbl in valid_sheets) {
     
     env$tbl <- tbl
