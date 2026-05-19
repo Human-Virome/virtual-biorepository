@@ -418,6 +418,38 @@ validate_urls  <- function (env) {
 
 
 
+validate_urls  <- function (env) {
+  
+  fields <- names(env$df)
+  errors <- c()
+  
+  for (field in fields) {
+    
+    fmt <- unlist(DICT[[env$tbl]][[field]][['fmt']])
+    if (!('md5' %in% fmt)) next
+    
+    x <- env$df[[field]]
+    
+    # Basic Syntax Check (must start with http:// or https://)
+    is_md5     <- grepl("^[a-f0-9]{32}$", tolower(x))
+    bad_syntax <- which(!is.na(x) && !is_md5)
+    
+    if (length(bad_syntax) > 0) {
+      bad_rows <- head(bad_syntax)
+      msg <- "%s:%d: `%s` is not a MD5 checksum: \"%s\""
+      msg <- sprintf(msg, env$tbl, bad_rows + 1, field, x[bad_rows])
+      errors <- c(errors, msg)
+    }
+    
+  }
+  
+  if (length(errors))
+    stop(paste(errors, collapse = "\n"))
+  invisible()  
+}
+
+
+
 validate_keys <- function (env) {
   
   fields <- names(env$df)

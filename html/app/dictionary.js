@@ -2092,7 +2092,7 @@ const vbrDictionary = {
         "bioproject_id":{
             "def":"The NCBI bioproject_id associated with this library/processed sample at the sub_bioproject level that is specific to the study this library is part of.",
             "req":"yes",
-            "fmt":["text", "prefix"],
+            "fmt":["prefix"],
             "prefix":["PRJNA"],
             "urls":{"HVP Umbrella project":"https://www.ncbi.nlm.nih.gov/bioproject/1336838"},
             "examples":[
@@ -2255,25 +2255,8 @@ const vbrDictionary = {
             "fmt":["uid", "primary"],
             "examples":["vast_fil_3754.fastq.gz"]
         },
-        "library_uid":{
-            "def":"The library/processed sample ID from which the file was generated.",
-            "req":"Required for primary data (e.g. sequence reads), but not for files containing analysis results or other secondary files (such as assemblies).",
-            "fmt":["uid", "ref"],
-            "ref":{"libraries":"library_uid"},
-            "examples":["vast_lib_3754"]
-        },
-        "library_aliqout_uid":{
-            "def":"For sequencing data, this is the aliquot used from the sequencing library. For non-sequence data, this is the aliquot from the processed sample.",
-            "req":"no",
-            "fmt":["uid"]
-        },
-        "bioproject_id":{
-            "def":"The NCBI bioproject_id associated with this data at the sub_bioproject level that is specific to the study this file is part of.",
-            "req":"Required for sequence data.",
-            "fmt":["text"]
-        },
         "data_type":{
-            "def":"Term that indicates the type of data contained in the file. Counts should only be used for summary information from a single sample. If fastq files are demultiplexed, please use demultiplexed_fastq. Let the HVPCC know if you need additional terms that are not provided here.",
+            "def":"Term that indicates the type of data contained in the file. \"counts\" should only be used for summary information from a single sample. If fastq files are demultiplexed, please use \"demultiplexed_fastq\". Let the HVPCC know if you need additional terms that are not provided here.",
             "req":"yes",
             "fmt":["cv"],
             "cv":[
@@ -2285,24 +2268,68 @@ const vbrDictionary = {
             "req":"yes",
             "fmt":["prefix"],
             "prefix":["EDAM:format_"],
-            "urls":{"EDAM Ontology \"format\" branch":"https://www.ebi.ac.uk/ols4/ontologies/edam/classes/http%25253A%25252F%25252Fedamontology.org%25252Fformat_1915"},
-            "examples":["fastq [EDAM:format_1930]", "bam [EDAM:format_2572]"]
+            "urls":{"EDAM Ontology \"format\" branch":"https://www.ebi.ac.uk/ols4/ontologies/edam/classes/http%253A%252F%252Fedamontology.org%252Fformat_1915"},
+            "examples":[
+              "FASTQ [EDAM:format_1930]",
+              "FASTA [EDAM:format_1929]",
+              "BAM [EDAM:format_2572]",
+              "TSV [EDAM:format_3475]",
+              "CSV [EDAM:format_3752]",
+              "RPKM [EDAM:format_3980]"]
         },
         "md5_checksum":{
             "def":"An MD5 checksum must be provided for every file.",
             "req":"yes",
-            "fmt":["md5"]
+            "fmt":["md5"],
+            "examples":[
+              "0cc175b9c0f1b6a831c399e269772661", 
+              "92eb5ffee6ae2fec3ad71c777531578f", 
+              "4a8a08f09d37b73795649038408b5f33"]
         },
-        "file_derived_from":{
-            "def":"File names that were used as input to generate the results. This is for cases where you are submitting a file containing results of a process such as assembly, taxonomic profiling, annotation, alignment, etc.",
-            "req":"Required for secondary/derived files.",
-            "fmt":["uid", "multiple"]
+        "library_uid":{
+            "def":"The library_uid from which the file was generated.",
+            "req":"Required for primary data (e.g. sequence reads), but not for files containing analysis results or other secondary files (such as assemblies).",
+            "fmt":["uid", "ref"],
+            "ref":{"libraries":"library_uid"},
+            "examples":["vast_lib_3754"]
+        },
+        "library_aliqout_uid":{
+            "def":"For sequencing data, this is the aliquot used from the sequencing library. For non-sequence data, this is the aliquot from the processed sample.",
+            "req":"no",
+            "fmt":["uid"]
+        },
+        "bioproject_id":{
+            "def":"The NCBI BioProject accession associated with this data at the sub-project level that is specific to the study this file is part of.",
+            "req":"Required for sequence data."
+            "prefix":["PRJNA"],
+            "urls":{"HVP Umbrella project":"https://www.ncbi.nlm.nih.gov/bioproject/1336838"},
+            "examples":[
+              "Antibody targeting of the virome [PRJNA1336851]",
+              "Single virion analysis of the virome [PRJNA1336854]",
+              "Pregnancy and postpartum [PRJNA1336849]",
+              "Methods for quantitative recovery [PRJNA1336855]",
+              "Antimicrobial and inflammatory perturbations [PRJNA1336853]",
+              "Oral-Gut-Brain Axis [PRJNA1336845]",
+              "Petabase scale to single-cell resolution [PRJNA1336850]",
+              "Oro-Respiratory-Gut Virome Axis [PRJNA1336841]",
+              "Viromes Across Space and Time [PRJNA1336844]",
+              "Vanderbilt VCC (V2C2) [PRJNA1336843]",
+              "Enrichment and Precise Quantification [PRJNA1336856]",
+              "Diverse Human Populations [PRJNA1336842]",
+              "Whole Body Deep Tissue [PRJNA1336852]"
+            ]
         },
         "analysis_uid":{
             "def":"Identifer of the analysis (from the analysis table) that a file is the result of.",
             "req":"Required for secondary/derived files.",
             "fmt":["uid", "ref"],
             "ref":{"analyses":"analysis_uid"}
+        },
+        "file_derived_from":{
+            "def":"The \"file_uniq_name\"s that were used as input to generate the results. This is for cases where you are submitting a file containing results of a process such as assembly, taxonomic profiling, annotation, alignment, etc.",
+            "req":"Required for secondary/derived files.",
+            "fmt":["uid", "multiple"],
+            "ref":{"files":"file_uniq_name"}
         },
         "access":{
             "def":"The consented access level of data.",

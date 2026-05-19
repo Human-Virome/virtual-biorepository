@@ -189,6 +189,8 @@ condition_check_files <- function (env) {
   
   disease_research <- sapply(env$df[['data_use_condition']], identical, "DUO:0000007")
   which_disease    <- !is.na(env$df[['data_use_specific_limit']])
+  invalid_source   <- !xor(is.na(env$df[['library_uid']]), is.na(env$df[['analysis_uid']]))
+  incomplete_ana   <- xor(is.na(env$df[['analysis_uid']]), is.na(env$df[['file_derived_from']]))
   
   missing_limit  <- disease_research & !which_disease
   spurious_limit <- !disease_research & which_disease
@@ -204,6 +206,20 @@ condition_check_files <- function (env) {
   if (any(missing_limit)) {
     bad_rows <- head(which(missing_limit))
     msg <- "%s:%d: `data_use_specific_limit` is required when `data_use_condition` = \"DUO:0000007\" (disease specific research)."
+    msg <- sprintf(msg, env$tbl, bad_rows + 1)
+    errors <- c(errors, msg)
+  }
+  
+  if (any(invalid_source)) {
+    bad_rows <- head(which(invalid_source))
+    msg <- "%s:%d: Either `library_uid` or `analysis_uid` must be provided (but not both)."
+    msg <- sprintf(msg, env$tbl, bad_rows + 1)
+    errors <- c(errors, msg)
+  }
+  
+  if (any(incomplete_ana)) {
+    bad_rows <- head(which(incomplete_ana))
+    msg <- "%s:%d: `analysis_uid` and `file_derived_from` must be filled in together or not at all."
     msg <- sprintf(msg, env$tbl, bad_rows + 1)
     errors <- c(errors, msg)
   }

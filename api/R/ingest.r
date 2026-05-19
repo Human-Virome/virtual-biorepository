@@ -108,6 +108,7 @@ ingest_table <- function (env) {
   validate_numbers(env)
   validate_dates(env)
   validate_urls(env)
+  validate_md5(env)
   validate_keys(env)
   validate_refs(env)
   
