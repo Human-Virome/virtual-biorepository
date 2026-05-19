@@ -2300,7 +2300,7 @@ const vbrDictionary = {
         },
         "bioproject_id":{
             "def":"The NCBI BioProject accession associated with this data at the sub-project level that is specific to the study this file is part of.",
-            "req":"Required for sequence data."
+            "req":"Required for sequence data.",
             "prefix":["PRJNA"],
             "urls":{"HVP Umbrella project":"https://www.ncbi.nlm.nih.gov/bioproject/1336838"},
             "examples":[
@@ -2316,8 +2316,7 @@ const vbrDictionary = {
               "Vanderbilt VCC (V2C2) [PRJNA1336843]",
               "Enrichment and Precise Quantification [PRJNA1336856]",
               "Diverse Human Populations [PRJNA1336842]",
-              "Whole Body Deep Tissue [PRJNA1336852]"
-            ]
+              "Whole Body Deep Tissue [PRJNA1336852]"]
         },
         "analysis_uid":{
             "def":"Identifer of the analysis (from the analysis table) that a file is the result of.",
