@@ -161,8 +161,7 @@ CREATE TABLE IF NOT EXISTS analyses (
   sop_url                TINYTEXT,
   community_workspace    TINYTEXT,
   pipeline_container_url TINYTEXT,
-  INDEX (oauth_email),
-  FOREIGN KEY (analysis_uid) REFERENCES analyses(analysis_uid)
+  INDEX (oauth_email)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 # hvp:f-abcdef
