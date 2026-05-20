@@ -28,7 +28,7 @@ apt update && apt upgrade -y
 apt install -y nginx certbot mariadb-server r-base awscli git fail2ban
 R -e "install.packages('pak', repos='https://r-lib.github.io/p/pak/stable/source/linux-gnu/x86_64'); \
       options(repos = c(CRAN = 'https://packagemanager.posit.co/cran/__linux__/trixie/latest'));      \
-      pak::pak(c('curl', 'data.table', 'DBI', 'httpuv', 'jsonlite', 'readxl', 'RMariaDB', 'stringi', 'webutils'))"
+      pak::pak(c('crul', 'data.table', 'DBI', 'httpuv', 'jsonlite', 'readxl', 'RMariaDB', 'stringi', 'webutils'))"
 
 certbot certonly --webroot -w /var/www/html -d metadata.human-virome.org --register-unsafely-without-email --agree-tos
 

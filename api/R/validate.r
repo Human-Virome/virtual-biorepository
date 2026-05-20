@@ -348,9 +348,6 @@ validate_urls  <- function (env) {
   fields <- names(env$df)
   errors <- c()
   
-  # Initialize the concurrent pool
-  pool <- curl::new_pool()
-  
   for (field in fields) {
     
     fmt <- unlist(DICT[[env$tbl]][[field]][['fmt']])
@@ -369,42 +366,17 @@ validate_urls  <- function (env) {
       errors <- c(errors, msg)
     }
     
-    if (!any(is_a_url)) next
+    urls <- unique(x[is_a_url])
+    if (length(urls) == 0) next
     
-    # Setup an environment to store the async callback results
-    res_env <- new.env(parent = emptyenv())
+    reqs <- crul::Async$new(urls = urls)
+    unreachable <- which(!sapply(reqs$get(), function(res) {
+      res$success() && res$status_code >= 200 && res$status_code < 400
+    }))
     
-    # Queue the requests
-    for (url in unique(x[is_a_url])) {
-      
-      handle <- curl::new_handle(
-        url            = url,
-        nobody         = TRUE, # HEAD request
-        followlocation = TRUE, # Follow redirects
-        maxredirs      = 10L,  # Cap redirects
-        timeout        = 5,
-        useragent      = "URL-Validity-Checker" )
-      
-      # Use local() to create a closure so 'url' is captured correctly for the callbacks
-      local({
-        u <- url
-        curl::multi_add(
-          handle = handle,
-          pool   = pool, 
-          done   = \(res) { res_env[[u]] <- (res$status_code >= 200 && res$status_code < 400) },
-          fail   = \(msg) { res_env[[u]] <- FALSE }
-        )
-      })
-    }
-    
-    # Execute all queued requests in parallel
-    curl::multi_run(pool = pool)
-    
-    failed_reqs <- sapply(which(is_a_url), \(i) !isTRUE(res_env[[x[[i]]]]))
-    
-    if (length(failed_reqs) > 0) {
-      bad_rows <- head(failed_reqs)
-      msg <- "%s:%d: `%s` is not accessible: %s"
+    if (length(unreachable) > 0) {
+      bad_rows <- head(which(is_a_url & (x %in% urls[unreachable])))
+      msg <- "%s:%d: `%s` is not reachable: %s"
       msg <- sprintf(msg, env$tbl, bad_rows + 1, field, x[bad_rows])
       errors <- c(errors, msg)
     }
