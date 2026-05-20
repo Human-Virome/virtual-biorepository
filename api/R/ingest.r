@@ -14,9 +14,8 @@ ingest_file <- function (db, file, commit) {
       if (is_xls) { ingest_excel_file(db, file) }
       else        { ingest_delim_file(db, file) }
       
-      db_query(db, 'ROLLBACK', 'InFile3')
-      # if (commit) { db_query(db, 'COMMIT',   'InFile2') }
-      # else        { db_query(db, 'ROLLBACK', 'InFile3') }
+      if (commit) { db_query(db, 'COMMIT',   'InFile2') }
+      else        { db_query(db, 'ROLLBACK', 'InFile3') }
     },
     error = function (e) {
       db_query(db, 'ROLLBACK', 'InFile4')
@@ -126,11 +125,10 @@ ingest_table <- function (env) {
   env$df[['hvp_id']]      <- create_hvp_ids(env)
   env$df[['oauth_email']] <- attr(env$db, 'oauth_email')
   
-  DBI::dbWriteTable(
-    conn   = env$db, 
-    name   = env$tbl, 
-    value  = env$df, 
-    append = TRUE )
+  DBI::dbAppendTable(
+    conn  = env$db, 
+    name  = env$tbl, 
+    value = env$df )
   
   invisible()
 }

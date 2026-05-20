@@ -5,6 +5,8 @@ CREATE USER 'vbr'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON vbr.* TO 'vbr'@'localhost';
 FLUSH PRIVILEGES;
 
+CREATE DATABASE IF NOT EXISTS vbr;
+use vbr;
 
 # hvp:p-abcdef
 CREATE TABLE IF NOT EXISTS participants (
