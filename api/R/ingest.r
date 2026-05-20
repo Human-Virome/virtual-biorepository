@@ -125,10 +125,18 @@ ingest_table <- function (env) {
   env$df[['hvp_id']]      <- create_hvp_ids(env)
   env$df[['oauth_email']] <- attr(env$db, 'oauth_email')
   
-  DBI::dbAppendTable(
-    conn  = env$db, 
-    name  = env$tbl, 
-    value = env$df )
+  # 1. Build the raw SQL statement
+  columns <- paste0("`", names(env$df), "`", collapse = ", ")
+  placeholders <- paste0(rep("?", ncol(env$df)), collapse = ", ")
+  sql <- sprintf("INSERT INTO `%s` (%s) VALUES (%s)", env$tbl, columns, placeholders)
+  
+  # 2. Execute directly using RMariaDB's vectorization
+  # unname(as.list()) formats the data frame perfectly for the driver
+  DBI::dbExecute(
+    conn      = env$db, 
+    statement = sql, 
+    params    = unname(as.list(env$df)) 
+  )
   
   invisible()
 }
