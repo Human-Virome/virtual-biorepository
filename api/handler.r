@@ -70,7 +70,7 @@ app <- list(
     list(
       status  = 200L,
       headers = list("Content-Type" = "application/json"),
-      body    = jsonlite::toJSON(response, null = "null") )
+      body    = jsonlite::toJSON(response, null = "null", na = "null") )
   }
 )
 
