@@ -10,7 +10,7 @@ cd /var/www/vbr || exit
 BEFORE_PULL=$(sudo -u www-data git rev-parse HEAD)
 
 # 4. Pull the latest code
-sudo -u www-data git pull origin main
+sudo -u www-data git pull --rebase origin main
 
 # 5. Record the commit hash AFTER pulling
 AFTER_PULL=$(sudo -u www-data git rev-parse HEAD)

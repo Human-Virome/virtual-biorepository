@@ -116,7 +116,7 @@ ingest_table <- function (env) {
   validate_refs(env)
   
   switch(
-    EXPR = tbl,
+    EXPR = env$tbl,
     'events'    = condition_check_events(env),
     'samples'   = condition_check_samples(env),
     'libraries' = condition_check_libraries(env),
