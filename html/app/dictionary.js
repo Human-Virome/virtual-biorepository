@@ -1608,7 +1608,7 @@ const vbrDictionary = {
         "time_last_toothbrush":{
             "def":"Specification of the time in hours since last toothbrushing.",
             "req":"no",
-            "fmt":["text"]
+            "fmt":["number"]
         }
     },
     "samples":{

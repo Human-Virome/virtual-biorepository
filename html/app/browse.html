@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>VBR - Data Browser</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    
+    <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet"/>
+
+    <style>
+        /* --- Native Theme Overrides for Tabulator --- */
+        .tabulator { 
+            background-color: var(--surface); 
+            border: none; 
+            color: var(--text-main); 
+            font-family: var(--font-main); 
+        }
+        .tabulator-header { 
+            background-color: var(--bg-main); 
+            border-bottom: 1px solid var(--border-color); 
+            color: var(--text-muted); 
+            font-size: 0.6875rem; 
+            text-transform: uppercase; 
+            letter-spacing: 0.05em; 
+            font-weight: 700; 
+        }
+        .tabulator-header .tabulator-col { 
+            background-color: var(--bg-main) !important; 
+            border-right: 1px solid var(--border-color); 
+        }
+        .tabulator-header .tabulator-col-content { padding: 0.75rem 1rem; }
+        .tabulator-row { 
+            background-color: var(--surface); 
+            border-bottom: 1px solid var(--border-color); 
+            font-size: 0.8125rem; 
+            transition: background-color 0.2s ease; 
+        }
+        .tabulator-row:hover { background-color: var(--surface-high); }
+        .tabulator-row.tabulator-row-even { background-color: rgba(11, 19, 38, 0.4); /* Matches your row-dimmed */ }
+        .tabulator-cell { padding: 0.75rem 1rem; border-right: 1px solid var(--border-color); }
+        
+        .tabulator-footer { 
+            background-color: var(--bg-main); 
+            border-top: 1px solid var(--border-color); 
+            color: var(--text-main); 
+            padding: 0.5rem 1rem;
+        }
+        .tabulator-footer .tabulator-page { 
+            border: 1px solid var(--border-color); 
+            background: var(--surface-high); 
+            color: var(--text-main); 
+            border-radius: 0.25rem; 
+            margin: 0 0.25rem;
+            padding: 0.25rem 0.5rem;
+            transition: all 0.2s;
+        }
+        .tabulator-footer .tabulator-page:hover { background: var(--primary-container); color: var(--on-primary-container); }
+        .tabulator-footer .tabulator-page.active { background: var(--primary); color: var(--bg-main); border-color: var(--primary); }
+        
+        /* Themed Scrollbars for the table */
+        .tabulator-tableholder::-webkit-scrollbar { width: 8px; height: 8px; }
+        .tabulator-tableholder::-webkit-scrollbar-track { background: var(--surface); }
+        .tabulator-tableholder::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        .tabulator-tableholder::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+    </style>
+</head>
+
+<body>
+  
+    <!--#include virtual="/app/header.html" -->
+    
+    <main class="mpa-container">
+        <div class="page-wrapper page-wrapper-full">
+            
+            <div class="section-header">
+                <span class="material-symbols-outlined">table_view</span>
+                <h2>Database Browser</h2>
+            </div>
+            
+            <div class="card card-body mb-3 flex-row" style="padding: 1rem; background-color: var(--surface-high);">
+                <span class="material-symbols-outlined text-muted">database</span>
+                <div class="input-group" style="width: 300px;">
+                    <select id="table-selector" class="form-control" style="cursor: pointer;">
+                        <option value="analyses">Analyses</option>
+                        <option value="biosamples">Biosamples</option>
+                        <option value="events">Events</option>
+                        <option value="files">Files</option>
+                        <option value="libraries">Libraries</option>
+                        <option value="participants">Participants</option>
+                        <option value="samples">Samples</option>
+                        <option value="sra">SRA</option>
+                    </select>
+                </div>
+                <button id="refresh-btn" class="btn btn-secondary">
+                    <span class="material-symbols-outlined">refresh</span>
+                    Refresh Data
+                </button>
+            </div>
+
+            <div class="workspace-layout">
+                <div id="data-table" style="width: 100%; height: 100%; min-height: 0;"></div>
+            </div>
+            
+        </div>
+    </main>
+  
+    <!--#include virtual="/app/footer.html" -->
+    
+    <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tableSelector = document.getElementById('table-selector');
+            const refreshBtn = document.getElementById('refresh-btn');
+
+            // Initialize Tabulator
+            const table = new Tabulator("#data-table", {
+                layout: "fitData", // Ensures wide tables scroll horizontally rather than squishing
+                autoColumns: true, // Automatically generate columns from the JSON keys
+                
+                // --- Remote Data Configuration ---
+                ajaxURL: "/api/browse",
+                ajaxConfig: "POST", // POST is very clean in Tabulator
+                ajaxContentType: "json",
+                
+                // Dynamic parameters: Always pass the currently selected table
+                ajaxParams: function() {
+                    return { table: tableSelector.value };
+                },
+
+                // --- Pagination & Sorting ---
+                pagination: true,
+                paginationMode: "remote",
+                paginationSize: 50,
+                sortMode: "remote",
+                filterMode: "remote",
+                
+                // Fallback text
+                placeholder: "No data available in this table",
+            });
+
+            // Reload data when the user changes the selected table
+            tableSelector.addEventListener('change', () => {
+                // Clear existing columns so autoColumns can recalculate for the new table
+                table.clearData();
+                table.setData();
+            });
+
+            // Manual refresh
+            refreshBtn.addEventListener('click', () => {
+                table.setData();
+            });
+        });
+    </script>
+</body>
+</html>

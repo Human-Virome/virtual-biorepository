@@ -33,6 +33,7 @@ db_query <- function (db, sql, err_code, params = NULL, simplify = TRUE, req1 = 
       #________________________________________________________
       # Run the query/statement
       #________________________________________________________
+      params <- if (length(params)) unname(params) else NULL
       result <- do.call(
         what = if (verb == "SELECT") DBI::dbGetQuery else DBI::dbExecute, 
         args = list(conn = db, statement = sql, params = params) )
