@@ -5,8 +5,8 @@ api_browse <- function (db, table, page, size, sort, filter) {
   page <- as.integer(page)
   size <- as.integer(size)
   
-  # Fetch available tables directly from MariaDB
-  tables <- db_query(db, "SHOW TABLES", "BrwsTbl")
+  # Hard-coded list of tables the user can see.
+  tables <- c(names(DICT), c('biosamples', 'sra'))
   
   stopifnot(
     isTRUE(page > 0),
