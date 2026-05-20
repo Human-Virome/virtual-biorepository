@@ -391,8 +391,8 @@ validate_urls  <- function (env) {
         curl::multi_add(
           handle = handle,
           pool   = pool, 
-          done   = \(res) { res_env$df[[u]] <- (res$status_code >= 200 && res$status_code < 400) },
-          fail   = \(msg) { res_env$df[[u]] <- FALSE }
+          done   = \(res) { res_env[[u]] <- (res$status_code >= 200 && res$status_code < 400) },
+          fail   = \(msg) { res_env[[u]] <- FALSE }
         )
       })
     }
@@ -400,7 +400,7 @@ validate_urls  <- function (env) {
     # Execute all queued requests in parallel
     curl::multi_run(pool = pool)
     
-    failed_reqs <- sapply(which(is_a_url), \(i) !isTRUE(res_env$df[[x[[i]]]]))
+    failed_reqs <- sapply(which(is_a_url), \(i) !isTRUE(res_env[[x[[i]]]]))
     
     if (length(failed_reqs) > 0) {
       bad_rows <- head(failed_reqs)

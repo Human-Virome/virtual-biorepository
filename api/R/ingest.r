@@ -19,8 +19,8 @@ ingest_file <- function (db, file, commit) {
     },
     error = function (e) {
       db_query(db, 'ROLLBACK', 'InFile4')
-      #stop(e$message)
-      stop(as.character(e))
+      stop(e$message)
+      #stop(as.character(e))
     })
   
   # No errors to report
