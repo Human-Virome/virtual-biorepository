@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS participants (
   hvp_id                         VARCHAR(50)  NOT NULL UNIQUE,
   oauth_email                    VARCHAR(255) NOT NULL,
   participant_uid                VARCHAR(255) NOT NULL PRIMARY KEY,
-  cohort_id                      TEXT,
+  cohort_uid                     TEXT,
   host_taxon                     TINYTEXT,
   race                           TINYTEXT,
   ethnicity                      TINYTEXT,
