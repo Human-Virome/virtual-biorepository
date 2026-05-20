@@ -12,54 +12,84 @@
     <link href="style.css" rel="stylesheet"/>
 
     <style>
-        /* --- Native Theme Overrides for Tabulator --- */
+        /* --- Softer, High-Legibility Tabulator Theme --- */
         .tabulator { 
             background-color: var(--surface); 
-            border: none; 
-            color: var(--text-main); 
+            border: 1px solid var(--border-color); 
+            border-radius: 0.5rem;
+            color: #f1f5f9; /* Brighter, crisper text for readability */ 
             font-family: var(--font-main); 
         }
+        
         .tabulator-header { 
-            background-color: var(--bg-main); 
-            border-bottom: 1px solid var(--border-color); 
+            background-color: var(--surface-high); 
+            border-bottom: 2px solid var(--border-color); 
             color: var(--text-muted); 
-            font-size: 0.6875rem; 
+            font-size: 0.75rem; /* Slightly larger header text */
             text-transform: uppercase; 
             letter-spacing: 0.05em; 
             font-weight: 700; 
         }
+        
         .tabulator-header .tabulator-col { 
-            background-color: var(--bg-main) !important; 
+            background-color: var(--surface-high) !important; 
             border-right: 1px solid var(--border-color); 
         }
-        .tabulator-header .tabulator-col-content { padding: 0.75rem 1rem; }
+        
+        .tabulator-header .tabulator-col-content { 
+            padding: 0.875rem 1rem; /* More breathing room */
+        }
+        
         .tabulator-row { 
             background-color: var(--surface); 
             border-bottom: 1px solid var(--border-color); 
-            font-size: 0.8125rem; 
+            font-size: 0.875rem; /* Bumped up font size from 0.8125rem */
             transition: background-color 0.2s ease; 
         }
-        .tabulator-row:hover { background-color: var(--surface-high); }
-        .tabulator-row.tabulator-row-even { background-color: rgba(11, 19, 38, 0.4); /* Matches your row-dimmed */ }
-        .tabulator-cell { padding: 0.75rem 1rem; border-right: 1px solid var(--border-color); }
+        
+        /* Replaced the dark alternating row with a very faint, soft highlight */
+        .tabulator-row.tabulator-row-even { 
+            background-color: rgba(255, 255, 255, 0.02); 
+        }
+        
+        /* Softer, color-tinted hover state */
+        .tabulator-row:hover { 
+            background-color: rgba(137, 206, 255, 0.08); 
+        }
+        
+        .tabulator-cell { 
+            padding: 0.875rem 1rem; 
+            border-right: 1px solid var(--border-color); 
+        }
         
         .tabulator-footer { 
-            background-color: var(--bg-main); 
+            background-color: var(--surface-high); 
             border-top: 1px solid var(--border-color); 
             color: var(--text-main); 
-            padding: 0.5rem 1rem;
+            padding: 0.75rem 1rem;
         }
+        
         .tabulator-footer .tabulator-page { 
             border: 1px solid var(--border-color); 
-            background: var(--surface-high); 
+            background: var(--surface); 
             color: var(--text-main); 
             border-radius: 0.25rem; 
             margin: 0 0.25rem;
-            padding: 0.25rem 0.5rem;
+            padding: 0.375rem 0.75rem;
             transition: all 0.2s;
         }
-        .tabulator-footer .tabulator-page:hover { background: var(--primary-container); color: var(--on-primary-container); }
-        .tabulator-footer .tabulator-page.active { background: var(--primary); color: var(--bg-main); border-color: var(--primary); }
+        
+        .tabulator-footer .tabulator-page:hover { 
+            background: var(--primary-container); 
+            color: var(--on-primary-container); 
+            border-color: var(--primary-container);
+        }
+        
+        .tabulator-footer .tabulator-page.active { 
+            background: var(--primary); 
+            color: var(--bg-main); 
+            border-color: var(--primary); 
+        }
         
         /* Themed Scrollbars for the table */
         .tabulator-tableholder::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -81,24 +111,39 @@
                 <h2>Database Browser</h2>
             </div>
             
-            <div class="card card-body mb-3 flex-row" style="padding: 1rem; background-color: var(--surface-high);">
-                <span class="material-symbols-outlined text-muted">database</span>
-                <div class="input-group" style="width: 300px;">
-                    <select id="table-selector" class="form-control" style="cursor: pointer;">
-                        <option value="analyses">Analyses</option>
-                        <option value="biosamples">Biosamples</option>
-                        <option value="events">Events</option>
-                        <option value="files">Files</option>
-                        <option value="libraries">Libraries</option>
-                        <option value="participants">Participants</option>
-                        <option value="samples">Samples</option>
-                        <option value="sra">SRA</option>
-                    </select>
+            <div class="card card-body mb-3 flex-row flex-between" style="padding: 1rem; background-color: var(--surface-high);">
+                
+                <div class="flex-row">
+                    <span class="material-symbols-outlined text-muted">database</span>
+                    <div class="input-group" style="width: 200px;">
+                        <select id="table-selector" class="form-control" style="cursor: pointer;">
+                            <option value="analyses">Analyses</option>
+                            <option value="biosamples">Biosamples</option>
+                            <option value="events">Events</option>
+                            <option value="files">Files</option>
+                            <option value="libraries">Libraries</option>
+                            <option value="participants">Participants</option>
+                            <option value="samples">Samples</option>
+                            <option value="sra">SRA</option>
+                        </select>
+                    </div>
+                    <button id="refresh-btn" class="btn btn-secondary">
+                        <span class="material-symbols-outlined">refresh</span>
+                    </button>
                 </div>
-                <button id="refresh-btn" class="btn btn-secondary">
-                    <span class="material-symbols-outlined">refresh</span>
-                    Refresh Data
-                </button>
+            
+                <div class="flex-row">
+                    <div class="input-group" style="width: 200px;">
+                        <select id="filter-field" class="form-control" style="cursor: pointer;">
+                            <option value="">Select column...</option>
+                            </select>
+                    </div>
+                    <div class="input-group" style="width: 250px;">
+                        <span class="material-symbols-outlined input-icon-left">search</span>
+                        <input id="filter-value" class="form-control" placeholder="Search..." type="text"/>
+                        <span id="filter-clear" class="material-symbols-outlined input-icon-right" style="display: none;">close</span>
+                    </div>
+                </div>
             </div>
 
             <div class="workspace-layout">
@@ -113,8 +158,12 @@
     <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+          
             const tableSelector = document.getElementById('table-selector');
-            const refreshBtn = document.getElementById('refresh-btn');
+            const refreshBtn    = document.getElementById('refresh-btn');
+            const filterField   = document.getElementById('filter-field');
+            const filterValue   = document.getElementById('filter-value');
+            const filterClear   = document.getElementById('filter-clear');
 
             // Initialize Tabulator
             const table = new Tabulator("#data-table", {
@@ -153,6 +202,59 @@
             refreshBtn.addEventListener('click', () => {
                 table.setData();
             });
+            
+            // Apply Filter Function
+            function applyFilter() {
+                const field = filterField.value;
+                const value = filterValue.value;
+                
+                if (field && value) {
+                    // Sends {"field": field, "type": "like", "value": value} to your R backend
+                    table.setFilter(field, "like", value);
+                    filterClear.style.display = 'block';
+                } else {
+                    table.clearFilter();
+                    filterClear.style.display = 'none';
+                }
+            }
+            
+            // Listeners for Filter Inputs
+            filterValue.addEventListener('input', applyFilter); // Triggers as they type
+            filterField.addEventListener('change', applyFilter);
+            
+            // Clear Button Logic
+            filterClear.addEventListener('click', () => {
+                filterValue.value = '';
+                applyFilter();
+            });
+            
+            // Dynamically populate the column dropdown when data loads
+            table.on("dataLoaded", function(data) {
+                // Only populate if the dropdown is empty (just the default option)
+                if (filterField.options.length <= 1 && data.length > 0) {
+                    const columns = table.getColumns();
+                    
+                    columns.forEach(col => {
+                        const def = col.getDefinition();
+                        const opt = document.createElement('option');
+                        opt.value = def.field;
+                        opt.textContent = def.field; // Using the raw field name as the label
+                        filterField.appendChild(opt);
+                    });
+                }
+            });
+            
+            // Update your existing tableSelector listener to clear the filter state
+            tableSelector.addEventListener('change', () => {
+                // Reset filter UI
+                filterValue.value = '';
+                filterField.innerHTML = '<option value="">Select column...</option>';
+                filterClear.style.display = 'none';
+                
+                table.clearData();
+                table.setData();
+            });
+            
         });
     </script>
 </body>
