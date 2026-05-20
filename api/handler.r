@@ -8,7 +8,8 @@ app <- list(
   call = function(req) {
     
     response <- tryCatch(
-      error = function (e) { return (list(error = unbox(e$message))) },
+      error = function (e) { return (list(error = unbox(as.character(e)))) },
+      # error = function (e) { return (list(error = unbox(e$message))) },
       expr  = local({
       
         # Sanity checks
