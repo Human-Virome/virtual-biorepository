@@ -278,7 +278,7 @@ validate_numbers <- function (env) {
     }
     
     if ('integer' %in% fmt) {
-      is_frac <- which(x_num %% 1 > 0 && is.finite(x_num))
+      is_frac <- which(x_num %% 1 > 0 & is.finite(x_num))
       
       if (length(is_frac) > 0) {
         bad_rows <- head(is_frac)
@@ -325,7 +325,7 @@ validate_dates <- function (env) {
       x[!is.na(x)] <- paste0(x[!is.na(x)], "-01")
     
     x_date   <- strptime(x, format="%Y-%m-%d")
-    not_date <- which(!is.na(x) && is.na(x_date))
+    not_date <- which(!is.na(x) & is.na(x_date))
     
     if (length(not_date) > 0) {
       bad_rows <- head(not_date)
@@ -464,7 +464,7 @@ validate_keys <- function (env) {
     
     current   <- db_query(env$db, sprintf('SELECT `%s` FROM `%s`', field, env$tbl), 'VaKe')
     conflicts <- which(x %in% current)
-    duplicate <- which(duplicated(x) && !is.na(x))
+    duplicate <- which(duplicated(x) & !is.na(x))
     
     if (length(conflicts) > 0) {
       bad_rows <- head(conflicts)
