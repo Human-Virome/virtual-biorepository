@@ -76,7 +76,7 @@ condition_check_samples <- function (env) {
   postive_control_type  <- !is.na(env$df[['postive_control_type']])
   has_control_type      <- negative_control_type | postive_control_type
   
-  no_product_or_site    <- anatomical_site | body_product
+  no_product_or_site    <- !(anatomical_site | body_product)
   spurious_control_type <- !is_control & has_control_type
   missing_control_type  <- is_control & !has_control_type
   conflict_control_type <- negative_control_type & postive_control_type
