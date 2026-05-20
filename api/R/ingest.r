@@ -14,8 +14,9 @@ ingest_file <- function (db, file, commit) {
       if (is_xls) { ingest_excel_file(db, file) }
       else        { ingest_delim_file(db, file) }
       
-      if (commit) { db_query(db, 'COMMIT',   'InFile2') }
-      else        { db_query(db, 'ROLLBACK', 'InFile3') }
+      db_query(db, 'ROLLBACK', 'InFile3')
+      # if (commit) { db_query(db, 'COMMIT',   'InFile2') }
+      # else        { db_query(db, 'ROLLBACK', 'InFile3') }
     },
     error = function (e) {
       db_query(db, 'ROLLBACK', 'InFile4')
