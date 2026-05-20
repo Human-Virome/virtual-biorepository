@@ -5,6 +5,7 @@ CREATE USER 'vbr'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON vbr.* TO 'vbr'@'localhost';
 FLUSH PRIVILEGES;
 
+# DROP DATABASE vbr;
 CREATE DATABASE IF NOT EXISTS vbr;
 use vbr;
 
@@ -253,3 +254,5 @@ CREATE TABLE IF NOT EXISTS sra (
 INSERT INTO `participants` (`hvp_id`, `oauth_email`, `participant_uid`)              VALUES ('hvp:p-mock', 'Daniel.Smith@bcm.edu', 'mock');
 INSERT INTO `events`       (`hvp_id`, `oauth_email`, `participant_uid`, `event_uid`) VALUES ('hvp:e-mock', 'Daniel.Smith@bcm.edu', 'mock', 'mock');
 
+
+SELECT * FROM `participants`;

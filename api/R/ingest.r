@@ -7,18 +7,18 @@ ingest_file <- function (db, file, commit) {
   
   tryCatch(
     expr = {
-      db_query(db, 'START TRANSACTION', 'InFile1')
+      DBI::dbBegin(db)
       
       is_xls <- !is.null(readxl::excel_format(file))
       
       if (is_xls) { ingest_excel_file(db, file) }
       else        { ingest_delim_file(db, file) }
       
-      if (commit) { db_query(db, 'COMMIT',   'InFile2') }
-      else        { db_query(db, 'ROLLBACK', 'InFile3') }
+      if (commit) { DBI::dbCommit(db)   }
+      else        { DBI::dbRollback(db) }
     },
     error = function (e) {
-      db_query(db, 'ROLLBACK', 'InFile4')
+      DBI::dbRollback(db)
       stop(e$message)
       #stop(as.character(e))
     })
