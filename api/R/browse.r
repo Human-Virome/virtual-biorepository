@@ -5,12 +5,17 @@ api_browse <- function (db, table, page, size, sort, filter) {
   page <- as.integer(page)
   size <- as.integer(size)
   
+  # Fetch available tables directly from MariaDB
+  tables <- db_query(db, "SHOW TABLES", "BrwsTbl")
+  
   stopifnot(
     isTRUE(page > 0),
     isTRUE(size > 0),
-    isTRUE(table %in% names(DICT)) )
+    isTRUE(table %in% tables) )
   
-  fields <- names(DICT[[table]])
+  # Fetch valid columns for the requested table
+  cols   <- db_query(db, sprintf("SHOW COLUMNS FROM `%s`", table), "BrwsCol", simplify = FALSE)
+  fields <- setdiff(cols$Field, "oauth_email")
   
   sapply(sort, function (x) {
     stopifnot(
@@ -42,7 +47,7 @@ api_browse <- function (db, table, page, size, sort, filter) {
   
   # Calculate Total Pages (last_page) required by Tabulator
   count_sql  <- sprintf("SELECT COUNT(*) FROM `%s` %s", table, where_sql)
-  total_rows <- db_query(db, count_sql, "Brws1")
+  total_rows <- db_query(db, count_sql, "BrwsTtl", params)
   last_page  <- max(1L, as.integer(ceiling(total_rows / size)))
   
   # Build ORDER BY Clause
@@ -57,7 +62,7 @@ api_browse <- function (db, table, page, size, sort, filter) {
   
   # Execute Final Query
   final_sql <- paste(sprintf("SELECT * FROM `%s`", table), where_sql, order_sql, limit_sql)
-  result_df <- db_query(db, final_sql, "Brws2", params, simplify = FALSE)
+  result_df <- db_query(db, final_sql, "BrwsReq", params, simplify = FALSE)
   
   # Clean up internal columns
   result_df$hvp_id      <- NULL
