@@ -1,6 +1,6 @@
 
 
-api_browse <- function (db, table, page, size, sorters, filters) {
+api_browse <- function (db, table, page, size, sort, filter) {
   
   page <- as.integer(page)
   size <- as.integer(size)
@@ -12,12 +12,12 @@ api_browse <- function (db, table, page, size, sorters, filters) {
   
   fields <- names(DICT[[table]])
   
-  sapply(sorters, function (x) {
+  sapply(sort, function (x) {
     stopifnot(
       isTRUE(x$field %in% fields),
       isTRUE(x$dir   %in% c("asc", "desc")) )})
   
-  sapply(filters, function (x) {
+  sapply(filter, function (x) {
     stopifnot(
       isTRUE(x$field %in% fields),
       isTRUE(x$type  %in% c("=", "!=", "<", ">", "<=", ">=", "like")) )})
@@ -27,7 +27,7 @@ api_browse <- function (db, table, page, size, sorters, filters) {
   where_clauses <- c("`oauth_email`=@oauth_email")
   params <- list()
   
-  for (f in filters) {
+  for (f in filter) {
     where_clauses <- c(where_clauses, sprintf("`%s` %s ?", f$field, f$type))
     
     # Tabulator sends raw strings for 'like' searches; MySQL requires wildcards
@@ -47,8 +47,8 @@ api_browse <- function (db, table, page, size, sorters, filters) {
   
   # Build ORDER BY Clause
   order_sql <- ""
-  if (length(sorters) > 0) {
-    order_clauses <- sapply(sorters, function(s) sprintf("`%s` %s", s$field, s$dir))
+  if (length(sort) > 0) {
+    order_clauses <- sapply(sort, function(s) sprintf("`%s` %s", s$field, s$dir))
     order_sql     <- paste("ORDER BY", paste(order_clauses, collapse = ", "))
   }
   
