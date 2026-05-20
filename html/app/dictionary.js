@@ -164,8 +164,8 @@ const vbrDictionary = {
             "req":"Required if you are unable to fill in the actual age either due to consent restrictions or when age is 90+ years. Either \"age\" or \"age_range\" must be provided (not both).",
             "fmt":["cv"],
             "cv":[
-              "0 to <2", "2 to <4", "4 to <18", "18 to <25", "25 to <35", "35 to <45", 
-              "45 to <55", "55 to <65", "65 to <75", "75 to <85", "85 to <95", "95+"]
+              "0 to <2", "2 to <4", "4 to <18", "18 to <30", "30 to <40", "40 to <50", 
+              "50 to <60", "60 to <70", "70 to <80", "80 to <90", "90+"]
         },
         "state_or_province_of_residence":{
             "def":"Participant's state or province of residence at time of sample collection.",
@@ -1636,7 +1636,11 @@ const vbrDictionary = {
             "def":"Lab, group, or facility within a grant-level project where the sample was collected and/or processed. This should be the group responsible for metadata about the sample.",
             "req":"yes",
             "fmt":["cv"],
-            "cv":["boston", "broad_park", "caltech", "lbnl", "mskcc", "penn", "pnnl", "stanford", "suny", "ucdavis", "ucla", "ucsf", "uncch", "utah", "v2c2", "vast", "wu_dantas", "wu_wylie", "yu_foxman", "yu_gilbert"]
+            "cv":[
+              "anderson", "baldridge", "bhatt", "bittinger", "bushman", "cmmr", 
+              "dantas", "de melo-martin", "dittmer", "emerson", "foxman", "glmc", 
+              "lareau", "li", "mason", "moustafa", "naik", "sabeti", "snyder", 
+              "tcgb", "yracheta", "zhou"]
         },
         "sample_type":{
             "def":"Indicates the composition of the sample - describes if the sample comes from one participant or is a mixture of material from more than one participant. This field can also include terms for various in vitro or cell culture systems. Contact the HVPCC if you need additional vocabulary terms for this field.",

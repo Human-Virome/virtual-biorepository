@@ -26,7 +26,7 @@ db_query <- function (db, sql, err_code, params = NULL, simplify = TRUE, req1 = 
       
       sql  <- trimws(gsub("[\n\r\t\ ]+", " ", sql))
       verb <- toupper(strsplit(substr(sql, 1, 10), ' ', fixed = TRUE)[[1]][[1]])
-      if (!verb %in% c("SELECT", "INSERT", "UPDATE", "DELETE", "SET", "START", "COMMIT", "ROLLBACK"))
+      if (!verb %in% c("SELECT", "INSERT", "UPDATE", "DELETE", "SET"))
         stop("Invalid SQL verb: '", verb, "'.")
       
       
@@ -59,16 +59,6 @@ db_query <- function (db, sql, err_code, params = NULL, simplify = TRUE, req1 = 
       if (isTRUE(req1)) {
         if (nrow(result) == 0) stop("req1 - No matching rows found.")
         if (nrow(result) >= 2) stop("req1 - Too many results found.")
-      }
-      
-      
-      #________________________________________________________
-      # Use column names to convert to boolean and POSIXct.
-      #________________________________________________________
-      for (k in colnames(result)) {
-        if        (startsWith(k, "is_"))  { result[[k]] <- as.logical(result[[k]])
-        } else if (startsWith(k, "has_")) { result[[k]] <- as.logical(result[[k]])
-        } else if (endsWith(  k, "_utc")) { result[[k]] <- as.POSIXct(result[[k]], tz = "UTC") }
       }
       
       

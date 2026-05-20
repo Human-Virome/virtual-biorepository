@@ -98,7 +98,7 @@ CREATE TABLE IF NOT EXISTS samples (
   lab                      TINYTEXT,
   sample_type              TINYTEXT,
   sample_subtype           TINYTEXT,
-  parent_sample_id         TEXT,
+  parent_sample_uid        TEXT,
   sampling_protocol        TINYTEXT,
   sample_taxonomy          TINYTEXT,
   anatomical_site          TINYTEXT,
