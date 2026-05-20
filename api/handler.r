@@ -32,7 +32,7 @@ app <- list(
           # Standard JSON/Form parsing for other API endpoints
           body <- req$rook.input$read()
           if (length(body))
-            args <- webutils::parse_http(body, req$CONTENT_TYPE)
+            args <- webutils::parse_http(body, req$CONTENT_TYPE, simplifyVector = FALSE)
         }
         
         # Convert URL path to function name (e.g., /api/login -> api_login)
