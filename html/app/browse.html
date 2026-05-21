@@ -209,7 +209,7 @@
                 const value = filterValue.value;
                 
                 if (field && value) {
-                    // Sends {"field": field, "type": "like", "value": value} to your R backend
+                    // Hardcoded to "like" as requested
                     table.setFilter(field, "like", value);
                     filterClear.style.display = 'block';
                 } else {
@@ -219,7 +219,7 @@
             }
             
             // Listeners for Filter Inputs
-            filterValue.addEventListener('input', applyFilter); // Triggers as they type
+            filterValue.addEventListener('input', applyFilter); 
             filterField.addEventListener('change', applyFilter);
             
             // Clear Button Logic
@@ -228,23 +228,21 @@
                 applyFilter();
             });
             
-            // Dynamically populate the column dropdown when data loads
-            table.on("dataLoaded", function(data) {
-                // Only populate if the dropdown is empty (just the default option)
-                if (filterField.options.length <= 1 && data.length > 0) {
-                    const columns = table.getColumns();
-                    
-                    columns.forEach(col => {
-                        const def = col.getDefinition();
-                        const opt = document.createElement('option');
-                        opt.value = def.field;
-                        opt.textContent = def.field; // Using the raw field name as the label
-                        filterField.appendChild(opt);
-                    });
-                }
+            // Dynamically populate the column dropdown when columns are fully built
+            table.on("columnsLoaded", function(columns) {
+                // Reset the dropdown to prevent duplicates when switching tables
+                filterField.innerHTML = '<option value="">Select column...</option>';
+                
+                columns.forEach(col => {
+                    const def = col.getDefinition();
+                    const opt = document.createElement('option');
+                    opt.value = def.field;
+                    opt.textContent = def.field; 
+                    filterField.appendChild(opt);
+                });
             });
             
-            // Update your existing tableSelector listener to clear the filter state
+            // Update tableSelector listener to clear the filter state
             tableSelector.addEventListener('change', () => {
                 // Reset filter UI
                 filterValue.value = '';
