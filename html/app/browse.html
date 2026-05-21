@@ -16,8 +16,9 @@
         .tabulator { 
             background-color: var(--surface); 
             border: 1px solid var(--border-color); 
-            border-radius: 0.5rem;
-            color: #f1f5f9; /* Brighter, crisper text for readability */ 
+            border-bottom: none; /* Removed bottom border to blend with tabs */
+            border-radius: 0.5rem 0.5rem 0 0;
+            color: #f1f5f9; 
             font-family: var(--font-main); 
         }
         
@@ -25,7 +26,7 @@
             background-color: var(--surface-high); 
             border-bottom: 2px solid var(--border-color); 
             color: var(--text-muted); 
-            font-size: 0.75rem; /* Slightly larger header text */
+            font-size: 0.75rem; 
             text-transform: uppercase; 
             letter-spacing: 0.05em; 
             font-weight: 700; 
@@ -37,22 +38,37 @@
         }
         
         .tabulator-header .tabulator-col-content { 
-            padding: 0.875rem 1rem; /* More breathing room */
+            padding: 0.875rem 1rem; 
+        }
+
+        /* Styling for the auto-generated header filters */
+        .tabulator-header-filter input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0.375rem 0.5rem;
+            background-color: var(--surface);
+            border: 1px solid var(--border-color);
+            border-radius: 0.25rem;
+            color: var(--text-main);
+            font-family: var(--font-main);
+            font-size: 0.75rem;
+        }
+        .tabulator-header-filter input:focus {
+            outline: none;
+            border-color: var(--primary);
         }
         
         .tabulator-row { 
             background-color: var(--surface); 
             border-bottom: 1px solid var(--border-color); 
-            font-size: 0.875rem; /* Bumped up font size from 0.8125rem */
+            font-size: 0.875rem; 
             transition: background-color 0.2s ease; 
         }
         
-        /* Replaced the dark alternating row with a very faint, soft highlight */
         .tabulator-row.tabulator-row-even { 
             background-color: rgba(255, 255, 255, 0.02); 
         }
         
-        /* Softer, color-tinted hover state */
         .tabulator-row:hover { 
             background-color: rgba(137, 206, 255, 0.08); 
         }
@@ -96,162 +112,200 @@
         .tabulator-tableholder::-webkit-scrollbar-track { background: var(--surface); }
         .tabulator-tableholder::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
         .tabulator-tableholder::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        /* --- Excel-like Bottom Tabs --- */
+        .excel-tabs {
+            display: flex;
+            background-color: var(--surface-high);
+            border: 1px solid var(--border-color);
+            border-top: none;
+            border-radius: 0 0 0.5rem 0.5rem;
+            padding: 0.25rem 0.5rem 0 0.5rem;
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            background-color: transparent;
+            border: 1px solid transparent;
+            border-bottom: none;
+            padding: 0.5rem 1.25rem;
+            margin-right: 0.25rem;
+            cursor: pointer;
+            color: var(--text-muted);
+            border-radius: 0.375rem 0.375rem 0 0;
+            font-family: var(--font-main);
+            font-size: 0.8125rem;
+            font-weight: 500;
+            text-transform: capitalize;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+        }
+
+        .tab-btn.active {
+            background-color: var(--surface);
+            border-color: var(--border-color);
+            color: var(--primary);
+            font-weight: 600;
+            position: relative;
+        }
+        
+        /* Small overlap to seamlessly blend the active tab with the element above it */
+        .tab-btn.active::before {
+            content: "";
+            position: absolute;
+            top: -1px;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background-color: var(--surface);
+        }
     </style>
 </head>
 
 <body>
   
     <!--#include virtual="/app/header.html" -->
-    
+  
     <main class="mpa-container">
-        <div class="page-wrapper page-wrapper-full">
+        <div class="page-wrapper page-wrapper-full" style="display: flex; flex-direction: column; height: 100%;">
             
-            <div class="section-header">
-                <span class="material-symbols-outlined">table_view</span>
-                <h2>Database Browser</h2>
-            </div>
-            
-            <div class="card card-body mb-3 flex-row flex-between" style="padding: 1rem; background-color: var(--surface-high);">
-                
-                <div class="flex-row">
-                    <span class="material-symbols-outlined text-muted">database</span>
-                    <div class="input-group" style="width: 200px;">
-                        <select id="table-selector" class="form-control" style="cursor: pointer;">
-                            <option value="analyses">Analyses</option>
-                            <option value="biosamples">Biosamples</option>
-                            <option value="events">Events</option>
-                            <option value="files">Files</option>
-                            <option value="libraries">Libraries</option>
-                            <option value="participants">Participants</option>
-                            <option value="samples">Samples</option>
-                            <option value="sra">SRA</option>
-                        </select>
-                    </div>
-                    <button id="refresh-btn" class="btn btn-secondary">
-                        <span class="material-symbols-outlined">refresh</span>
-                    </button>
+            <div class="section-header flex-row flex-between" style="align-items: center; margin-bottom: 1rem;">
+                <div class="flex-row" style="align-items: center; gap: 0.5rem;">
+                    <span class="material-symbols-outlined">table_view</span>
+                    <h2 style="margin: 0;">Database Browser</h2>
                 </div>
-            
-                <div class="flex-row">
-                    <div class="input-group" style="width: 200px;">
-                        <select id="filter-field" class="form-control" style="cursor: pointer;">
-                            <option value="">Select column...</option>
-                            </select>
-                    </div>
-                    <div class="input-group" style="width: 250px;">
-                        <span class="material-symbols-outlined input-icon-left">search</span>
-                        <input id="filter-value" class="form-control" placeholder="Search..." type="text"/>
-                        <span id="filter-clear" class="material-symbols-outlined input-icon-right" style="display: none;">close</span>
-                    </div>
-                </div>
+                <button id="refresh-btn" class="btn btn-secondary" title="Refresh Data">
+                    <span class="material-symbols-outlined">refresh</span>
+                </button>
             </div>
 
-            <div class="workspace-layout">
-                <div id="data-table" style="width: 100%; height: 100%; min-height: 0;"></div>
+            <div class="workspace-layout" style="flex-grow: 1; display: flex; flex-direction: column; min-height: 0;">
+                <div id="data-table" style="flex-grow: 1; width: 100%; min-height: 0;"></div>
+                
+                <div class="excel-tabs">
+                    <button class="tab-btn active" data-table="participants">participants</button>
+                    <button class="tab-btn" data-table="events">events</button>
+                    <button class="tab-btn" data-table="samples">samples</button>
+                    <button class="tab-btn" data-table="libraries">libraries</button>
+                    <button class="tab-btn" data-table="analyses">analyses</button>
+                    <button class="tab-btn" data-table="files">files</button>
+                </div>
             </div>
             
         </div>
     </main>
   
     <!--#include virtual="/app/footer.html" -->
-    
+  
     <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
           
-            const tableSelector = document.getElementById('table-selector');
-            const refreshBtn    = document.getElementById('refresh-btn');
-            const filterField   = document.getElementById('filter-field');
-            const filterValue   = document.getElementById('filter-value');
-            const filterClear   = document.getElementById('filter-clear');
+            const refreshBtn = document.getElementById('refresh-btn');
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            const dataTableContainer = document.getElementById('data-table');
+            
+            // State variable for the currently active table
+            let currentTable = "participants";
+
+            // --- Dynamic Pagination Calculation ---
+            // Calculates how many rows can fit in the visible table container height
+            function calculatePageSize() {
+                const containerHeight = dataTableContainer.clientHeight;
+                
+                // Approximate heights in pixels: 
+                // Header (with filters) ~ 75px, Footer ~ 45px
+                const nonRowHeight = 120; 
+                const availableHeight = containerHeight - nonRowHeight;
+                
+                // Approximate row height ~ 42px
+                const rowHeight = 42; 
+                
+                let size = Math.floor(availableHeight / rowHeight);
+                return size > 0 ? size : 1; // Ensure at least 1 row is requested
+            }
 
             // Initialize Tabulator
             const table = new Tabulator("#data-table", {
-                layout: "fitData", // Ensures wide tables scroll horizontally rather than squishing
-                autoColumns: true, // Automatically generate columns from the JSON keys
+                layout: "fitData", 
+                autoColumns: true, 
                 
-                // --- Remote Data Configuration ---
+                // Automatically inject an input filter into every column header
+                autoColumnsDefinitions: function(definitions) {
+                    definitions.forEach((column) => {
+                        column.headerFilter = "input";
+                    });
+                    return definitions;
+                },
+                
                 ajaxURL: "/api/browse",
-                ajaxConfig: "POST", // POST is very clean in Tabulator
+                ajaxConfig: "POST", 
                 ajaxContentType: "json",
                 
-                // Dynamic parameters: Always pass the currently selected table
+                // Always pass the currently selected tab
                 ajaxParams: function() {
-                    return { table: tableSelector.value };
+                    return { table: currentTable };
                 },
 
-                // --- Pagination & Sorting ---
                 pagination: true,
                 paginationMode: "remote",
-                paginationSize: 50,
+                paginationSize: calculatePageSize(), // Initial size calculation
                 sortMode: "remote",
-                filterMode: "remote",
+                filterMode: "remote", // Tabulator automatically sends the header filter data remotely
                 
-                // Fallback text
                 placeholder: "No data available in this table",
             });
 
-            // Reload data when the user changes the selected table
-            tableSelector.addEventListener('change', () => {
-                // Clear existing columns so autoColumns can recalculate for the new table
-                table.clearData();
-                table.setData();
+            // Handle Tab Clicks
+            tabButtons.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    // Update active styling
+                    tabButtons.forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    
+                    // Update current state and fetch new data
+                    currentTable = e.target.getAttribute('data-table');
+                    
+                    // Clear existing columns/data and recalculate 
+                    table.clearData();
+                    table.setData();
+                });
             });
 
             // Manual refresh
             refreshBtn.addEventListener('click', () => {
                 table.setData();
             });
-            
-            // Apply Filter Function
-            function applyFilter() {
-                const field = filterField.value;
-                const value = filterValue.value;
-                
-                if (field && value) {
-                    // Hardcoded to "like" as requested
-                    table.setFilter(field, "like", value);
-                    filterClear.style.display = 'block';
-                } else {
-                    table.clearFilter();
-                    filterClear.style.display = 'none';
-                }
+
+            // --- Handle Window Resizing for Dynamic Rows ---
+            // Debounce function to prevent constant recalculation during window drag
+            function debounce(func, wait) {
+                let timeout;
+                return function(...args) {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func.apply(this, args), wait);
+                };
             }
-            
-            // Listeners for Filter Inputs
-            filterValue.addEventListener('input', applyFilter); 
-            filterField.addEventListener('change', applyFilter);
-            
-            // Clear Button Logic
-            filterClear.addEventListener('click', () => {
-                filterValue.value = '';
-                applyFilter();
-            });
-            
-            // Dynamically populate the column dropdown when columns are fully built
-            table.on("columnsLoaded", function(columns) {
-                // Reset the dropdown to prevent duplicates when switching tables
-                filterField.innerHTML = '<option value="">Select column...</option>';
-                
-                columns.forEach(col => {
-                    const def = col.getDefinition();
-                    const opt = document.createElement('option');
-                    opt.value = def.field;
-                    opt.textContent = def.field; 
-                    filterField.appendChild(opt);
-                });
-            });
-            
-            // Update tableSelector listener to clear the filter state
-            tableSelector.addEventListener('change', () => {
-                // Reset filter UI
-                filterValue.value = '';
-                filterField.innerHTML = '<option value="">Select column...</option>';
-                filterClear.style.display = 'none';
-                
-                table.clearData();
-                table.setData();
-            });
+
+            // Listen for window resize, recalculate page size, and update Tabulator if changed
+            window.addEventListener('resize', debounce(() => {
+                if (containerHeightCheck() > 0) { // Check if container is actually visible
+                    const newSize = calculatePageSize();
+                    if (table.getPageSize() !== newSize) {
+                        table.setPageSize(newSize);
+                    }
+                }
+            }, 200));
+
+            // Helper to prevent errors if the tab is hidden
+            function containerHeightCheck() {
+                return dataTableContainer.clientHeight;
+            }
             
         });
     </script>

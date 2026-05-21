@@ -33,7 +33,7 @@ api_browse <- function (db, table, page, size, sort, filter) {
   params <- list()
   
   for (f in filter) {
-    where_clauses <- c(where_clauses, sprintf("`%s` %s ?", f$field, f$type))
+    where_clauses <- c(where_clauses, sprintf("`%s` LIKE ?", f$field))
     
     # Tabulator sends raw strings for 'like' searches; MySQL requires wildcards
     if (f$type == "like") {
