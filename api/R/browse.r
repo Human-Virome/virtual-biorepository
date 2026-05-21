@@ -65,7 +65,6 @@ api_browse <- function (db, table, page, size, sort, filter) {
   result_df <- db_query(db, final_sql, "BrwsReq", params, simplify = FALSE)
   
   # Clean up internal columns
-  result_df$hvp_id      <- NULL
   result_df$oauth_email <- NULL
   
   list(last_page = jsonlite::unbox(last_page), data = result_df)
