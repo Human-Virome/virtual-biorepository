@@ -82,26 +82,26 @@
             background-color: var(--surface-high); 
             border-top: 1px solid var(--border-color); 
             color: var(--text-main); 
-            padding: 0; 
+            padding: 0 0 0.75rem 0; /* Added bottom padding to create empty space beneath the tabs */
             display: flex;
             justify-content: space-between;
-            align-items: flex-start; /* Crucial: Keeps the tabs anchored to the top border */
+            align-items: flex-start;
         }
 
-        /* Pagination Container - Centered Vertically */
+        /* Pagination Container */
         .tabulator-footer .tabulator-paginator {
-            align-self: center; /* Centers the controls relative to the height defined by the tabs */
-            padding: 0 1rem;
+            align-self: flex-start; 
+            padding: 0.375rem 1rem 0 1rem; /* Aligns horizontally with the text in the tabs */
             font-family: var(--font-main);
             font-size: 0.8125rem;
             display: flex;
             align-items: center;
         }
         
-        /* Pagination Controls (Matching the general UI style) */
+        /* Pagination Controls (Matching the tabs style) */
         .tabulator-footer .tabulator-page { 
-            border: 1px solid var(--border-color); 
-            background: var(--surface); 
+            border: 1px solid transparent; /* Match tab resting state */
+            background: transparent; 
             color: var(--text-muted); 
             border-radius: 0.375rem; 
             margin: 0 0.125rem;
@@ -115,13 +115,13 @@
         .tabulator-footer .tabulator-page:not(.disabled):hover { 
             background: rgba(255, 255, 255, 0.05);
             color: var(--text-main); 
-            border-color: var(--text-muted);
+            border-color: transparent;
         }
         
         .tabulator-footer .tabulator-page.active { 
             background: var(--surface); 
             color: var(--primary); 
-            border-color: var(--primary); 
+            border-color: var(--border-color); /* Subdued border, like the active tab */
             font-weight: 600;
         }
 
@@ -130,7 +130,7 @@
             opacity: 0.4;
             cursor: not-allowed;
             color: var(--text-muted);
-            border-color: var(--border-color);
+            border-color: transparent;
         }
         
         .tabulator-tableholder::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -148,12 +148,12 @@
         .tab-btn {
             background-color: transparent;
             border: 1px solid transparent;
-            border-top: none; /* Square top, resting against the table border */
+            border-top: none; 
             padding: 0.5rem 1.25rem;
             margin-right: 0.25rem;
             cursor: pointer;
             color: var(--text-muted);
-            border-radius: 0 0 0.375rem 0.375rem; /* Rounded bottoms */
+            border-radius: 0 0 0.375rem 0.375rem; 
             font-family: var(--font-main);
             font-size: 0.8125rem;
             font-weight: 500;
@@ -179,7 +179,7 @@
         .tab-btn.active::before {
             content: "";
             position: absolute;
-            top: -1px; /* Reaches up over the footer's top border */
+            top: -1px; 
             left: 0;
             right: 0;
             height: 2px;
@@ -237,8 +237,8 @@
             function calculatePageSize() {
                 const containerHeight = dataTableContainer.clientHeight;
                 
-                // Approximate heights: Header ~ 75px, Footer ~ 45px
-                const nonRowHeight = 120; 
+                // Approximate heights: Header ~ 75px, Footer ~ 60px (adjusted for new padding)
+                const nonRowHeight = 135; 
                 const availableHeight = containerHeight - nonRowHeight;
                 
                 // Approximate row height ~ 42px
