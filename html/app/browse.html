@@ -13,13 +13,12 @@
 
     <style>
         /* --- Dark Theme Tabulator Overrides --- */
-        /* Using !important to aggressively override tabulator.min.css light defaults */
         .tabulator { 
             background-color: var(--surface) !important; 
             border: 1px solid var(--border-color) !important; 
             border-bottom: none !important; 
             border-radius: 0.5rem 0.5rem 0 0;
-            color: #ffffff !important; /* Pure white text for max contrast */
+            color: #ffffff !important; 
             font-family: var(--font-main); 
         }
         
@@ -62,6 +61,7 @@
         .tabulator-row { 
             background-color: var(--surface) !important; 
             border-bottom: 1px solid var(--border-color) !important; 
+            color: #ffffff !important; /* Forces row text to pure white */
             font-size: 0.875rem; 
             transition: background-color 0.2s ease; 
         }
@@ -77,6 +77,7 @@
         .tabulator-cell { 
             padding: 0.875rem 1rem !important; 
             border-right: 1px solid var(--border-color) !important; 
+            color: #ffffff !important; /* Forces individual cell text to pure white */
         }
         
         /* Unified Footer holding both Tabs and Pagination */
@@ -90,7 +91,6 @@
             align-items: flex-start;
         }
 
-        /* Prevent Tabulator's internal sub-containers from rendering default white backgrounds */
         .tabulator-footer .tabulator-calcs-holder,
         .tabulator-footer .tabulator-paginator {
             background-color: transparent !important;
@@ -107,7 +107,6 @@
             align-items: center;
         }
         
-        /* Tabulator spans/labels like "Page 1 of 5" */
         .tabulator-footer .tabulator-page-counter {
             color: var(--text-muted) !important;
         }
@@ -189,7 +188,6 @@
             position: relative;
         }
         
-        /* Overlap to seamlessly blend the active tab with the table body above it */
         .tab-btn.active::before {
             content: "";
             position: absolute;
@@ -251,11 +249,9 @@
             function calculatePageSize() {
                 const containerHeight = dataTableContainer.clientHeight;
                 
-                // Approximate heights: Header ~ 75px, Footer ~ 60px (adjusted for new padding)
                 const nonRowHeight = 135; 
                 const availableHeight = containerHeight - nonRowHeight;
                 
-                // Approximate row height ~ 42px
                 const rowHeight = 42; 
                 
                 let size = Math.floor(availableHeight / rowHeight);
@@ -290,16 +286,13 @@
                 placeholder: "No data available in this table",
             });
 
-            // Move the tabs into the table's footer once the table is built
             table.on("tableBuilt", function() {
                 const footer = dataTableContainer.querySelector('.tabulator-footer');
                 if(footer) {
-                    // Prepend the tabs container so it sits on the left side
                     footer.insertBefore(excelTabs, footer.firstChild);
                 }
             });
 
-            // Handle Tab Clicks
             tabButtons.forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     tabButtons.forEach(b => b.classList.remove('active'));
