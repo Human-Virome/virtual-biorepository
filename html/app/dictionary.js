@@ -18,7 +18,7 @@ const vbrDictionary = {
             "fmt":["prefix"],
             "prefix":["NCBI:txid"],
             "urls":{"NCBI Taxonomy Browser":"https://www.ncbi.nlm.nih.gov/datasets/taxonomy/browser/"},
-            "examples":["NCBI:txid9606", "Homo sapiens [NCBI:txid9606]", "Mus musculus [NCBI:taxid10090]"]
+            "examples":["NCBI:txid9606", "Homo sapiens [NCBI:txid9606]", "Mus musculus [NCBI:txid10090]"]
         },
         "race":{
             "def":"Race of the participant.",
@@ -168,26 +168,30 @@ const vbrDictionary = {
               "50 to <60", "60 to <70", "70 to <80", "80 to <90", "90+"]
         },
         "state_or_province_of_residence":{
-            "def":"Participant's state or province of residence at time of sample collection.",
+            "def":"Participant's country and state/province of residence at time of sample collection.",
             "req":"no",
             "fmt":["cv"],
             "cv":[
-              "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", 
-              "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", 
-              "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", 
-              "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", 
-              "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", 
-              "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", 
-              "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", 
-              "Wisconsin", "Wyoming", "Alberta", "British Columbia", "Manitoba", "New Brunswick", 
-              "Newfoundland and Labrador", "Nova Scotia", "Ontario", "Prince Edward Island", "Quebec", 
-              "Saskatchewan", "Northwest Territories", "Nunavut", "Yukon", "Aguascalientes", 
-              "Baja California", "Baja California Sur", "Campeche", "Chiapas", "Chihuahua", 
-              "Coahuila de Zaragoza", "Colima", "Durango", "Guanajuato", "Guerrero", "Hidalgo", 
-              "Jalisco", "Mexico", "Michoacan de Ocampo", "Morelos", "Nayarit", "Nuevo Leon", "Oaxaca", 
-              "Puebla", "Queretaro de Arteaga", "Quintana Roo", "San Luis Potosi", "Sinaloa", "Sonora", 
-              "Tabasco", "Tamaulipas", "Tlaxcala", "Veracruz de Ignacio de la Llave", "Yucatan", 
-              "Zacatecas"]
+              "USA: Alabama", "USA: Alaska", "USA: Arizona", "USA: Arkansas", "USA: California", "USA: Colorado",
+              "USA: Connecticut", "USA: Delaware", "USA: Florida", "USA: Georgia", "USA: Hawaii", "USA: Idaho",
+              "USA: Illinois", "USA: Indiana", "USA: Iowa", "USA: Kansas", "USA: Kentucky", "USA: Louisiana",
+              "USA: Maine", "USA: Maryland", "USA: Massachusetts", "USA: Michigan", "USA: Minnesota",
+              "USA: Mississippi", "USA: Missouri", "USA: Montana", "USA: Nebraska", "USA: Nevada",
+              "USA: New Hampshire", "USA: New Jersey", "USA: New Mexico", "USA: New York", "USA: North Carolina",
+              "USA: North Dakota", "USA: Ohio", "USA: Oklahoma", "USA: Oregon", "USA: Pennsylvania",
+              "USA: Rhode Island", "USA: South Carolina", "USA: South Dakota", "USA: Tennessee", "USA: Texas",
+              "USA: Utah", "USA: Vermont", "USA: Virginia", "USA: Washington", "USA: West Virginia", "USA: Wisconsin",
+              "USA: Wyoming", "Canada: Alberta", "Canada: British Columbia", "Canada: Manitoba",
+              "Canada: New Brunswick", "Canada: Newfoundland and Labrador", "Canada: Nova Scotia",
+              "Canada: Ontario", "Canada: Prince Edward Island", "Canada: Quebec", "Canada: Saskatchewan",
+              "Canada: Northwest Territories", "Canada: Nunavut", "Canada: Yukon", "Mexico: Aguascalientes",
+              "Mexico: Baja California", "Mexico: Baja California Sur", "Mexico: Campeche", "Mexico: Chiapas",
+              "Mexico: Chihuahua", "Mexico: Coahuila de Zaragoza", "Mexico: Colima", "Mexico: Durango",
+              "Mexico: Guanajuato", "Mexico: Guerrero", "Mexico: Hidalgo", "Mexico: Jalisco", "Mexico: Mexico",
+              "Mexico: Michoacan de Ocampo", "Mexico: Morelos", "Mexico: Nayarit", "Mexico: Nuevo Leon",
+              "Mexico: Oaxaca", "Mexico: Puebla", "Mexico: Queretaro de Arteaga", "Mexico: Quintana Roo",
+              "Mexico: San Luis Potosi", "Mexico: Sinaloa", "Mexico: Sonora", "Mexico: Tabasco", "Mexico: Tamaulipas",
+              "Mexico: Tlaxcala", "Mexico: Veracruz de Ignacio de la Llave", "Mexico: Yucatan", "Mexico: Zacatecas"]
         },
         "vital_status":{
             "def":"Vital status of participant at time of sampling.",
@@ -223,14 +227,14 @@ const vbrDictionary = {
             "fmt":["integer", "non-negative"]
         },
         "animal_exposure":{
-            "def":"Participant exposure to animals within the last 6 months where exposure happens in the home, with livestock, or hunting.",
+            "def":"Has the participant had exposure to animals within the last 6 months? Includes pets, livestock, hunting, etc.",
             "req":"no",
             "fmt":["cv"],
-            "cv":["domestic animal exposure", "wildlife exposure"]
+            "cv":["yes", "no"]
         },
         "exposure_animal_type":{
             "def":"NCBI Taxonomy IDs of animals that participant has exposure to. Only the ID (e.g. \"NCBI:txid9615\") is needed; the rest of the text is ignored/discarded.",
-            "req":"no",
+            "req":"Required if animal_exposure is yes.",
             "fmt":["prefix", "multiple"],
             "prefix":["NCBI:txid"],
             "urls":{"NCBI Taxonomy Browser":"https://www.ncbi.nlm.nih.gov/datasets/taxonomy/browser/"},
@@ -1262,7 +1266,7 @@ const vbrDictionary = {
             ]
         },
         "antibiotics_or_antivirals":{
-            "def":"DrugBank IDs for any antibiotics or antivirals taken orally or intravenously within 3 months of sampling. Only the ID (e.g. \"DB01060\") and optional suffixes are imported; the rest of the text is ignored/discarded. If DrugBank does not have the term you need, please use \"DBX_freetext\" and contact the HVPCC.",
+            "def":"DrugBank IDs for any antibiotics or antivirals taken within 3 months of sampling. Only the ID (e.g. \"DB01060\") and optional suffixes are imported; the rest of the text is ignored/discarded. If DrugBank does not have the term you need, please use \"DBX_freetext\" and contact the HVPCC.",
             "req":"no",
             "fmt":["prefix", "multiple", "mode"],
             "prefix":["DB"],
@@ -1448,12 +1452,6 @@ const vbrDictionary = {
                 "SARS-COV-2 (COVID-19) vaccine (UNSPECIFIED) [CVX:213]"
             ]
         },
-        "alcohol_activity_collected":{
-            "def":"Is information on alcohol activity collected?",
-            "req":"no",
-            "fmt":["cv"],
-            "cv":["yes", "no"]
-        },
         "alcohol_consumption":{
             "def":"A description of the level of alchohol consumption in which the participant engages. This field can also capture former use.",
             "req":"no",
@@ -1463,12 +1461,6 @@ const vbrDictionary = {
               "former alcohol consumer, at least one month without", 
               "former alcohol consumer, at least one year without", 
               "current alcohol consumer (use when more specific information on frequency is not availalbe)"]
-        },
-        "tobacco_use_collected":{
-            "def":"Is information on tobacco use collected?",
-            "req":"no",
-            "fmt":["cv"],
-            "cv":["yes", "no"]
         },
         "cigarette_smoking":{
             "def":"A description of the level of participant cigarette use. This field can also capture former use. Note that a smoker is defined as someone who has had more than 100 cigarettes in their lifetime. Anyone who has had less than 100 is considered a non-smoker.",
@@ -2198,15 +2190,41 @@ const vbrDictionary = {
             "req":"Required for sequence data.",
             "fmt":["cv"],
             "cv":[
-              "ILLUMINA", "HELICOS", "ABI_SOLID", "COMPLETE_GENOMICS", "PACBIO_SMRT", "ION_TORRENT", 
-              "CAPILLARY", "OXFORD_NANOPORE", "BGISEQ", "DNBSEQ", "ELEMENT", "GENAPSYS", "GENEMIND", 
-              "TAPESTRI", "ULTIMA", "VELA_DIAGNOSTICS"]
+              "ILLUMINA", "_LS454", "ABI_SOLID", "BGISEQ", "CAPILLARY", 
+              "COMPLETE_GENOMICS", "DNBSEQ", "ELEMENT", "GENAPSYS", "GENEMIND", 
+              "HELICOS", "ION_TORRENT", "OXFORD_NANOPORE", "PACBIO_SMRT", 
+              "TAPESTRI", "ULTIMA", "VELA_DIAGNOSTICS" ]
         },
         "sequencing_instrument_model":{
             "def":"Specific sequencer model that was used.",
             "req":"Required for sequence data.",
-            "fmt":["text"],
-            "examples":["Illumina NovaSeq 6000", "MinION"]
+            "fmt":["cv"],
+            "cv":[
+              "HiSeq X Five", "HiSeq X Ten", "Illumina Genome Analyzer", 
+              "Illumina Genome Analyzer II", "Illumina Genome Analyzer IIx", 
+              "Illumina HiScanSQ", "Illumina HiSeq 1000", "Illumina HiSeq 1500", 
+              "Illumina HiSeq 2000", "Illumina HiSeq 2500", "Illumina HiSeq 3000", 
+              "Illumina HiSeq 4000", "Illumina HiSeq X", "Illumina MiSeq", 
+              "Illumina MiSeq i100", "Illumina MiniSeq", "Illumina NovaSeq 6000", 
+              "Illumina NovaSeq X", "Illumina NovaSeq X Plus", "Illumina iSeq 100", 
+              "NextSeq 1000", "NextSeq 2000", "NextSeq 500", "NextSeq 550", "454 GS", 
+              "454 GS 20", "454 GS FLX", "454 GS FLX+", "454 GS FLX Titanium", 
+              "454 GS Junior", "Helicos HeliScope", "AB 5500 Genetic Analyzer", 
+              "AB 5500xl Genetic Analyzer", "AB 5500x-Wl Genetic Analyzer", 
+              "AB SOLiD 3 Plus System", "AB SOLiD 4 System", "AB SOLiD 4hq System", 
+              "AB SOLiD PI System", "AB SOLiD System", "AB SOLiD System 2.0", 
+              "AB SOLiD System 3.0", "Complete Genomics", "PacBio RS", "PacBio RS II", 
+              "Revio", "Sequel", "Sequel II", "Sequel IIe", "Onso", "Ion Torrent PGM", 
+              "Ion Torrent Proton", "Ion Torrent S5 XL", "Ion Torrent S5", 
+              "Ion Torrent Genexus", "Ion GeneStudio S5", "Ion GeneStudio S5 Plus", 
+              "Ion GeneStudio S5 Prime", "AB 310 Genetic Analyzer", 
+              "AB 3130 Genetic Analyzer", "AB 3130xL Genetic Analyzer", 
+              "AB 3500 Genetic Analyzer", "AB 3500xL Genetic Analyzer", 
+              "AB 3730 Genetic Analyzer", "AB 3730xL Genetic Analyzer", "GridION", 
+              "MinION", "PromethION", "BGISEQ-50", "BGISEQ-500", "MGISEQ-2000RS", 
+              "DNBSEQ-G400", "DNBSEQ-G50", "DNBSEQ-T7", "DNBSEQ-G400 FAST", 
+              "Element AVITI", "GS111", "FASTASeq 300", "GenoCare 1600", "GenoLab M", 
+              "Tapestri", "UG 100", "Sentosa SQ301" ]
         }
     },
     "analyses":{
@@ -2254,7 +2272,7 @@ const vbrDictionary = {
     },
     "files":{
         "file_uniq_name":{
-            "def":"This is a unique name for the file within a given HVP data generator group (at the grant level), built from the data generator's internal file id/name prefixed with the project abbreviation, separated with an underscore.",
+            "def":"This is a unique name for the file within a given HVP data generator group (at the grant level), built from the data generator's internal file id/name prefixed with the project abbreviation, separated with an underscore. Can only contain the characters a-zA-Z0-9_.- and must have a file extension. Directory paths are not allowed.",
             "req":"yes",
             "fmt":["uid", "primary"],
             "examples":["vast_fil_3754.fastq.gz"]
@@ -2277,6 +2295,9 @@ const vbrDictionary = {
               "FASTQ [EDAM:format_1930]",
               "FASTA [EDAM:format_1929]",
               "BAM [EDAM:format_2572]",
+              "SFF [EDAM:format_3284]",
+              "SRF [EDAM:format_3017]",
+              "CRAM [EDAM:format_3462]",
               "TSV [EDAM:format_3475]",
               "CSV [EDAM:format_3752]",
               "RPKM [EDAM:format_3980]"]
@@ -2296,11 +2317,6 @@ const vbrDictionary = {
             "fmt":["uid", "ref"],
             "ref":{"libraries":"library_uid"},
             "examples":["vast_lib_3754"]
-        },
-        "library_aliqout_uid":{
-            "def":"For sequencing data, this is the aliquot used from the sequencing library. For non-sequence data, this is the aliquot from the processed sample.",
-            "req":"no",
-            "fmt":["uid"]
         },
         "bioproject_id":{
             "def":"The NCBI BioProject accession associated with this data at the sub-project level that is specific to the study this file is part of.",
