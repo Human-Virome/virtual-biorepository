@@ -4,13 +4,11 @@ condition_check_events <- function (env) {
   
   errors <- c()
   
-  for (field in c('age', 'age_units', 'age_range', 'height', 'height_units', 'weight', 'weight_units'))
-    if (!hasName(env$df, field))
-      env$df[[field]] <- NA_character_
-  
-  age       <- !is.na(env$df[['age']])
-  age_units <- !is.na(env$df[['age_units']])
-  age_range <- !is.na(env$df[['age_range']])
+  age         <- !is.na(env$df[['age']])
+  age_units   <- !is.na(env$df[['age_units']])
+  age_range   <- !is.na(env$df[['age_range']])
+  has_animals <- sapply(env$df[['animal_exposure']], identical, 'yes')
+  animal_list <- !is.na(env$df[['exposure_animal_type']])
   
   is_missing <- !(age | age_range)
   redundant  <- age & age_range
@@ -54,6 +52,24 @@ condition_check_events <- function (env) {
   }
   
   
+  missing_animals <- has_animals & !animal_list
+  if (any(missing_animals)) {
+    bad_rows <- head(which(missing_animals))
+    msg <- "%s:%d: `exposure_animal_type` must be given when `animal_exposure` = yes."
+    msg <- sprintf(msg, env$tbl, bad_rows + 1)
+    errors <- c(errors, msg)
+  }
+  
+  unexpected_animals <- animal_list & !has_animals
+  if (any(unexpected_animals)) {
+    bad_rows <- head(which(unexpected_animals))
+    msg <- "%s:%d: `animal_exposure` must be \"yes\" when `exposure_animal_type` is given."
+    msg <- sprintf(msg, env$tbl, bad_rows + 1)
+    errors <- c(errors, msg)
+  }
+  
+  
+  
   if (length(errors))
     stop(paste(errors, collapse = "\n"))
   invisible() 
@@ -64,10 +80,6 @@ condition_check_events <- function (env) {
 condition_check_samples <- function (env) {
   
   errors <- c()
-  
-  for (field in c('anatomical_site', 'body_product', 'negative_control_type', 'postive_control_type'))
-    if (!hasName(env$df, field))
-      env$df[[field]] <- NA_character_
   
   anatomical_site       <- !is.na(env$df[['anatomical_site']])
   body_product          <- !is.na(env$df[['body_product']])
@@ -121,11 +133,6 @@ condition_check_samples <- function (env) {
 condition_check_libraries <- function (env) {
   
   errors <- c()
-  
-  for (field in c('is_control_library', 'library_pos_cont_type', 'library_neg_cont_type', 'paired_or_single', 'sequencing_platform', 'sequencing_instrument_model'))
-    if (!hasName(env$df, field))
-      env$df[[field]] <- NA_character_
-  
   
   is_control                  <- sapply(env$df[['is_control_library']], identical, "yes")
   library_pos_cont_type       <- !is.na(env$df[['library_pos_cont_type']])
@@ -182,10 +189,6 @@ condition_check_libraries <- function (env) {
 condition_check_files <- function (env) {
   
   errors <- c()
-  
-  for (field in c('data_use_condition', 'data_use_specific_limit'))
-    if (!hasName(env$df, field))
-      env$df[[field]] <- NA_character_
   
   disease_research <- sapply(env$df[['data_use_condition']], identical, "DUO:0000007")
   which_disease    <- !is.na(env$df[['data_use_specific_limit']])

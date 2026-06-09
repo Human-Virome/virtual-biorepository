@@ -258,9 +258,10 @@ CREATE TABLE IF NOT EXISTS sra (
   library_construction_protocol TINYTEXT,
   instrument_model              TINYTEXT,
   INDEX (`user`),
-  FOREIGN KEY (file_path)   REFERENCES files(file_uniq_name),
-  FOREIGN KEY (sample_name) REFERENCES samples(sample_uid),
-  FOREIGN KEY (BioSample)   REFERENCES biosamples(biosample_accession)
+  FOREIGN KEY (file_path)    REFERENCES files(file_uniq_name),
+  FOREIGN KEY (sample_name)  REFERENCES samples(sample_uid),
+  FOREIGN KEY (library_name) REFERENCES libraries(library_uid),
+  FOREIGN KEY (BioSample)    REFERENCES biosamples(biosample_accession)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 

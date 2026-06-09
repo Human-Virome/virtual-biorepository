@@ -7,6 +7,7 @@ Type=simple
 User=www-data
 Group=www-data
 Environment="HTTPUV_PORT=%i"
+EnvironmentFile=/etc/httpuv.env
 WorkingDirectory=/var/www/vbr/api
 ExecStart=/usr/bin/Rscript handler.r
 Restart=always

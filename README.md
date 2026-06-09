@@ -27,8 +27,8 @@ echo '/swapfile none swap sw 0 0' >> /etc/fstab
 apt update && apt upgrade -y
 apt install -y nginx certbot mariadb-server r-base awscli git fail2ban
 R -e "install.packages('pak', repos='https://r-lib.github.io/p/pak/stable/source/linux-gnu/x86_64'); \
-      options(repos = c(CRAN = 'https://packagemanager.posit.co/cran/__linux__/trixie/latest'));      \
-      pak::pak(c('crul', 'data.table', 'DBI', 'httpuv', 'jsonlite', 'readxl', 'RMariaDB', 'stringi', 'webutils'))"
+      options(repos = c(CRAN = 'https://packagemanager.posit.co/cran/__linux__/trixie/latest'));     \
+      pak::pak(c('crul', 'data.table', 'DBI', 'httpuv', 'jsonlite', 'readxl', 'rentrez', 'RMariaDB', 'sftpR`, 'stringi', 'webutils', 'xml2))"
 
 certbot certonly --webroot -w /var/www/html -d metadata.human-virome.org --register-unsafely-without-email --agree-tos
 
@@ -45,6 +45,13 @@ echo 'OAUTH2_PROXY_CLIENT_ID="your_globus_client_id"'          >  /etc/oauth2-pr
 echo 'OAUTH2_PROXY_CLIENT_SECRET="your_globus_client_secret"'  >> /etc/oauth2-proxy.env
 echo 'OAUTH2_PROXY_COOKIE_SECRET="your_32_byte_cookie_secret"' >> /etc/oauth2-proxy.env
 chmod 600 /etc/oauth2-proxy.env
+
+# Change these values.
+echo 'NCBI_SFTP_USERNAME="your_ncbi_sftp_username"' >> /etc/httpuv.env
+echo 'NCBI_SFTP_PASSWORD="your_ncbi_sftp_password"' >> /etc/httpuv.env
+echo 'ENTREZ_KEY="your_ncbi_eutils_api_key"         >> /etc/httpuv.env
+sudo chown root:www-data /etc/httpuv.env
+chmod 640 /etc/httpuv.env
 
 
 git clone https://github.com/Human-Virome/virtual-biorepository.git /var/www/vbr

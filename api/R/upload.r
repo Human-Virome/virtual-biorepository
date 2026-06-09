@@ -114,6 +114,8 @@ ingest_table <- function (env) {
   validate_md5(env)
   validate_keys(env)
   validate_refs(env)
+  validate_file_names(env)
+  validate_bioproject_ids(env)
   
   switch(
     EXPR = env$tbl,
@@ -122,21 +124,20 @@ ingest_table <- function (env) {
     'libraries' = condition_check_libraries(env),
     'files'     = condition_check_files(env) )
   
-  env$df[['hvp_id']]      <- create_hvp_ids(env)
-  env$df[['oauth_email']] <- attr(env$db, 'oauth_email')
+  switch(
+    EXPR = env$tbl,
+    'events'    = derive_cols_events(env),
+    'libraries' = derive_cols_libraries(env) )
   
-  # 1. Build the raw SQL statement
-  columns <- paste0("`", names(env$df), "`", collapse = ", ")
-  placeholders <- paste0(rep("?", ncol(env$df)), collapse = ", ")
-  sql <- sprintf("INSERT INTO `%s` (%s) VALUES (%s)", env$tbl, columns, placeholders)
+  env$df[['hvp_id']] <- create_hvp_ids(env)
+  env$df[['user']]   <- attr(env$db, 'user')
   
-  # 2. Execute directly using RMariaDB's vectorization
-  # unname(as.list()) formats the data frame perfectly for the driver
-  DBI::dbExecute(
-    conn      = env$db, 
-    statement = sql, 
-    params    = unname(as.list(env$df)) 
-  )
+  db_append(env$db, env$tbl, env$df, 'InTbl1')
+  
+  switch(
+    EXPR = env$tbl,
+    'samples' = biosamples_refresh(env$db),
+    'files'   = sra_refresh(env$db) )
   
   invisible()
 }

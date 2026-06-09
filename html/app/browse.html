@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,191 +13,19 @@
     <link href="style.css" rel="stylesheet"/>
 
     <style>
-        /* --- Dark Theme Tabulator Overrides --- */
-        .tabulator { 
-            background-color: var(--surface) !important; 
-            border: 1px solid var(--border-color) !important; 
-            border-bottom: none !important; 
-            border-radius: 0.5rem 0.5rem 0 0;
-            color: #ffffff !important; 
-            font-family: var(--font-main); 
-        }
-        
-        .tabulator-header { 
-            background-color: var(--surface-high) !important; 
-            border-bottom: 2px solid var(--border-color) !important; 
-            color: var(--text-muted) !important; 
-            font-size: 0.75rem; 
-            text-transform: uppercase; 
-            letter-spacing: 0.05em; 
-            font-weight: 700; 
-        }
-        
-        .tabulator-header .tabulator-col { 
-            background-color: var(--surface-high) !important; 
-            border-right: 1px solid var(--border-color) !important; 
-        }
-        
-        .tabulator-header .tabulator-col-content { 
-            padding: 0.875rem 1rem !important; 
-        }
-
-        .tabulator-header-filter input {
-            width: 100%;
-            box-sizing: border-box;
-            padding: 0.375rem 0.5rem;
-            background-color: var(--surface) !important;
-            border: 1px solid var(--border-color) !important;
-            border-radius: 0.25rem;
-            color: #ffffff !important;
-            font-family: var(--font-main);
-            font-size: 0.75rem;
-        }
-        
-        .tabulator-header-filter input:focus {
-            outline: none;
-            border-color: var(--primary) !important;
-        }
-        
-        .tabulator-row { 
-            background-color: var(--surface) !important; 
-            border-bottom: 1px solid var(--border-color) !important; 
-            color: #ffffff !important; /* Forces row text to pure white */
-            font-size: 0.875rem; 
-            transition: background-color 0.2s ease; 
-        }
-        
-        .tabulator-row.tabulator-row-even { 
-            background-color: rgba(255, 255, 255, 0.03) !important; 
-        }
-        
-        .tabulator-row:hover { 
-            background-color: rgba(137, 206, 255, 0.08) !important; 
-        }
-        
-        .tabulator-cell { 
-            padding: 0.875rem 1rem !important; 
-            border-right: 1px solid var(--border-color) !important; 
-            color: #ffffff !important; /* Forces individual cell text to pure white */
-        }
-        
-        /* Unified Footer holding both Tabs and Pagination */
-        .tabulator-footer { 
-            background-color: var(--surface-high) !important; 
-            border-top: 1px solid var(--border-color) !important; 
-            color: var(--text-main) !important; 
-            padding: 0 0 0.75rem 0 !important; 
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
-
-        .tabulator-footer .tabulator-calcs-holder,
-        .tabulator-footer .tabulator-paginator {
-            background-color: transparent !important;
-            color: inherit !important;
-        }
-
-        /* Pagination Container */
-        .tabulator-footer .tabulator-paginator {
-            align-self: flex-start; 
-            padding: 0.375rem 1rem 0 1rem !important; 
-            font-family: var(--font-main);
-            font-size: 0.8125rem;
-            display: flex;
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 10000;
+            display: none;
+            justify-content: center;
             align-items: center;
+            opacity: 0;
+            transition: opacity 0.2s ease;
         }
-        
-        .tabulator-footer .tabulator-page-counter {
-            color: var(--text-muted) !important;
-        }
-        
-        /* Pagination Controls */
-        .tabulator-footer .tabulator-page { 
-            border: 1px solid transparent !important; 
-            background: transparent !important; 
-            color: var(--text-muted) !important; 
-            border-radius: 0.375rem; 
-            margin: 0 0.125rem;
-            padding: 0.375rem 0.75rem;
-            font-family: var(--font-main);
-            font-size: 0.8125rem;
-            font-weight: 500;
-            transition: all 0.2s ease;
-        }
-        
-        .tabulator-footer .tabulator-page:not(.disabled):hover { 
-            background: rgba(255, 255, 255, 0.05) !important;
-            color: #ffffff !important; 
-            border-color: transparent !important;
-        }
-        
-        .tabulator-footer .tabulator-page.active { 
-            background: var(--surface) !important; 
-            color: var(--primary) !important; 
-            border-color: var(--border-color) !important; 
-            font-weight: 600;
-        }
-
-        .tabulator-footer .tabulator-page:disabled,
-        .tabulator-footer .tabulator-page.disabled {
-            opacity: 0.4 !important;
-            cursor: not-allowed !important;
-            color: var(--text-muted) !important;
-            border-color: transparent !important;
-        }
-        
-        .tabulator-tableholder::-webkit-scrollbar { width: 8px; height: 8px; }
-        .tabulator-tableholder::-webkit-scrollbar-track { background: var(--surface); }
-        .tabulator-tableholder::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
-        .tabulator-tableholder::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
-
-        /* --- Excel-like Tabs (Hanging from the footer) --- */
-        .excel-tabs {
-            display: flex;
-            padding: 0 0.5rem;
-            overflow-x: auto;
-        }
-
-        .tab-btn {
-            background-color: transparent;
-            border: 1px solid transparent;
-            border-top: none; 
-            padding: 0.5rem 1.25rem;
-            margin-right: 0.25rem;
-            cursor: pointer;
-            color: var(--text-muted);
-            border-radius: 0 0 0.375rem 0.375rem; 
-            font-family: var(--font-main);
-            font-size: 0.8125rem;
-            font-weight: 500;
-            text-transform: capitalize;
-            transition: all 0.2s ease;
-            white-space: nowrap;
-        }
-
-        .tab-btn:hover {
-            background-color: rgba(255, 255, 255, 0.05);
-            color: #ffffff;
-        }
-
-        .tab-btn.active {
-            background-color: var(--surface);
-            border-color: var(--border-color);
-            color: var(--primary);
-            font-weight: 600;
-            position: relative;
-        }
-        
-        .tab-btn.active::before {
-            content: "";
-            position: absolute;
-            top: -1px; 
-            left: 0;
-            right: 0;
-            height: 2px;
-            background-color: var(--surface);
-        }
+        .modal-overlay.show { display: flex; opacity: 1; }
+        .modal-content { max-width: 450px; width: 100%; margin: 0 1rem; }
     </style>
 </head>
 
@@ -208,13 +37,24 @@
         <div class="page-wrapper page-wrapper-full" style="display: flex; flex-direction: column; height: 100%;">
             
             <div class="section-header flex-row flex-between" style="align-items: center; margin-bottom: 1rem;">
-                <div class="flex-row" style="align-items: center; gap: 0.5rem;">
-                    <span class="material-symbols-outlined">table_view</span>
-                    <h2 style="margin: 0;">Database Browser</h2>
+                
+                <div class="flex-row" style="align-items: center; gap: 0.5rem;" id="dynamic-action-bar">
                 </div>
-                <button id="refresh-btn" class="btn btn-secondary" title="Refresh Data">
-                    <span class="material-symbols-outlined">refresh</span>
-                </button>
+                
+                <div class="flex-row" style="align-items: center; gap: 0.75rem;">
+                    <div class="input-group">
+                        <select id="page-size-selector" class="form-control" style="width: auto; padding-right: 1rem; cursor: pointer;">
+                            <option value="auto">Auto-fit View</option>
+                            <option value="100">100 Rows</option>
+                            <option value="500">500 Rows</option>
+                            <option value="1000">1000 Rows</option>
+                            <option value="5000">5000 Rows</option>
+                        </select>
+                    </div>
+                    <button id="refresh-btn" class="btn btn-secondary" title="Refresh Data">
+                        <span class="material-symbols-outlined">refresh</span>
+                    </button>
+                </div>
             </div>
 
             <div class="workspace-layout" style="flex-grow: 1; display: flex; flex-direction: column; min-height: 0;">
@@ -227,6 +67,8 @@
                     <button class="tab-btn" data-table="libraries">libraries</button>
                     <button class="tab-btn" data-table="analyses">analyses</button>
                     <button class="tab-btn" data-table="files">files</button>
+                    <button class="tab-btn" data-table="biosamples">biosamples</button>
+                    <button class="tab-btn" data-table="sra">sra</button>
                 </div>
             </div>
             
@@ -235,32 +77,99 @@
   
     <!--#include virtual="/app/footer.html" -->
   
+    <div id="error-modal" class="modal-overlay">
+        <div class="card modal-content">
+            <div class="card-body">
+                <div class="flex-row" style="color: var(--error); margin-bottom: 1rem; gap: 0.5rem;">
+                    <span class="material-symbols-outlined" style="font-size: 2rem;">error</span>
+                    <h3 style="margin: 0; font-size: 1.25rem;">Action Error</h3>
+                </div>
+                <p id="error-message" style="margin-bottom: 1.5rem; color: var(--text-muted);"></p>
+                <div style="text-align: right;">
+                    <button class="btn btn-secondary" onclick="closeErrorModal()">Dismiss</button>
+                </div>
+            </div>
+        </div>
+    </div>
+  
     <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
           
             const refreshBtn = document.getElementById('refresh-btn');
+            const pageSizeSelector = document.getElementById('page-size-selector');
             const tabButtons = document.querySelectorAll('.tab-btn');
             const dataTableContainer = document.getElementById('data-table');
             const excelTabs = document.getElementById('excel-tabs');
+            const actionBar = document.getElementById('dynamic-action-bar');
             
-            let currentTable = "participants";
+            let currentTable   = "participants";
+            let refreshClicked = "false";
+
+            // --- Configuration for Tab-Specific Actions ---
+            // Easy to add logic for future tabs here.
+            const ACTION_CONFIG = {
+                "biosamples": [
+                    {
+                        id: "btn-assign-biosample",
+                        label: "Assign BioSample IDs",
+                        icon: "assignment",
+                        endpoint: "/api/biosamples/assign",
+                        payloadKey: "sample_name"
+                    }
+                ],
+                "sra": [
+                    {
+                        id: "btn-export-sra",
+                        label: "Export for SRA",
+                        icon: "ios_share",
+                        endpoint: "/api/sra/export",
+                        payloadKey: "file_path"
+                    }
+                ]
+            };
+
+            // Modal Handlers
+            window.showErrorModal = function(msg) {
+                document.getElementById('error-message').textContent = msg;
+                document.getElementById('error-modal').classList.add('show');
+            };
+            window.closeErrorModal = function() {
+                document.getElementById('error-modal').classList.remove('show');
+            };
 
             function calculatePageSize() {
+                if (pageSizeSelector.value !== "auto") {
+                    return parseInt(pageSizeSelector.value, 10);
+                }
                 const containerHeight = dataTableContainer.clientHeight;
-                
                 const nonRowHeight = 135; 
                 const availableHeight = containerHeight - nonRowHeight;
-                
                 const rowHeight = 42; 
-                
                 let size = Math.floor(availableHeight / rowHeight);
                 return size > 0 ? size : 1;
             }
 
+            // Tabulator Initialization
             const table = new Tabulator("#data-table", {
                 layout: "fitData", 
                 autoColumns: true, 
+                
+                // Enable row selection and range selection (shift+click)
+                selectableRows: true,
+                selectableRangeMode: "click",
+                
+                // Prepend the Checkbox Column alongside autoColumns
+                columns: [
+                    {
+                        formatter: "rowSelection", 
+                        titleFormatter: "rowSelection", 
+                        hozAlign: "center", 
+                        headerSort: false, 
+                        width: 50,
+                        frozen: true
+                    }
+                ],
                 
                 autoColumnsDefinitions: function(definitions) {
                     definitions.forEach((column) => {
@@ -274,7 +183,9 @@
                 ajaxContentType: "json",
                 
                 ajaxParams: function() {
-                    return { table: currentTable };
+                    const params = { table: currentTable, refresh: refreshClicked };
+                    refreshClicked = "false";
+                    return params;
                 },
 
                 pagination: true,
@@ -286,13 +197,75 @@
                 placeholder: "No data available in this table",
             });
 
+            // Re-mount the hanging Excel-tabs to the footer
             table.on("tableBuilt", function() {
                 const footer = dataTableContainer.querySelector('.tabulator-footer');
                 if(footer) {
                     footer.insertBefore(excelTabs, footer.firstChild);
                 }
+                updateActionBar(currentTable);
             });
 
+            // Action Bar Generator
+            function updateActionBar(tableName) {
+                actionBar.innerHTML = ''; // clear current actions
+                
+                const actions = ACTION_CONFIG[tableName] || [];
+                
+                actions.forEach(action => {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn btn-primary';
+                    btn.id = action.id;
+                    btn.innerHTML = `<span class="material-symbols-outlined">${action.icon}</span> ${action.label}`;
+                    
+                    btn.addEventListener('click', async () => {
+                        const selectedRows = table.getSelectedData();
+                        
+                        if (selectedRows.length === 0) {
+                            showErrorModal("Please select at least one row to perform this action.");
+                            return;
+                        }
+
+                        // Extract data based on payloadKey (ignoring empty/undefined cells)
+                        const payloadData = selectedRows
+                            .map(row => row[action.payloadKey])
+                            .filter(val => val !== undefined && val !== null && val !== "");
+                        
+                        if (payloadData.length === 0) {
+                            showErrorModal(`None of the selected rows contain a valid '${action.payloadKey}'.`);
+                            return;
+                        }
+
+                        try {
+                            const response = await fetch(action.endpoint, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ items: payloadData }) // adjust body key as needed by your backend
+                            });
+                            
+                            const data = await response.json();
+                            
+                            if (response.ok && data.error) {
+                                // 200 OK but handled error exists in payload
+                                showErrorModal(data.error);
+                            } else if (!response.ok) {
+                                // System/HTTP Error
+                                showErrorModal(`Server Error: ${response.status} ${response.statusText}`);
+                            } else {
+                                // Success - Force a refresh to see the new states
+                                refreshClicked = "true";
+                                table.setData();
+                            }
+                        } catch (err) {
+                            showErrorModal(`Network Error: ${err.message}`);
+                        }
+                    });
+                    
+                    actionBar.appendChild(btn);
+                });
+            }
+
+            // Tab Switching functionality
             tabButtons.forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     tabButtons.forEach(b => b.classList.remove('active'));
@@ -302,13 +275,23 @@
                     
                     table.clearData();
                     table.setData();
+                    updateActionBar(currentTable);
                 });
             });
 
+            // Handle standard refresh
             refreshBtn.addEventListener('click', () => {
+                refreshClicked = "true";
                 table.setData();
             });
 
+            // Handle Page Size manual override
+            pageSizeSelector.addEventListener('change', () => {
+                const newSize = calculatePageSize();
+                table.setPageSize(newSize);
+            });
+
+            // Throttled viewport resizing (only auto-updates if "auto" is selected)
             function debounce(func, wait) {
                 let timeout;
                 return function(...args) {
@@ -318,7 +301,7 @@
             }
 
             window.addEventListener('resize', debounce(() => {
-                if (dataTableContainer.clientHeight > 0) { 
+                if (dataTableContainer.clientHeight > 0 && pageSizeSelector.value === "auto") { 
                     const newSize = calculatePageSize();
                     if (table.getPageSize() !== newSize) {
                         table.setPageSize(newSize);

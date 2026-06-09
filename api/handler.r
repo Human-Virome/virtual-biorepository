@@ -36,7 +36,10 @@ app <- list(
         }
         
         # Convert URL path to function name (e.g., /api/login -> api_login)
-        api_fn <- sub("^/api/", "api_", req$PATH_INFO)
+        api_fn <- req$PATH_INFO
+        api_fn <-  sub("/", "",  api_fn, fixed = TRUE)
+        api_fn <- gsub("/", "_", api_fn, fixed = TRUE)
+        stopifnot(startsWith(api_fn, "api_"))
         stopifnot(exists(api_fn, mode = "function"))
         api_fun <- get(api_fn)
         
@@ -47,8 +50,8 @@ app <- list(
           on.exit(DBI::dbDisconnect(args$db), add = TRUE)
           stopifnot(DBI::dbIsValid(args$db))
           
-          attr(args$db, 'oauth_email') <- req$HTTP_X_OAUTH_EMAIL
-          db_query(args$db, 'SET @oauth_email = ?;', 'SetEmail', list(req$HTTP_X_OAUTH_EMAIL))
+          attr(args$db, 'user') <- req$HTTP_X_OAUTH_EMAIL
+          db_query(args$db, 'SET @user = ?;', 'SetEmail', list(req$HTTP_X_OAUTH_EMAIL))
         }
         
         # Confirm api function arguments

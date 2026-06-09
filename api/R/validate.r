@@ -5,14 +5,16 @@
 # Ensure each required column is filled in.
 validate_req_columns <- function (env) {
   
-  fields <- names(env$df)
   errors <- c()
   
-  all_dict_fields <- names(DICT[[env$tbl]])
-  req_dict_fields <- all_dict_fields[sapply(DICT[[env$tbl]], \(x) identical(x$req, "yes"))]
+  # All the MariaDB table's column names
+  sql    <- sprintf("DESC `%s`", env$tbl)
+  desc   <- db_query(env$db, sql, 'ValReq1', simplify = FALSE)
+  fields <- desc[['Fields']]
   
-  missing <- setdiff(req_dict_fields, fields)
-  invalid <- setdiff(fields, all_dict_fields)
+  given   <- names(env$df)
+  missing <- setdiff(fields, given)
+  invalid <- setdiff(given, fields)
   
   if (length(missing) > 0) {
     msg <- '%s: Required columns are missing: `%s`'
@@ -25,14 +27,20 @@ validate_req_columns <- function (env) {
     errors <- c(errors, msg)
   }
   
-  for (field in intersect(fields, req_dict_fields)) {
-    missing <- which(is.na(env$df[[field]])) + 1
-    if (length(missing) > 0) {
-      msg <- '%s: required `%s` values are missing on row(s) %s'
-      msg <- sprintf(msg, env$tbl, field, paste(collapse = ', ', head(missing, 20)))
-      errors <- c(errors, msg)
+  for (field in given) {
+    if (identical(DICT[[env$tbl]][[field]][['req']], "yes")) {
+      missing <- which(is.na(env$df[[field]])) + 1
+      if (length(missing) > 0) {
+        msg <- '%s: required `%s` values are missing on row(s) %s'
+        msg <- sprintf(msg, env$tbl, field, paste(collapse = ', ', head(missing, 20)))
+        errors <- c(errors, msg)
+      }
     }
   }
+  
+  # Add all the MariaDB columns to the data.frame
+  for (add_col in setdiff(desc[['Field']], names(env$df)))
+    env$df[[add_col]] <- NA_character_
   
   if (length(errors))
     stop(paste(errors, collapse = "\n"))
@@ -47,17 +55,16 @@ validate_req_columns <- function (env) {
 
 reformat_ids <- function (env) {
   
-  fields <- names(env$df)
   errors <- c()
   
-  
-  for (field in fields) {
+  for (field in names(DICT[[env$tbl]])) {
     
-    fmt   <- unlist(DICT[[env$tbl]][[field]][['fmt']])
-    req   <- identical(DICT[[env$tbl]][[field]][['req']], "yes")
+    dict  <- DICT[[env$tbl]][[field]]
+    fmt   <- unlist(dict[['fmt']])
+    req   <- identical(dict[['req']], "yes")
     multi <- "multiple" %in% fmt
     if      ("uid"    %in% fmt) { prefixes <- UID_PREFIXES }
-    else if ("prefix" %in% fmt) { prefixes <- unlist(DICT[[env$tbl]][[field]][['prefix']]) }
+    else if ("prefix" %in% fmt) { prefixes <- unlist(dict[['prefix']]) }
     else                        { next }
     
     x <- env$df[[field]]
@@ -161,10 +168,9 @@ reformat_ids <- function (env) {
 
 validate_suffixes  <- function (env) {
   
-  fields <- names(env$df)
   errors <- c()
   
-  for (field in fields) {
+  for (field in names(DICT[[env$tbl]])) {
     
     fmt  <- unlist(DICT[[env$tbl]][[field]][['fmt']])
     freq <- "freq" %in% fmt
@@ -199,10 +205,9 @@ validate_suffixes  <- function (env) {
 
 validate_cv  <- function (env) {
   
-  fields <- names(env$df)
   errors <- c()
   
-  for (field in fields) {
+  for (field in names(DICT[[env$tbl]])) {
     
     cv <- unlist(DICT[[env$tbl]][[field]][['cv']])
     if (is.null(cv)) next
@@ -257,12 +262,11 @@ validate_cv  <- function (env) {
 
 validate_numbers <- function (env) {
   
-  fields <- names(env$df)
   errors <- c()
   
-  for (field in fields) {
+  for (field in names(DICT[[env$tbl]])) {
     
-    fmt <-unlist(DICT[[env$tbl]][[field]][['fmt']])
+    fmt <- unlist(DICT[[env$tbl]][[field]][['fmt']])
     if (!any(c('number', 'integer') %in% fmt)) next
     
     x <- env$df[[field]]
@@ -310,10 +314,9 @@ validate_numbers <- function (env) {
 
 validate_dates <- function (env) {
   
-  fields <- names(env$df)
   errors <- c()
   
-  for (field in fields) {
+  for (field in names(DICT[[env$tbl]])) {
     
     fmt <- unlist(DICT[[env$tbl]][[field]][['fmt']])
     ymd <- intersect(c('YYYY-MM', 'YYYY-MM-DD'), fmt)
@@ -345,10 +348,9 @@ validate_dates <- function (env) {
 
 validate_urls  <- function (env) {
   
-  fields <- names(env$df)
   errors <- c()
   
-  for (field in fields) {
+  for (field in names(DICT[[env$tbl]])) {
     
     fmt <- unlist(DICT[[env$tbl]][[field]][['fmt']])
     if (!('url' %in% fmt)) next
@@ -392,10 +394,9 @@ validate_urls  <- function (env) {
 
 validate_md5  <- function (env) {
   
-  fields <- names(env$df)
   errors <- c()
   
-  for (field in fields) {
+  for (field in names(DICT[[env$tbl]])) {
     
     fmt <- unlist(DICT[[env$tbl]][[field]][['fmt']])
     if (!('md5' %in% fmt)) next
@@ -424,17 +425,16 @@ validate_md5  <- function (env) {
 
 validate_keys <- function (env) {
   
-  fields <- names(env$df)
   errors <- c()
   
-  for (field in fields) {
+  for (field in names(DICT[[env$tbl]])) {
     
     fmt <- unlist(DICT[[env$tbl]][[field]][['fmt']])
     if (!('primary' %in% fmt)) next
     
     x <- env$df[[field]]
     
-    current   <- db_query(env$db, sprintf('SELECT `%s` FROM `%s`', field, env$tbl), 'VaKe')
+    current   <- db_query(env$db, sprintf('SELECT `%s` FROM `%s`', field, env$tbl), 'ValKey')
     conflicts <- which(x %in% current)
     duplicate <- which(duplicated(x) & !is.na(x))
     
@@ -463,10 +463,9 @@ validate_keys <- function (env) {
 
 validate_refs <- function (env) {
   
-  fields <- names(env$df)
   errors <- c()
   
-  for (field in fields) {
+  for (field in names(DICT[[env$tbl]])) {
     
     fmt <- unlist(DICT[[env$tbl]][[field]][['fmt']])
     if (!('ref' %in% fmt)) next
@@ -475,7 +474,7 @@ validate_refs <- function (env) {
     
     ref_table <- names(DICT[[env$tbl]][[field]][['ref']])[[1]]
     ref_field <- DICT[[env$tbl]][[field]][['ref']][[ref_table]]
-    current   <- db_query(env$db, sprintf('SELECT `%s` FROM `%s`', ref_field, ref_table), 'VaRe')
+    current   <- db_query(env$db, sprintf('SELECT `%s` FROM `%s`', ref_field, ref_table), 'ValRef')
     
     if (identical(ref_table, env$tbl))
       current <- c(current, env$df[[ref_field]])
@@ -500,6 +499,73 @@ validate_refs <- function (env) {
   invisible()  
 }
 
+
+
+validate_file_names <- function (env) {
+  
+  errors <- c()
+  
+  if (hasName(env$df, 'file_uniq_name')) {
+    
+    # Regex pattern definition:
+    # ^               = Start of the string
+    # [a-zA-Z0-9_.-]+ = One or more safe characters (alphanumeric, underscores, hyphens, dots)
+    #                 = (This implicitly blocks paths like "/" or "\", spaces, and special characters)
+    # \\.             = A literal dot separating the name from the extension
+    # [a-zA-Z0-9]+    = One or more alphanumeric characters for the final extension
+    # $               = End of the string
+    pattern <- "^[a-zA-Z0-9_.-]+\\.[a-zA-Z0-9]+$"
+    
+    invalid <- !grepl(pattern, env$df[['file_uniq_name']])
+    if (any(invalid)) {
+      bad_rows <- head(which(invalid))
+      msg <- "%s:%d: invalid `file_uniq_name` \"%s\"."
+      msg <- sprintf(msg, env$tbl, bad_rows + 1, env$df[['file_uniq_name']][bad_rows])
+      errors <- c(errors, msg)
+    }
+    
+  }
+  
+  if (length(errors))
+    stop(paste(errors, collapse = "\n"))
+  invisible()
+}
+
+
+
+validate_bioproject_ids <- function (env) {
+  
+  errors <- c()
+  
+  if (hasName(env$df, 'bioproject_id')) {
+    
+    unique_ids <- unique(env$df[['bioproject_id']])
+    
+    search_res <- rentrez::entrez_search(
+      db     = "bioproject", 
+      term   = paste0(unique_ids, "[Project Accession]", collapse = " OR "),
+      retmax = length(unique_ids) )
+    
+    summaries <- rentrez::entrez_summary(
+      db = "bioproject",
+      id = search_res$ids,
+      always_return_list = TRUE )
+    
+    valid_ids <- sapply(summaries, `[[`, 'project_acc')
+    
+    not_found <- !(env$df[['bioproject_id']] %in% valid_ids)
+    if (any(not_found)) {
+      bad_rows <- head(which(not_found))
+      msg <- "%s:%d: cannot find `bioproject_id` \"%s\" in NCBI."
+      msg <- sprintf(msg, env$tbl, bad_rows + 1, env$df[['bioproject_id']][bad_rows])
+      errors <- c(errors, msg)
+    }
+  }
+  
+  if (length(errors))
+    stop(paste(errors, collapse = "\n"))
+  invisible()
+}
 
 
 
