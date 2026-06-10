@@ -24,7 +24,7 @@ sra_refresh <- function (db) {
     FROM files
       LEFT JOIN sra        ON files.file_uniq_name = sra.file_path
       LEFT JOIN libraries  USING (library_uid)
-      LEFT JOIN biosamples ON libraries.sample_uid =libraries.sample_uid
+      LEFT JOIN biosamples ON biosamples.sample_name =libraries.sample_uid
       
     WHERE sra.file_path IS NULL
       AND files.data_type = 'scrubbed_sequence_reads'
