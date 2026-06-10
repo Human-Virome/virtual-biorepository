@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS events (
 CREATE TABLE IF NOT EXISTS samples (
   hvp_id                   VARCHAR(50)  NOT NULL UNIQUE,
   `user`                   VARCHAR(255) NOT NULL,
-  biosample_id             VARCHAR(50)  NOT NULL DEFAULT '',
+  biosample_id             VARCHAR(50),
   sample_uid               VARCHAR(255) NOT NULL PRIMARY KEY,
   participant_uid          VARCHAR(255) NOT NULL,
   event_uid                VARCHAR(255) NOT NULL,

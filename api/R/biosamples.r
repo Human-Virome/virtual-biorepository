@@ -150,8 +150,8 @@ biosamples_refresh <- function (db) {
         
       FROM samples
         LEFT JOIN biosamples   ON samples.sample_uid = biosamples.sample_name
-        LEFT JOIN events       USING (event_uid)
         LEFT JOIN participants USING (participant_uid)
+        LEFT JOIN events       USING (event_uid)
         
       WHERE biosamples.sample_name IS NULL 
         AND samples.user = @user"
