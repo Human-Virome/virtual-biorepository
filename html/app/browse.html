@@ -129,40 +129,31 @@
                 const containerHeight = dataTableContainer.clientHeight;
                 const nonRowHeight = 135; 
                 const availableHeight = containerHeight - nonRowHeight;
-                
-                // Adjusted for new compact row CSS
-                const rowHeight = 32; 
-                
+                const rowHeight = 32; // Adjusted for compact row CSS
                 let size = Math.floor(availableHeight / rowHeight);
                 return size > 0 ? size : 1;
             }
 
+            // Track the anchor row for Shift+Click range selection
+            let anchorRow = null;
+
             // Tabulator Initialization
             const table = new Tabulator("#data-table", {
-                layout: "fitData", 
-                autoColumns: true, 
+                layout: "fitData",
+                autoColumns: true,
+                selectable: true,
                 
-                // Enable row selection. Shift+Click range selection is built-in natively!
-                selectableRows: true,
-                
-                // INJECT the checkbox column here so autoColumns doesn't overwrite it
+                // Inject the checkbox column here so autoColumns doesn't overwrite it
                 autoColumnsDefinitions: function(definitions) {
-                    // 1. Add the checkbox column to the front
                     definitions.unshift({
                         formatter: "rowSelection",
                         titleFormatter: "rowSelection",
                         hozAlign: "center",
                         headerSort: false,
                         width: 50,
-                        frozen: true,
-                        // Isolate the checkbox: prevents a checkbox click from bubbling 
-                        // up to the row and triggering the "clear other rows" logic.
-                        cellClick: function(e, cell) {
-                            e.stopPropagation();
-                        }
+                        frozen: true
                     });
 
-                    // 2. Add header filters to all other columns
                     definitions.forEach((column) => {
                         if (column.formatter !== "rowSelection") {
                             column.headerFilter = "input";
@@ -190,120 +181,3 @@
                 
                 placeholder: "No data available in this table",
             });
-
-            // Re-mount the hanging Excel-tabs to the footer
-            table.on("tableBuilt", function() {
-                const footer = dataTableContainer.querySelector('.tabulator-footer');
-                if(footer) {
-                    footer.insertBefore(excelTabs, footer.firstChild);
-                }
-                updateActionBar(currentTable);
-            });
-
-            // Action Bar Generator
-            function updateActionBar(tableName) {
-                actionBar.innerHTML = ''; // clear current actions
-                
-                const actions = ACTION_CONFIG[tableName] || [];
-                
-                actions.forEach(action => {
-                    const btn = document.createElement('button');
-                    btn.className = 'btn btn-primary';
-                    btn.id = action.id;
-                    btn.innerHTML = `<span class="material-symbols-outlined">${action.icon}</span> ${action.label}`;
-                    
-                    btn.addEventListener('click', async () => {
-                        const selectedRows = table.getSelectedData();
-                        
-                        if (selectedRows.length === 0) {
-                            showErrorModal("Please select at least one row to perform this action.");
-                            return;
-                        }
-
-                        // Extract data based on payloadKey (ignoring empty/undefined cells)
-                        const payloadData = selectedRows
-                            .map(row => row[action.payloadKey])
-                            .filter(val => val !== undefined && val !== null && val !== "");
-                        
-                        if (payloadData.length === 0) {
-                            showErrorModal(`None of the selected rows contain a valid '${action.payloadKey}'.`);
-                            return;
-                        }
-
-                        try {
-                            const response = await fetch(action.endpoint, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ items: payloadData }) // adjust body key as needed by your backend
-                            });
-                            
-                            const data = await response.json();
-                            
-                            if (response.ok && data.error) {
-                                // 200 OK but handled error exists in payload
-                                showErrorModal(data.error);
-                            } else if (!response.ok) {
-                                // System/HTTP Error
-                                showErrorModal(`Server Error: ${response.status} ${response.statusText}`);
-                            } else {
-                                // Success - Force a refresh to see the new states
-                                refreshClicked = "true";
-                                table.setData();
-                            }
-                        } catch (err) {
-                            showErrorModal(`Network Error: ${err.message}`);
-                        }
-                    });
-                    
-                    actionBar.appendChild(btn);
-                });
-            }
-
-            // Tab Switching functionality
-            tabButtons.forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    tabButtons.forEach(b => b.classList.remove('active'));
-                    e.target.classList.add('active');
-                    
-                    currentTable = e.target.getAttribute('data-table');
-                    
-                    table.clearData();
-                    table.setData();
-                    updateActionBar(currentTable);
-                });
-            });
-
-            // Handle standard refresh
-            refreshBtn.addEventListener('click', () => {
-                refreshClicked = "true";
-                table.setData();
-            });
-
-            // Handle Page Size manual override
-            pageSizeSelector.addEventListener('change', () => {
-                const newSize = calculatePageSize();
-                table.setPageSize(newSize);
-            });
-
-            // Throttled viewport resizing (only auto-updates if "auto" is selected)
-            function debounce(func, wait) {
-                let timeout;
-                return function(...args) {
-                    clearTimeout(timeout);
-                    timeout = setTimeout(() => func.apply(this, args), wait);
-                };
-            }
-
-            window.addEventListener('resize', debounce(() => {
-                if (dataTableContainer.clientHeight > 0 && pageSizeSelector.value === "auto") { 
-                    const newSize = calculatePageSize();
-                    if (table.getPageSize() !== newSize) {
-                        table.setPageSize(newSize);
-                    }
-                }
-            }, 200));
-            
-        });
-    </script>
-</body>
-</html>
