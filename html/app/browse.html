@@ -132,24 +132,54 @@
                 return size > 0 ? size : 1;
             }
 
+            let lastSelectedRowIndex = -1; // Track the anchor for shift-clicks
+
             const table = new Tabulator("#data-table", {
-                layout: "fitData",
-                autoColumns: true,
-                selectableRows: true,
-                selectableRowsRangeMode: "click",
+                layout: "fitData", 
+                autoColumns: true, 
+                
+                // Natively allows clicking checkboxes to toggle them independently
+                selectableRows: true, 
                 
                 autoColumnsDefinitions: function(definitions) {
-                    // Unshift the built-in selection column to the front
                     definitions.unshift({
                         formatter: "rowSelection",
                         titleFormatter: "rowSelection",
                         hozAlign: "center",
                         headerSort: false,
                         width: 50,
-                        frozen: true
+                        frozen: true,
+                        cellClick: function(e, cell) {
+                            const rows = cell.getTable().getRows("active");
+                            const currentRow = cell.getRow();
+                            const currentIndex = rows.findIndex(r => r === currentRow);
+            
+                            // If Shift is held and we have a previous anchor
+                            if (e.shiftKey && lastSelectedRowIndex > -1) {
+                                
+                                // Clear the annoying blue text selection natively
+                                if (window.getSelection) window.getSelection().removeAllRanges();
+            
+                                const start = Math.min(currentIndex, lastSelectedRowIndex);
+                                const end = Math.max(currentIndex, lastSelectedRowIndex);
+            
+                                // Tabulator's native formatter just toggled this row before this event fired.
+                                // We grab its new state and batch-apply it to the whole range.
+                                const isSelecting = currentRow.isSelected();
+                                const rowsToChange = rows.slice(start, end + 1);
+            
+                                if (isSelecting) {
+                                    cell.getTable().selectRow(rowsToChange);
+                                } else {
+                                    cell.getTable().deselectRow(rowsToChange);
+                                }
+                            }
+                            
+                            // Always set the anchor for the next click
+                            lastSelectedRowIndex = currentIndex;
+                        }
                     });
             
-                    // Apply filters only to data columns
                     definitions.forEach((column) => {
                         if (column.formatter !== "rowSelection") {
                             column.headerFilter = "input";
@@ -176,6 +206,11 @@
                 filterMode: "remote", 
                 
                 placeholder: "No data available in this table",
+            });
+            
+            // Reset the shift-click anchor whenever the table data changes/refreshes
+            table.on("dataLoaded", function() {
+                lastSelectedRowIndex = -1;
             });
 
             // Re-mount the hanging Excel-tabs to the footer
