@@ -88,9 +88,6 @@
             
             let currentTable   = "participants";
             let refreshClicked = "false";
-            
-            // Track the anchor row for Shift+Click range selection
-            let lastClickedRowIndex = -1;
 
             // --- Configuration for Tab-Specific Actions ---
             const ACTION_CONFIG = {
@@ -135,16 +132,14 @@
                 return size > 0 ? size : 1;
             }
 
-            // Tabulator 6.x Initialization
             const table = new Tabulator("#data-table", {
-                layout: "fitData", 
-                autoColumns: true, 
-                
-                // Tabulator 6 API: Enables row clicking to toggle selection state
+                layout: "fitData",
+                autoColumns: true,
                 selectableRows: true,
+                selectableRowsRangeMode: "click",
                 
-                // INJECT the checkbox column here so autoColumns doesn't overwrite it
                 autoColumnsDefinitions: function(definitions) {
+                    // Unshift the built-in selection column to the front
                     definitions.unshift({
                         formatter: "rowSelection",
                         titleFormatter: "rowSelection",
@@ -153,7 +148,8 @@
                         width: 50,
                         frozen: true
                     });
-
+            
+                    // Apply filters only to data columns
                     definitions.forEach((column) => {
                         if (column.formatter !== "rowSelection") {
                             column.headerFilter = "input";
@@ -161,34 +157,6 @@
                     });
                     
                     return definitions;
-                },
-                
-                // Custom Shift+Click range selection to preserve "toggle" behavior.
-                // selectableRows toggles the clicked row synchronously on click; we defer the
-                // range fill to a microtask so it runs AFTER that toggle and reliably wins.
-                rowClick: function(e, row) {
-                    const rows = table.getRows();
-                    const currentIndex = rows.findIndex(r => r === row);
-                
-                    if (e.shiftKey && lastClickedRowIndex !== -1 && lastClickedRowIndex < rows.length) {
-                        const anchorRow = rows[lastClickedRowIndex];
-                        const isSelecting = anchorRow.isSelected();
-                
-                        const start = Math.min(currentIndex, lastClickedRowIndex);
-                        const end   = Math.max(currentIndex, lastClickedRowIndex);
-                
-                        queueMicrotask(() => {
-                            for (let i = start; i <= end; i++) {
-                                isSelecting ? rows[i].select() : rows[i].deselect();
-                            }
-                        });
-                
-                        if (window.getSelection) {
-                            window.getSelection().removeAllRanges();
-                        }
-                    }
-                
-                    lastClickedRowIndex = currentIndex;
                 },
                 
                 ajaxURL: "/api/browse",
@@ -200,7 +168,7 @@
                     refreshClicked = "false";
                     return params;
                 },
-
+            
                 pagination: true,
                 paginationMode: "remote",
                 paginationSize: calculatePageSize(), 
@@ -208,11 +176,6 @@
                 filterMode: "remote", 
                 
                 placeholder: "No data available in this table",
-            });
-
-            // Reset the shift-click anchor whenever the table data changes/refreshes
-            table.on("dataLoaded", function() {
-                lastClickedRowIndex = -1;
             });
 
             // Re-mount the hanging Excel-tabs to the footer
