@@ -124,7 +124,6 @@ biosamples_refresh <- function (db) {
         
         events.event_uid                      as sampling_event_id,
         events.state_or_province_of_residence as geo_loc_name,
-        events.lat_lon                        as lat_lon,
         events.age                            as host_age,
         events.age_units                      as _age_units,
         events.height                         as host_height,
