@@ -10,10 +10,13 @@ validate_req_columns <- function (env) {
   # All the MariaDB table's column names
   sql    <- sprintf("DESC `%s`", env$tbl)
   desc   <- db_query(env$db, sql, 'ValReq1', simplify = FALSE)
-  fields <- desc[['Field']]
+  fields <- setdiff(desc[['Field']], c('hvp_id', 'user'))
   
+  dict     <- DICT[[env$tbl]]
+  required <- names(dict)[sapply(dict, `[[`, 'req') == "yes"]
+    
   given   <- names(env$df)
-  missing <- setdiff(fields, given)
+  missing <- setdiff(required, given)
   invalid <- setdiff(given, fields)
   
   if (length(missing) > 0) {
@@ -27,14 +30,12 @@ validate_req_columns <- function (env) {
     errors <- c(errors, msg)
   }
   
-  for (field in given) {
-    if (identical(DICT[[env$tbl]][[field]][['req']], "yes")) {
-      missing <- which(is.na(env$df[[field]])) + 1
-      if (length(missing) > 0) {
-        msg <- '%s: required `%s` values are missing on row(s) %s'
-        msg <- sprintf(msg, env$tbl, field, paste(collapse = ', ', head(missing, 20)))
-        errors <- c(errors, msg)
-      }
+  for (field in intersect(given, required)) {
+    missing <- which(is.na(env$df[[field]])) + 1
+    if (length(missing) > 0) {
+      msg <- '%s: required `%s` values are missing on row(s) %s'
+      msg <- sprintf(msg, env$tbl, field, paste(collapse = ', ', head(missing, 20)))
+      errors <- c(errors, msg)
     }
   }
   
