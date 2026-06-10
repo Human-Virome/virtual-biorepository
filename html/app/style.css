@@ -180,11 +180,20 @@ footer nav a:hover { color: #f1f5f9; }
 
 
 
+/* --- AG Grid Data Table --- */
+
 .ag-theme-quartz-dark {
-    --ag-row-height: 35px;        /* Reduces vertical density */
+    --ag-row-height: 35px;
     --ag-header-height: 40px;
     --ag-font-size: 13px;
 }
+
+.ag-paging-panel {
+    display: flex !important;
+    justify-content: space-between !important;
+}
+
+.ag-paging-page-size-selector { margin-right: auto; }
 
 
 /* --- Excel-like Tabs (Hanging from the footer) --- */

@@ -137,6 +137,8 @@
 
                 const payload = {
                     table: currentTable,
+                    page: gridApi.paginationGetCurrentPage() + 1,
+                    size: gridApi.paginationGetPageSize(),
                     sort: sortState,
                     filter: filterState
                 };
