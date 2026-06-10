@@ -4,8 +4,8 @@ sra_refresh <- function (db) {
   sql <- "
     SELECT
       
-      file.file_uniq_name                   as file_path,
-      file.file_format                      as file_format,
+      files.file_uniq_name                  as file_path,
+      files.file_format                     as file_format,
       
       biosamples.biosample_accession        as BioSample,
       
