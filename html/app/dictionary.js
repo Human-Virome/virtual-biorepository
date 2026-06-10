@@ -2321,6 +2321,7 @@ const vbrDictionary = {
         "bioproject_id":{
             "def":"The NCBI BioProject accession associated with this data at the sub-project level that is specific to the study this file is part of.",
             "req":"Required for sequence data.",
+            "fmt":["prefix"],
             "prefix":["PRJNA"],
             "urls":{"HVP Umbrella project":"https://www.ncbi.nlm.nih.gov/bioproject/1336838"},
             "examples":[
