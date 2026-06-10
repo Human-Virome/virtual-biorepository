@@ -132,30 +132,27 @@
                 return size > 0 ? size : 1;
             }
 
-            // 1. Store the actual Row Object, not an index, so filtering/sorting doesn't break it.
-            let lastSelectedRow = null; 
+            // Track the actual ID, not the Row Object wrapper, so it survives Tabulator's internal updates
+            let lastSelectedId = null; 
             
-            // 2. The core Shift-Click gap filler logic
-            function applyShiftRange(e, row) {
-                if (e.shiftKey && lastSelectedRow) {
+            function handleShiftClick(e, clickedRow) {
+                if (e.shiftKey && lastSelectedId !== null) {
                     // Clear native browser text highlighting
                     if (window.getSelection) window.getSelection().removeAllRanges();
             
-                    const table = row.getTable();
-                    const activeRows = table.getRows("active"); // Respects current filters/sorts
+                    const table = clickedRow.getTable();
+                    const activeRows = table.getRows("active"); 
                     
-                    const startIndex = activeRows.findIndex(r => r === lastSelectedRow);
-                    const endIndex = activeRows.findIndex(r => r === row);
+                    // CRITICAL FIX: Use .getIndex() instead of strict object equality (r === row)
+                    const startIndex = activeRows.findIndex(r => r.getIndex() === lastSelectedId);
+                    const endIndex = activeRows.findIndex(r => r.getIndex() === clickedRow.getIndex());
             
                     if (startIndex > -1 && endIndex > -1) {
                         const min = Math.min(startIndex, endIndex);
                         const max = Math.max(startIndex, endIndex);
-                        
-                        // Extract just the rows between the two clicks
                         const range = activeRows.slice(min, max + 1);
             
-                        // Apply the state of the row we just clicked to the whole range
-                        if (row.isSelected()) {
+                        if (clickedRow.isSelected()) {
                             table.selectRow(range);
                         } else {
                             table.deselectRow(range);
@@ -163,15 +160,13 @@
                     }
                 }
                 // Always update the anchor for the next click
-                lastSelectedRow = row;
+                lastSelectedId = clickedRow.getIndex();
             }
             
             const table = new Tabulator("#data-table", {
                 layout: "fitData", 
                 autoColumns: true, 
-                
-                // Native click-to-toggle (DO NOT add selectableRowsRangeMode)
-                selectableRows: true, 
+                selectableRows: true, // Native click-to-toggle
             
                 dataReceive: function(data) {
                     const idMap = {
@@ -192,7 +187,6 @@
                 autoColumnsDefinitions: function(definitions) {
                     definitions = definitions.filter(col => col.field !== "id");
             
-                    // 3. OUR CUSTOM "DUMB" CHECKBOX COLUMN
                     definitions.unshift({
                         field: "custom_select",
                         title: "",
@@ -201,24 +195,17 @@
                         frozen: true,
                         width: 50,
                         formatter: function(cell) {
-                            // Renders a pure HTML checkbox driven entirely by the API state
                             const checked = cell.getRow().isSelected() ? "checked" : "";
-                            return `<input type="checkbox" ${checked} style="cursor: pointer;">`;
+                            // CRITICAL FIX: pointer-events:none lets the click pass through the HTML input 
+                            // directly to the Tabulator cell, completely eliminating the race condition.
+                            return `<input type="checkbox" ${checked} style="pointer-events: none;">`;
                         },
                         cellClick: function(e, cell) {
-                            // STOP Tabulator's native rowClick from also firing (prevents double-toggle)
-                            e.stopPropagation(); 
+                            e.stopPropagation(); // Stop rowClick from double-firing
                             
-                            // STOP the browser from checking the box natively (Unidirectional data flow)
-                            e.preventDefault(); 
-            
                             const row = cell.getRow();
-                            
-                            // Toggle state via API. This guarantees the table knows what is happening.
-                            row.toggleSelect();
-                            
-                            // Run our Shift-Click logic
-                            applyShiftRange(e, row);
+                            row.toggleSelect(); // Toggle state natively via API
+                            handleShiftClick(e, row);
                         }
                     });
             
@@ -232,9 +219,9 @@
                 },
             
                 rowClick: function(e, row) {
-                    // Tabulator natively toggled the row via 'selectableRows: true' right before this fired.
-                    // We just need to handle the shift-click gap filling.
-                    applyShiftRange(e, row);
+                    // Tabulator naturally toggled the row via 'selectableRows: true'. 
+                    // We just run the shift logic.
+                    handleShiftClick(e, row);
                 },
             
                 ajaxURL: "/api/browse",
@@ -255,8 +242,7 @@
                 placeholder: "No data available in this table",
             });
             
-            // 4. THE UI SYNCHRONIZER
-            // Whenever Tabulator's internal state changes, force the DOM to match it.
+            // UI SYNCHRONIZER
             table.on("rowSelected", function(row){
                 const cell = row.getCell("custom_select");
                 if(cell && cell.getElement()) {
@@ -271,6 +257,11 @@
                     const input = cell.getElement().querySelector("input");
                     if(input) input.checked = false;
                 }
+            });
+            
+            // Reset anchor on tab switch/reload
+            table.on("dataLoaded", function() {
+                lastSelectedId = null;
             });
             
             // Reset the anchor row whenever you switch tabs or reload data
