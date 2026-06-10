@@ -160,7 +160,7 @@
             pagination: { pageIndex: 0, pageSize: calculatePageSize() },
             sorting: [],
             columnFilters: [],
-            rowSelection: {}
+            rowSelection: {} // Managed by TanStack natively via row.id
         };
 
         let lastToggledId = null;
@@ -257,18 +257,17 @@
                 data: tableData,
                 columns,
                 pageCount,
-                // Let TanStack merge our preferences with its full internal default state
-                initialState: tableState, 
+                state: tableState,
                 getRowId: row => row.id,
                 onStateChange: (updater) => {
-                    // updater(tableInstance.getState()) ensures we are always mutating the FULL state object
-                    tableState = typeof updater === 'function' ? updater(tableInstance.getState()) : updater;
+                    tableState = typeof updater === 'function' ? updater(tableState) : updater;
                     tableInstance.setOptions(prev => ({ ...prev, state: tableState }));
                     
+                    // Trigger a re-fetch if pagination, sorting, or filtering changed
                     if (updater.name !== 'rowSelection') {
                         fetchData();
                     } else {
-                        renderTbody();
+                        renderTbody(); // Only repaint rows if selection changes
                     }
                 },
                 manualPagination: true,
@@ -277,10 +276,7 @@
                 getCoreRowModel: getCoreRowModel(),
                 meta: { tableName: currentTable }
             });
-        
-            // Capture the fully merged state (which now safely includes columnSizing, columnPinning, etc.)
-            tableState = tableInstance.getState();
-        
+
             renderThead();
             renderTbody();
             renderPagination();
@@ -523,15 +519,10 @@
                 e.target.classList.add('active');
                 
                 currentTable = e.target.getAttribute('data-table');
-                
-                // Preserve the full state structure, but reset the specific operational keys
-                tableState = {
-                    ...tableState,
-                    rowSelection: {},
-                    sorting: [],
-                    columnFilters: [],
-                    pagination: { ...tableState.pagination, pageIndex: 0 }
-                };
+                tableState.rowSelection = {}; // Clear selections
+                tableState.sorting = []; // Reset sorting
+                tableState.columnFilters = []; // Reset filters
+                tableState.pagination.pageIndex = 0; // Reset page
                 
                 if (tableInstance) tableInstance.resetRowSelection();
                 fetchData();
@@ -558,4 +549,3 @@
     </script>
 </body>
 </html>
-
