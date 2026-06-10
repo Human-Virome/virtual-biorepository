@@ -22,14 +22,6 @@
                 <div class="flex-row" style="align-items: center; gap: 0.5rem;" id="dynamic-action-bar"></div>
                 
                 <div class="flex-row" style="align-items: center; gap: 0.75rem;">
-                    <div class="input-group">
-                        <select id="page-size-selector" class="form-control" style="width: auto; padding-right: 1rem; cursor: pointer;">
-                            <option value="100">100 Rows</option>
-                            <option value="500">500 Rows</option>
-                            <option value="1000">1000 Rows</option>
-                            <option value="5000">5000 Rows</option>
-                        </select>
-                    </div>
                     <button id="refresh-btn" class="btn btn-secondary" title="Refresh Data">
                         <span class="material-symbols-outlined">refresh</span>
                     </button>
@@ -207,7 +199,6 @@
 
                     lastPage = result.last_page;
                     gridApi.setGridOption('rowData', result.data);
-                    updatePaginationUI();
                     updateActionBar();
 
                 } catch (err) {
@@ -268,22 +259,6 @@
             // ==========================================
             // UI CONTROLS & LISTENERS
             // ==========================================
-            function updatePaginationUI() {
-                document.getElementById('page-info').textContent = `Page ${currentPage} of ${lastPage}`;
-                document.getElementById('btn-prev').disabled = currentPage <= 1;
-                document.getElementById('btn-next').disabled = currentPage >= lastPage;
-                
-                document.getElementById('btn-prev').classList.toggle('disabled', currentPage <= 1);
-                document.getElementById('btn-next').classList.toggle('disabled', currentPage >= lastPage);
-            }
-
-            document.getElementById('btn-prev').addEventListener('click', () => {
-                if (currentPage > 1) { currentPage--; fetchData(); }
-            });
-
-            document.getElementById('btn-next').addEventListener('click', () => {
-                if (currentPage < lastPage) { currentPage++; fetchData(); }
-            });
 
             document.getElementById('refresh-btn').addEventListener('click', () => {
                 fetchData();
