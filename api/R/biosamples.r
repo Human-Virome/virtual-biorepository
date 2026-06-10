@@ -287,7 +287,7 @@ txid_to_name <- function (txids) {
     `NCBI:txid9606`    = "Homo sapiens",
     `NCBI:txid10090`   = "Mus musculus" )
   
-  if (!all(txids %in% c(names(map), NA))) {
+  if (sum(!is.na(txids)) > 0 && !all(txids %in% c(names(map), NA))) {
     query_ids  <- sub('NCBI:txid', '', unique(txids[!is.na(txids)]), fixed = TRUE)
     search_res <- tryCatch(
       expr    = rentrez::entrez_summary(db = "taxonomy", id = query_ids, always_return_list = TRUE), 

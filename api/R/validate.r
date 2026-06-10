@@ -543,25 +543,32 @@ validate_bioproject_ids <- function (env) {
   if (hasName(env$df, 'bioproject_id')) {
     
     unique_ids <- unique(env$df[['bioproject_id']])
+    unique_ids <- unique_ids[!is.na(unique_ids)]
     
-    search_res <- rentrez::entrez_search(
-      db     = "bioproject", 
-      term   = paste0(unique_ids, "[Project Accession]", collapse = " OR "),
-      retmax = length(unique_ids) )
-    
-    summaries <- rentrez::entrez_summary(
-      db = "bioproject",
-      id = search_res$ids,
-      always_return_list = TRUE )
-    
-    valid_ids <- sapply(summaries, `[[`, 'project_acc')
-    
-    not_found <- !(env$df[['bioproject_id']] %in% valid_ids)
-    if (any(not_found)) {
-      bad_rows <- head(which(not_found))
-      msg <- "%s:%d: cannot find `bioproject_id` \"%s\" in NCBI."
-      msg <- sprintf(msg, env$tbl, bad_rows + 1, env$df[['bioproject_id']][bad_rows])
-      errors <- c(errors, msg)
+    if (length(unique_ids) > 0) {
+      
+      search_res <- rentrez::entrez_search(
+        db     = "bioproject", 
+        term   = paste0(unique_ids, "[Project Accession]", collapse = " OR "),
+        retmax = length(unique_ids) )
+      
+      summaries <- list()
+      if (length(search_res$ids) > 0)
+        summaries <- rentrez::entrez_summary(
+          db = "bioproject",
+          id = search_res$ids,
+          always_return_list = TRUE )
+      
+      valid_ids <- sapply(summaries, `[[`, 'project_acc')
+      
+      not_found <- !(env$df[['bioproject_id']] %in% valid_ids)
+      if (any(not_found)) {
+        bad_rows <- head(which(not_found))
+        msg <- "%s:%d: cannot find `bioproject_id` \"%s\" in NCBI."
+        msg <- sprintf(msg, env$tbl, bad_rows + 1, env$df[['bioproject_id']][bad_rows])
+        errors <- c(errors, msg)
+      }
+      
     }
   }
   
