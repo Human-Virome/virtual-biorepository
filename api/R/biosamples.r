@@ -117,8 +117,6 @@ biosamples_refresh <- function (db) {
         
         participants.participant_uid          as host_subject_id,
         participants.host_taxon               as host,
-        participants.age                      as host_age,
-        participants.age_units                as _age_units,
         participants.race                     as race,
         participants.ethnicity                as ethnicity,
         participants.sex_at_birth             as host_sex_at_birth,
@@ -127,6 +125,8 @@ biosamples_refresh <- function (db) {
         events.event_uid                      as sampling_event_id,
         events.state_or_province_of_residence as geo_loc_name,
         events.lat_lon                        as lat_lon,
+        events.age                            as host_age,
+        events.age_units                      as _age_units,
         events.height                         as host_height,
         events.height_units                   as _height_units,
         events.bmi                            as host_body_mass_index,
