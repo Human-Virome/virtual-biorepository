@@ -132,64 +132,111 @@
                 return size > 0 ? size : 1;
             }
 
-            let lastVisualIndex = -1; // Track the anchor row
-
+            // 1. Store the actual Row Object, not an index, so filtering/sorting doesn't break it.
+            let lastSelectedRow = null; 
+            
+            // 2. The core Shift-Click gap filler logic
+            function applyShiftRange(e, row) {
+                if (e.shiftKey && lastSelectedRow) {
+                    // Clear native browser text highlighting
+                    if (window.getSelection) window.getSelection().removeAllRanges();
+            
+                    const table = row.getTable();
+                    const activeRows = table.getRows("active"); // Respects current filters/sorts
+                    
+                    const startIndex = activeRows.findIndex(r => r === lastSelectedRow);
+                    const endIndex = activeRows.findIndex(r => r === row);
+            
+                    if (startIndex > -1 && endIndex > -1) {
+                        const min = Math.min(startIndex, endIndex);
+                        const max = Math.max(startIndex, endIndex);
+                        
+                        // Extract just the rows between the two clicks
+                        const range = activeRows.slice(min, max + 1);
+            
+                        // Apply the state of the row we just clicked to the whole range
+                        if (row.isSelected()) {
+                            table.selectRow(range);
+                        } else {
+                            table.deselectRow(range);
+                        }
+                    }
+                }
+                // Always update the anchor for the next click
+                lastSelectedRow = row;
+            }
+            
             const table = new Tabulator("#data-table", {
                 layout: "fitData", 
                 autoColumns: true, 
                 
-                // 1. Native Web Paradigm: Clicking rows/checkboxes toggles them naturally
+                // Native click-to-toggle (DO NOT add selectableRowsRangeMode)
                 selectableRows: true, 
-                
+            
+                dataReceive: function(data) {
+                    const idMap = {
+                        "participants": "participant_uid",
+                        "events": "event_uid",
+                        "samples": "sample_uid",
+                        "libraries": "library_uid",
+                        "analyses": "analysis_uid",
+                        "files": "file_uniq_name",
+                        "biosamples": "sample_name",
+                        "sra": "file_path"
+                    };
+                    const idField = idMap[currentTable];
+                    data.forEach(row => { row.id = row[idField]; });
+                    return data;
+                },
+            
                 autoColumnsDefinitions: function(definitions) {
-                    // 2. Use the built-in formatter, no custom cellClick logic!
+                    definitions = definitions.filter(col => col.field !== "id");
+            
+                    // 3. OUR CUSTOM "DUMB" CHECKBOX COLUMN
                     definitions.unshift({
-                        formatter: "rowSelection",
-                        titleFormatter: "rowSelection",
-                        hozAlign: "center",
+                        field: "custom_select",
+                        title: "",
                         headerSort: false,
+                        hozAlign: "center",
+                        frozen: true,
                         width: 50,
-                        frozen: true
+                        formatter: function(cell) {
+                            // Renders a pure HTML checkbox driven entirely by the API state
+                            const checked = cell.getRow().isSelected() ? "checked" : "";
+                            return `<input type="checkbox" ${checked} style="cursor: pointer;">`;
+                        },
+                        cellClick: function(e, cell) {
+                            // STOP Tabulator's native rowClick from also firing (prevents double-toggle)
+                            e.stopPropagation(); 
+                            
+                            // STOP the browser from checking the box natively (Unidirectional data flow)
+                            e.preventDefault(); 
+            
+                            const row = cell.getRow();
+                            
+                            // Toggle state via API. This guarantees the table knows what is happening.
+                            row.toggleSelect();
+                            
+                            // Run our Shift-Click logic
+                            applyShiftRange(e, row);
+                        }
                     });
             
                     definitions.forEach((column) => {
-                        if (column.formatter !== "rowSelection") {
+                        if (column.field !== "custom_select") {
                             column.headerFilter = "input";
                         }
                     });
                     
                     return definitions;
                 },
-                
-                // 3. The true "Gmail Mode" Gap Filler
+            
                 rowClick: function(e, row) {
-                    const rows = row.getTable().getRows("active");
-                    const currentIndex = rows.findIndex(r => r === row);
-            
-                    if (e.shiftKey && lastVisualIndex !== -1 && lastVisualIndex !== currentIndex) {
-                        
-                        // Prevent the browser from highlighting random text blue
-                        if (window.getSelection) window.getSelection().removeAllRanges();
-            
-                        // Defer execution by 1 tick so Tabulator can finish its native toggle first
-                        setTimeout(() => {
-                            const start = Math.min(currentIndex, lastVisualIndex);
-                            const end = Math.max(currentIndex, lastVisualIndex);
-                            const rowsToChange = rows.slice(start, end + 1);
-                            
-                            // Read the row's official state AFTER Tabulator just changed it
-                            if (row.isSelected()) {
-                                row.getTable().selectRow(rowsToChange);
-                            } else {
-                                row.getTable().deselectRow(rowsToChange);
-                            }
-                        }, 0);
-                    }
-            
-                    // Always update the anchor for the next click
-                    lastVisualIndex = currentIndex;
+                    // Tabulator natively toggled the row via 'selectableRows: true' right before this fired.
+                    // We just need to handle the shift-click gap filling.
+                    applyShiftRange(e, row);
                 },
-                
+            
                 ajaxURL: "/api/browse",
                 ajaxConfig: "POST", 
                 ajaxContentType: "json",
@@ -205,13 +252,30 @@
                 paginationSize: calculatePageSize(), 
                 sortMode: "remote",
                 filterMode: "remote", 
-                
                 placeholder: "No data available in this table",
             });
             
-            // Reset the anchor whenever the data reloads or the tab changes
+            // 4. THE UI SYNCHRONIZER
+            // Whenever Tabulator's internal state changes, force the DOM to match it.
+            table.on("rowSelected", function(row){
+                const cell = row.getCell("custom_select");
+                if(cell && cell.getElement()) {
+                    const input = cell.getElement().querySelector("input");
+                    if(input) input.checked = true;
+                }
+            });
+            
+            table.on("rowDeselected", function(row){
+                const cell = row.getCell("custom_select");
+                if(cell && cell.getElement()) {
+                    const input = cell.getElement().querySelector("input");
+                    if(input) input.checked = false;
+                }
+            });
+            
+            // Reset the anchor row whenever you switch tabs or reload data
             table.on("dataLoaded", function() {
-                lastVisualIndex = -1;
+                lastSelectedRow = null;
             });
 
             // Re-mount the hanging Excel-tabs to the footer
