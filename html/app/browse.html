@@ -8,21 +8,25 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     
-    <link href="https://unpkg.com/tabulator-tables@6.4.0/dist/css/tabulator.min.css" rel="stylesheet">
     <link href="style.css" rel="stylesheet"/>
+    <style>
+        /* Specific enhancements for the headless TanStack implementation */
+        .ts-filter-input { width: 100%; padding: 0.25rem 0.5rem; background: var(--surface); border: 1px solid var(--border-color); color: #fff; border-radius: 0.25rem; font-size: 0.75rem; margin-top: 0.5rem;}
+        .ts-filter-input:focus { outline: none; border-color: var(--primary); }
+        .row-selected td { background-color: #1e3a5f !important; }
+        .data-table tbody tr { cursor: pointer; }
+    </style>
 </head>
 
 <body>
 
     <!--#include virtual="/app/header.html" -->
-  
+
     <main class="mpa-container">
         <div class="page-wrapper page-wrapper-full" style="display: flex; flex-direction: column; height: 100%;">
             
             <div class="section-header flex-row flex-between" style="align-items: center; margin-bottom: 1rem;">
-                
-                <div class="flex-row" style="align-items: center; gap: 0.5rem;" id="dynamic-action-bar">
-                    </div>
+                <div class="flex-row" style="align-items: center; gap: 0.5rem;" id="dynamic-action-bar"></div>
                 
                 <div class="flex-row" style="align-items: center; gap: 0.75rem;">
                     <div class="input-group">
@@ -41,17 +45,30 @@
             </div>
 
             <div class="workspace-layout" style="flex-grow: 1; display: flex; flex-direction: column; min-height: 0;">
-                <div id="data-table" style="flex-grow: 1; width: 100%; min-height: 0;"></div>
                 
-                <div class="excel-tabs" id="excel-tabs">
-                    <button class="tab-btn active" data-table="participants">participants</button>
-                    <button class="tab-btn" data-table="events">events</button>
-                    <button class="tab-btn" data-table="samples">samples</button>
-                    <button class="tab-btn" data-table="libraries">libraries</button>
-                    <button class="tab-btn" data-table="analyses">analyses</button>
-                    <button class="tab-btn" data-table="files">files</button>
-                    <button class="tab-btn" data-table="biosamples">biosamples</button>
-                    <button class="tab-btn" data-table="sra">sra</button>
+                <div class="data-table-container" id="table-scroll-container" style="flex-grow: 1; overflow-y: auto;">
+                    <table class="data-table" id="tanstack-table" style="width: 100%;">
+                        <thead id="ts-thead"></thead>
+                        <tbody id="ts-tbody"></tbody>
+                    </table>
+                </div>
+                
+                <div class="tabulator-footer" id="ts-footer" style="padding: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                    <div class="excel-tabs" id="excel-tabs">
+                        <button class="tab-btn active" data-table="participants">participants</button>
+                        <button class="tab-btn" data-table="events">events</button>
+                        <button class="tab-btn" data-table="samples">samples</button>
+                        <button class="tab-btn" data-table="libraries">libraries</button>
+                        <button class="tab-btn" data-table="analyses">analyses</button>
+                        <button class="tab-btn" data-table="files">files</button>
+                        <button class="tab-btn" data-table="biosamples">biosamples</button>
+                        <button class="tab-btn" data-table="sra">sra</button>
+                    </div>
+                    <div class="tabulator-paginator" id="ts-pagination" style="display: flex; align-items: center; gap: 0.5rem;">
+                        <button id="ts-prev" class="tabulator-page" disabled>Prev</button>
+                        <span id="ts-page-info" style="font-size: 0.8125rem;">Page 1</span>
+                        <button id="ts-next" class="tabulator-page" disabled>Next</button>
+                    </div>
                 </div>
             </div>
             
@@ -59,7 +76,7 @@
     </main>
 
     <!--#include virtual="/app/footer.html" -->
-  
+
     <div id="error-modal" class="modal-overlay">
         <div class="card modal-content">
             <div class="card-body">
@@ -75,43 +92,31 @@
         </div>
     </div>
   
-    <script type="text/javascript" src="https://unpkg.com/tabulator-tables@6.4.0/dist/js/tabulator.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-        
+    <script type="module">
+        import {
+            createTable,
+            getCoreRowModel,
+            getSortedRowModel,
+            getFilteredRowModel,
+            getPaginationRowModel
+        } from 'https://esm.sh/@tanstack/table-core@8.10.7';
+
         const refreshBtn = document.getElementById('refresh-btn');
         const pageSizeSelector = document.getElementById('page-size-selector');
         const tabButtons = document.querySelectorAll('.tab-btn');
-        const dataTableContainer = document.getElementById('data-table');
-        const excelTabs = document.getElementById('excel-tabs');
+        const thead = document.getElementById('ts-thead');
+        const tbody = document.getElementById('ts-tbody');
         const actionBar = document.getElementById('dynamic-action-bar');
+        const tableScrollContainer = document.getElementById('table-scroll-container');
         
-        let currentTable   = "participants";
+        let currentTable = "participants";
         let refreshClicked = "false";
-    
-        // --- Configuration for Tab-Specific Actions ---
-        const ACTION_CONFIG = {
-            "biosamples": [
-                {
-                    id: "btn-assign-biosample",
-                    label: "Assign BioSample IDs",
-                    icon: "assignment",
-                    endpoint: "/api/biosamples/assign",
-                    payloadKey: "sample_name"
-                }
-            ],
-            "sra": [
-                {
-                    id: "btn-export-sra",
-                    label: "Export for SRA",
-                    icon: "ios_share",
-                    endpoint: "/api/sra/export",
-                    payloadKey: "file_path"
-                }
-            ]
-        };
-    
-        // Modal Handlers
+        let tableInstance = null;
+        let tableData = [];
+        let pageCount = -1;
+        let externalSelectionMap = new Map();
+
+        // Modal Handlers (attached to window to act globally)
         window.showErrorModal = function(msg) {
             document.getElementById('error-message').textContent = msg;
             document.getElementById('error-modal').classList.add('show');
@@ -119,171 +124,335 @@
         window.closeErrorModal = function() {
             document.getElementById('error-modal').classList.remove('show');
         };
-    
+
+        const ACTION_CONFIG = {
+            "biosamples": [
+                { id: "btn-assign-biosample", label: "Assign BioSample IDs", icon: "assignment", endpoint: "/api/biosamples/assign", payloadKey: "sample_name" }
+            ],
+            "sra": [
+                { id: "btn-export-sra", label: "Export for SRA", icon: "ios_share", endpoint: "/api/sra/export", payloadKey: "file_path" }
+            ]
+        };
+
+        const ID_MAP = {
+            "participants": "participant_uid",
+            "events": "event_uid",
+            "samples": "sample_uid",
+            "libraries": "library_uid",
+            "analyses": "analysis_uid",
+            "files": "file_uniq_name",
+            "biosamples": "sample_name",
+            "sra": "file_path"
+        };
+
         function calculatePageSize() {
-            if (pageSizeSelector.value !== "auto") {
-                return parseInt(pageSizeSelector.value, 10);
-            }
-            const containerHeight = dataTableContainer.clientHeight;
-            const nonRowHeight = 135; 
-            const availableHeight = containerHeight - nonRowHeight;
-            const rowHeight = 32; 
-            let size = Math.floor(availableHeight / rowHeight);
-            return size > 0 ? size : 1;
+            if (pageSizeSelector.value !== "auto") return parseInt(pageSizeSelector.value, 10);
+            const containerHeight = tableScrollContainer.clientHeight;
+            const rowHeight = 35; // Approximate row height with padding
+            let size = Math.floor(containerHeight / rowHeight);
+            return size > 0 ? size : 10;
         }
-    
+
         // ==========================================
-        // EXTERNAL SELECTION CONTROLLER
+        // TANSTACK STATE MANAGEMENT
         // ==========================================
-        const selectedRowsMap = new Map(); // Stores id -> full row data
-        let lastToggledId = null;          // Anchor for shift-click
-        let lastToggledState = true;       // Tracks if anchor was selected or deselected
-    
-        function clearSelectionState() {
-            selectedRowsMap.clear();
-            lastToggledId = null;
-        }
+        let tableState = {
+            pagination: { pageIndex: 0, pageSize: calculatePageSize() },
+            sorting: [],
+            columnFilters: [],
+            rowSelection: {} // Managed by TanStack natively via row.id
+        };
+
+        let lastToggledId = null;
+
         // ==========================================
-        
-        const table = new Tabulator("#data-table", {
-            layout: "fitData", 
-            autoColumns: true, 
-            // selectableRows: true is INTENTIONALLY REMOVED. 
-        
-            dataReceive: function(data) {
-                const idMap = {
-                    "participants": "participant_uid",
-                    "events": "event_uid",
-                    "samples": "sample_uid",
-                    "libraries": "library_uid",
-                    "analyses": "analysis_uid",
-                    "files": "file_uniq_name",
-                    "biosamples": "sample_name",
-                    "sra": "file_path"
-                };
-                const idField = idMap[currentTable];
-                data.forEach(row => { row.id = row[idField]; });
-                return data;
-            },
-        
-            autoColumnsDefinitions: function(definitions) {
-                definitions = definitions.filter(col => col.field !== "id");
-        
-                definitions.unshift({
-                    field: "custom_select",
-                    title: "",
-                    headerSort: false,
-                    hozAlign: "center",
-                    frozen: true,
-                    width: 50,
-                    formatter: function(cell) {
-                        const rowData = cell.getData();
-                        // Check our external map to see if this row should be checked
-                        const isChecked = selectedRowsMap.has(rowData.id);
-                        return `<input type="checkbox" ${isChecked ? "checked" : ""} style="pointer-events: none;">`;
-                    }
-                });
-        
-                definitions.forEach((column) => {
-                    if (column.field !== "custom_select") {
-                        column.headerFilter = "input";
-                    }
+        // DATA FETCHING & MAPPING
+        // ==========================================
+        async function fetchData() {
+            // Translate TanStack State -> Tabulator JSON format for database.r
+            const payload = {
+                table: currentTable,
+                refresh: refreshClicked,
+                page: tableState.pagination.pageIndex + 1, // R expects 1-indexed
+                size: tableState.pagination.pageSize,
+                sort: tableState.sorting.map(s => ({
+                    field: s.id,
+                    dir: s.desc ? "desc" : "asc"
+                })),
+                filter: tableState.columnFilters.map(f => ({
+                    field: f.id,
+                    type: "like",
+                    value: f.value
+                }))
+            };
+
+            refreshClicked = "false";
+
+            try {
+                const response = await fetch('/api/browse', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
                 });
                 
-                return definitions;
-            },
-    
-            // rowFormatter handles applying the correct background color to rows natively
-            // as they are scrolled into view or paginated.
-            rowFormatter: function(row) {
-                const data = row.getData();
-                if (!data || !data.id) return;
-    
-                const el = row.getElement();
-                if (selectedRowsMap.has(data.id)) {
-                    el.classList.add("tabulator-selected"); // Reuse Tabulator's native highlight class
-                } else {
-                    el.classList.remove("tabulator-selected");
+                const result = await response.json();
+                
+                if (result.error) {
+                    window.showErrorModal(result.error);
+                    return;
                 }
-            },
-        
-            rowClick: function(e, row) {
-                const currentData = row.getData();
-                const currentId = currentData.id;
-                const currentTableRef = row.getTable();
-    
-                if (e.shiftKey && lastToggledId !== null) {
-                    // Clear native text highlighting caused by shift-clicking
-                    if (window.getSelection) window.getSelection().removeAllRanges();
-    
-                    const activeRows = currentTableRef.getRows("active"); 
+
+                tableData = result.data.map(row => ({ ...row, id: row[ID_MAP[currentTable]] }));
+                pageCount = result.last_page;
+                
+                // If initializing or changing tables, we need to build dynamic columns
+                if (!tableInstance || tableInstance.options.meta.tableName !== currentTable) {
+                    initializeTable(tableData);
+                } else {
+                    tableInstance.setOptions(prev => ({ ...prev, data: tableData, pageCount }));
+                    renderTbody();
+                    renderPagination();
+                }
+
+            } catch (err) {
+                console.error(err);
+                window.showErrorModal("Failed to fetch data.");
+            }
+        }
+
+        // ==========================================
+        // DYNAMIC COLUMN GENERATION
+        // ==========================================
+        function generateColumns(data) {
+            if (data.length === 0) return [];
+            
+            const keys = Object.keys(data[0]).filter(k => k !== 'id');
+            const cols = [
+                {
+                    id: 'custom_select',
+                    header: '',
+                    size: 50,
+                    cell: (info) => `<input type="checkbox" ${info.row.getIsSelected() ? "checked" : ""} style="pointer-events: none;">`
+                }
+            ];
+
+            keys.forEach(k => {
+                cols.push({
+                    accessorKey: k,
+                    header: k,
+                    id: k
+                });
+            });
+
+            return cols;
+        }
+
+        // ==========================================
+        // TABLE INITIALIZATION
+        // ==========================================
+        function initializeTable(data) {
+            const columns = generateColumns(data);
+            
+            tableInstance = createTable({
+                data: tableData,
+                columns,
+                pageCount,
+                state: tableState,
+                getRowId: row => row.id,
+                onStateChange: (updater) => {
+                    tableState = typeof updater === 'function' ? updater(tableState) : updater;
+                    tableInstance.setOptions(prev => ({ ...prev, state: tableState }));
                     
-                    const startIndex = activeRows.findIndex(r => r.getData().id === lastToggledId);
-                    const endIndex = activeRows.findIndex(r => r.getData().id === currentId);
-    
-                    if (startIndex > -1 && endIndex > -1) {
-                        const min = Math.min(startIndex, endIndex);
-                        const max = Math.max(startIndex, endIndex);
-    
-                        // Apply the state of the anchor to all rows in the range (Gmail style)
-                        for (let i = min; i <= max; i++) {
-                            const targetData = activeRows[i].getData();
-                            if (lastToggledState) {
-                                selectedRowsMap.set(targetData.id, targetData);
-                            } else {
-                                selectedRowsMap.delete(targetData.id);
-                            }
+                    // Trigger a re-fetch if pagination, sorting, or filtering changed
+                    if (updater.name !== 'rowSelection') {
+                        fetchData();
+                    } else {
+                        renderTbody(); // Only repaint rows if selection changes
+                    }
+                },
+                manualPagination: true,
+                manualSorting: true,
+                manualFiltering: true,
+                getCoreRowModel: getCoreRowModel(),
+                meta: { tableName: currentTable }
+            });
+
+            renderThead();
+            renderTbody();
+            renderPagination();
+            updateActionBar();
+        }
+
+        // ==========================================
+        // DOM RENDERING
+        // ==========================================
+        function renderThead() {
+            thead.innerHTML = tableInstance.getHeaderGroups().map(headerGroup => `
+                <tr>
+                    ${headerGroup.headers.map(header => `
+                        <th style="width: ${header.getSize() === 50 ? '50px' : 'auto'}">
+                            <div style="cursor: pointer; display: flex; align-items: center; gap: 0.5rem;" 
+                                 onclick="handleSort('${header.column.id}')">
+                                ${header.isPlaceholder ? '' : header.column.columnDef.header}
+                                ${header.column.getIsSorted() ? (header.column.getIsSorted() === 'desc' ? ' ???' : ' ???') : ''}
+                            </div>
+                            ${header.column.id !== 'custom_select' ? `
+                                <input class="ts-filter-input" type="text" placeholder="Filter..." 
+                                       value="${header.column.getFilterValue() || ''}"
+                                       oninput="handleFilter('${header.column.id}', this.value)" />
+                            ` : ''}
+                        </th>
+                    `).join('')}
+                </tr>
+            `).join('');
+        }
+
+        function renderTbody() {
+            if (tableData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="100%" style="text-align: center; padding: 2rem;">No data available</td></tr>`;
+                return;
+            }
+
+            const rowsHtml = tableInstance.getRowModel().rows.map(row => {
+                const isSelected = row.getIsSelected();
+                const rowClass = isSelected ? 'row-selected' : '';
+                return `
+                    <tr id="row-${row.id}" class="${rowClass}" data-rowid="${row.id}">
+                        ${row.getVisibleCells().map(cell => `
+                            <td>${cell.column.id === 'custom_select' 
+                                ? cell.column.columnDef.cell({row}) 
+                                : cell.getValue() || ''}
+                            </td>
+                        `).join('')}
+                    </tr>
+                `;
+            }).join('');
+
+            tbody.innerHTML = rowsHtml;
+
+            // Attach event listeners for Gmail-style multiselection
+            Array.from(tbody.querySelectorAll('tr')).forEach(tr => {
+                tr.addEventListener('click', (e) => {
+                    // Ignore clicks on input fields
+                    if (e.target.tagName.toLowerCase() === 'input' && e.target.type === 'text') return;
+                    handleRowClick(e, tr.dataset.rowid);
+                });
+            });
+            
+            // Sync external selection map for Action Bar
+            externalSelectionMap.clear();
+            Object.keys(tableState.rowSelection).forEach(id => {
+                const rowData = tableData.find(r => r.id === id);
+                if (rowData) externalSelectionMap.set(id, rowData);
+            });
+        }
+
+        function renderPagination() {
+            const paginationContainer = document.getElementById('ts-pagination');
+            const canPrev = tableState.pagination.pageIndex > 0;
+            const canNext = tableState.pagination.pageIndex + 1 < pageCount;
+
+            paginationContainer.innerHTML = `
+                <button class="tabulator-page ${!canPrev ? 'disabled' : ''}" ${!canPrev ? 'disabled' : ''} onclick="handlePageChange(-1)">Prev</button>
+                <span id="ts-page-info" style="font-size: 0.8125rem; color: var(--text-muted);">Page ${tableState.pagination.pageIndex + 1} of ${pageCount === -1 ? '...' : pageCount}</span>
+                <button class="tabulator-page ${!canNext ? 'disabled' : ''}" ${!canNext ? 'disabled' : ''} onclick="handlePageChange(1)">Next</button>
+            `;
+        }
+
+        // ==========================================
+        // GMAIL-STYLE MULTISELECTION LOGIC
+        // ==========================================
+        window.handleRowClick = function(e, currentId) {
+            const rows = tableInstance.getRowModel().rows;
+            const row = rows.find(r => r.id === currentId);
+            if (!row) return;
+
+            const isSelected = row.getIsSelected();
+            let newSelection = { ...tableState.rowSelection };
+
+            if (e.shiftKey && lastToggledId !== null) {
+                // Clear native text highlighting
+                if (window.getSelection) window.getSelection().removeAllRanges();
+
+                const startIndex = rows.findIndex(r => r.id === lastToggledId);
+                const endIndex = rows.findIndex(r => r.id === currentId);
+
+                if (startIndex > -1 && endIndex > -1) {
+                    const min = Math.min(startIndex, endIndex);
+                    const max = Math.max(startIndex, endIndex);
+                    
+                    // Determine what the target state should be based on the anchor row
+                    const anchorIsSelected = !!newSelection[lastToggledId];
+                    
+                    for (let i = min; i <= max; i++) {
+                        const targetId = rows[i].id;
+                        if (anchorIsSelected) {
+                            newSelection[targetId] = true;
+                        } else {
+                            delete newSelection[targetId];
                         }
                     }
-                } else {
-                    // Standard Click - Toggle State
-                    if (selectedRowsMap.has(currentId)) {
-                        selectedRowsMap.delete(currentId);
-                        lastToggledState = false;
-                    } else {
-                        selectedRowsMap.set(currentId, currentData);
-                        lastToggledState = true;
-                    }
-                    lastToggledId = currentId;
                 }
-    
-                // Force visible rows to rebuild cells and trigger rowFormatter.
-                // This instantly repaints checkboxes and background colors.
-                currentTableRef.getRows("active").forEach(r => r.reformat());
-            },
-        
-            ajaxURL: "/api/browse",
-            ajaxConfig: "POST", 
-            ajaxContentType: "json",
-            
-            ajaxParams: function() {
-                const params = { table: currentTable, refresh: refreshClicked };
-                refreshClicked = "false";
-                return params;
-            },
-        
-            pagination: true,
-            paginationMode: "remote",
-            paginationSize: calculatePageSize(), 
-            sortMode: "remote",
-            filterMode: "remote", 
-            placeholder: "No data available in this table",
-        });
-    
-        // Re-mount the hanging Excel-tabs to the footer
-        table.on("tableBuilt", function() {
-            const footer = dataTableContainer.querySelector('.tabulator-footer');
-            if(footer) {
-                footer.insertBefore(excelTabs, footer.firstChild);
+            } else {
+                // Standard Toggle
+                if (isSelected) {
+                    delete newSelection[currentId];
+                } else {
+                    newSelection[currentId] = true;
+                }
+                lastToggledId = currentId;
             }
-            updateActionBar(currentTable);
-        });
-    
-        // Action Bar Generator
-        function updateActionBar(tableName) {
+
+            tableInstance.setRowSelection(newSelection);
+        };
+
+        // ==========================================
+        // EVENT HANDLERS FOR HEADLESS UI
+        // ==========================================
+        window.handleSort = function(columnId) {
+            if (columnId === 'custom_select') return;
+            const currentSort = tableState.sorting.find(s => s.id === columnId);
+            let newSorting = [];
+
+            if (!currentSort) {
+                newSorting = [{ id: columnId, desc: false }];
+            } else if (!currentSort.desc) {
+                newSorting = [{ id: columnId, desc: true }];
+            } // If it was desc, default to empty (remove sort)
+
+            tableInstance.setSorting(newSorting);
+            renderThead(); // Repaint arrows
+        };
+
+        // Debounced Filtering
+        let filterTimeout;
+        window.handleFilter = function(columnId, value) {
+            clearTimeout(filterTimeout);
+            filterTimeout = setTimeout(() => {
+                let filters = tableState.columnFilters.filter(f => f.id !== columnId);
+                if (value.trim() !== '') {
+                    filters.push({ id: columnId, value: value.trim() });
+                }
+                
+                // Reset page on filter change
+                tableState.pagination.pageIndex = 0; 
+                tableInstance.setColumnFilters(filters);
+            }, 400);
+        };
+
+        window.handlePageChange = function(direction) {
+            const newIndex = tableState.pagination.pageIndex + direction;
+            if (newIndex >= 0 && newIndex < pageCount) {
+                tableInstance.setPagination({ ...tableState.pagination, pageIndex: newIndex });
+            }
+        };
+
+        // ==========================================
+        // ACTION BAR GENERATOR
+        // ==========================================
+        function updateActionBar() {
             actionBar.innerHTML = ''; 
-            
-            const actions = ACTION_CONFIG[tableName] || [];
+            const actions = ACTION_CONFIG[currentTable] || [];
             
             actions.forEach(action => {
                 const btn = document.createElement('button');
@@ -292,23 +461,21 @@
                 btn.innerHTML = `<span class="material-symbols-outlined">${action.icon}</span> ${action.label}`;
                 
                 btn.addEventListener('click', async () => {
-                    // Pull data from our external Map, NOT Tabulator's native selection
-                    const selectedRows = Array.from(selectedRowsMap.values());
-                    
+                    const selectedRows = Array.from(externalSelectionMap.values());
                     if (selectedRows.length === 0) {
-                        showErrorModal("Please select at least one row to perform this action.");
+                        window.showErrorModal("Please select at least one row to perform this action.");
                         return;
                     }
-    
+
                     const payloadData = selectedRows
                         .map(row => row[action.payloadKey])
                         .filter(val => val !== undefined && val !== null && val !== "");
                     
                     if (payloadData.length === 0) {
-                        showErrorModal(`None of the selected rows contain a valid '${action.payloadKey}'.`);
+                        window.showErrorModal(`None of the selected rows contain a valid '${action.payloadKey}'.`);
                         return;
                     }
-    
+
                     try {
                         const response = await fetch(action.endpoint, {
                             method: 'POST',
@@ -317,75 +484,69 @@
                         });
                         
                         const data = await response.json();
-                        
-                        if (response.ok && data.error) {
-                            showErrorModal(data.error);
-                        } else if (!response.ok) {
-                            showErrorModal(`Server Error: ${response.status} ${response.statusText}`);
+                        if (!response.ok || data.error) {
+                            window.showErrorModal(data.error || `Server Error: ${response.status}`);
                         } else {
-                            // Success - Clear selection map, force refresh
-                            clearSelectionState();
+                            tableInstance.resetRowSelection();
                             refreshClicked = "true";
-                            table.setData();
+                            fetchData();
                         }
                     } catch (err) {
-                        showErrorModal(`Network Error: ${err.message}`);
+                        window.showErrorModal(`Network Error: ${err.message}`);
                     }
                 });
-                
                 actionBar.appendChild(btn);
             });
         }
-    
-        // Tab Switching functionality
+
+        // ==========================================
+        // GLOBAL LISTENERS
+        // ==========================================
+        refreshBtn.addEventListener('click', () => {
+            refreshClicked = "true";
+            fetchData();
+        });
+
+        pageSizeSelector.addEventListener('change', () => {
+            tableState.pagination.pageSize = calculatePageSize();
+            tableState.pagination.pageIndex = 0; // Reset to page 1
+            tableInstance.setPagination(tableState.pagination);
+        });
+
         tabButtons.forEach(btn => {
             btn.addEventListener('click', (e) => {
                 tabButtons.forEach(b => b.classList.remove('active'));
                 e.target.classList.add('active');
                 
                 currentTable = e.target.getAttribute('data-table');
+                tableState.rowSelection = {}; // Clear selections
+                tableState.sorting = []; // Reset sorting
+                tableState.columnFilters = []; // Reset filters
+                tableState.pagination.pageIndex = 0; // Reset page
                 
-                // Clear selections when changing datasets
-                clearSelectionState();
-                
-                table.clearData();
-                table.setData();
-                updateActionBar(currentTable);
+                if (tableInstance) tableInstance.resetRowSelection();
+                fetchData();
             });
         });
-    
-        // Handle standard refresh
-        refreshBtn.addEventListener('click', () => {
-            // Optionally, call clearSelectionState() here if you want refresh to clear selections.
-            refreshClicked = "true";
-            table.setData();
-        });
-    
-        // Handle Page Size manual override
-        pageSizeSelector.addEventListener('change', () => {
-            const newSize = calculatePageSize();
-            table.setPageSize(newSize);
-        });
-    
-        // Throttled viewport resizing
-        function debounce(func, wait) {
-            let timeout;
-            return function(...args) {
-                clearTimeout(timeout);
-                timeout = setTimeout(() => func.apply(this, args), wait);
-            };
-        }
-    
-        window.addEventListener('resize', debounce(() => {
-            if (dataTableContainer.clientHeight > 0 && pageSizeSelector.value === "auto") { 
-                const newSize = calculatePageSize();
-                if (table.getPageSize() !== newSize) {
-                    table.setPageSize(newSize);
-                }
-            }
-        }, 200));
+
+        // Initialize first fetch
+        fetchData();
         
-    });
+        // Resize observer
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                if (pageSizeSelector.value === "auto") {
+                    const newSize = calculatePageSize();
+                    if (tableState.pagination.pageSize !== newSize) {
+                        tableState.pagination.pageSize = newSize;
+                        tableInstance.setPagination(tableState.pagination);
+                    }
+                }
+            }, 200);
+        });
     </script>
 </body>
 </html>
+
