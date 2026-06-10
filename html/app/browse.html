@@ -7,14 +7,24 @@
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-    
     <link href="style.css" rel="stylesheet"/>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.2.1/styles/ag-grid.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.2.1/styles/ag-theme-quartz-dark.css">
+    
     <style>
-        /* Specific enhancements for the headless TanStack implementation */
-        .ts-filter-input { width: 100%; padding: 0.25rem 0.5rem; background: var(--surface); border: 1px solid var(--border-color); color: #fff; border-radius: 0.25rem; font-size: 0.75rem; margin-top: 0.5rem;}
-        .ts-filter-input:focus { outline: none; border-color: var(--primary); }
-        .row-selected td { background-color: #1e3a5f !important; }
-        .data-table tbody tr { cursor: pointer; }
+        /* Theme overrides to blend AG Grid smoothly into your custom UI */
+        .ag-theme-quartz-dark {
+            --ag-background-color: var(--surface);
+            --ag-header-background-color: var(--surface-high);
+            --ag-border-color: var(--border-color);
+            --ag-row-hover-color: #2b354a;
+            --ag-selected-row-background-color: #1e3a5f;
+            --ag-font-family: var(--font-main);
+            --ag-font-size: 0.8125rem;
+        }
+        /* Hide AG Grid's native pagination to use your custom footer layout seamlessly */
+        .ag-paging-panel { display: none !important; }
     </style>
 </head>
 
@@ -31,7 +41,6 @@
                 <div class="flex-row" style="align-items: center; gap: 0.75rem;">
                     <div class="input-group">
                         <select id="page-size-selector" class="form-control" style="width: auto; padding-right: 1rem; cursor: pointer;">
-                            <option value="auto">Auto-fit View</option>
                             <option value="100">100 Rows</option>
                             <option value="500">500 Rows</option>
                             <option value="1000">1000 Rows</option>
@@ -46,14 +55,9 @@
 
             <div class="workspace-layout" style="flex-grow: 1; display: flex; flex-direction: column; min-height: 0;">
                 
-                <div class="data-table-container" id="table-scroll-container" style="flex-grow: 1; overflow-y: auto;">
-                    <table class="data-table" id="tanstack-table" style="width: 100%;">
-                        <thead id="ts-thead"></thead>
-                        <tbody id="ts-tbody"></tbody>
-                    </table>
-                </div>
+                <div id="myGrid" class="ag-theme-quartz-dark" style="flex-grow: 1; width: 100%;"></div>
                 
-                <div class="tabulator-footer" id="ts-footer" style="padding: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                <div class="tabulator-footer" id="custom-footer" style="padding: 0.5rem; display: flex; justify-content: space-between; align-items: center; background: var(--surface-high); border-top: 1px solid var(--border-color);">
                     <div class="excel-tabs" id="excel-tabs">
                         <button class="tab-btn active" data-table="participants">participants</button>
                         <button class="tab-btn" data-table="events">events</button>
@@ -64,10 +68,10 @@
                         <button class="tab-btn" data-table="biosamples">biosamples</button>
                         <button class="tab-btn" data-table="sra">sra</button>
                     </div>
-                    <div class="tabulator-paginator" id="ts-pagination" style="display: flex; align-items: center; gap: 0.5rem;">
-                        <button id="ts-prev" class="tabulator-page" disabled>Prev</button>
-                        <span id="ts-page-info" style="font-size: 0.8125rem;">Page 1</span>
-                        <button id="ts-next" class="tabulator-page" disabled>Next</button>
+                    <div class="tabulator-paginator" style="display: flex; align-items: center; gap: 0.5rem;">
+                        <button id="btn-prev" class="tabulator-page">Prev</button>
+                        <span id="page-info" style="font-size: 0.8125rem; color: var(--text-muted);">Page 1</span>
+                        <button id="btn-next" class="tabulator-page">Next</button>
                     </div>
                 </div>
             </div>
@@ -92,71 +96,228 @@
         </div>
     </div>
   
-    <script type="module">
-        import {
-            createTable,
-            getCoreRowModel
-        } from 'https://esm.sh/@tanstack/table-core@8.10.7';
-
-        async function initializeMinimalTable() {
-            // 1. Fetch a static chunk of Participants data
-            const response = await fetch('/api/browse', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    table: 'participants',
-                    refresh: 'false',
-                    page: 1,
-                    size: 100, 
-                    sort: [],
-                    filter: []
-                })
-            });
+    <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31.2.1/dist/ag-grid-community.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const pageSizeSelector = document.getElementById('page-size-selector');
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            const actionBar = document.getElementById('dynamic-action-bar');
             
-            const result = await response.json();
-            const data = result.data || [];
+            let currentTable = "participants";
+            let currentPage = 1;
+            let lastPage = 1;
+            let gridApi;
 
-            if (data.length === 0) {
-                document.getElementById('ts-tbody').innerHTML = '<tr><td style="padding: 2rem;">No data found.</td></tr>';
-                return;
+            // Modal Handlers
+            window.showErrorModal = msg => {
+                document.getElementById('error-message').textContent = msg;
+                document.getElementById('error-modal').classList.add('show');
+            };
+            window.closeErrorModal = () => document.getElementById('error-modal').classList.remove('show');
+
+            const ACTION_CONFIG = {
+                "biosamples": [{ id: "btn-assign-biosample", label: "Assign BioSample IDs", icon: "assignment", endpoint: "/api/biosamples/assign", payloadKey: "sample_name" }],
+                "sra": [{ id: "btn-export-sra", label: "Export for SRA", icon: "ios_share", endpoint: "/api/sra/export", payloadKey: "file_path" }]
+            };
+
+            const ID_MAP = {
+                "participants": "participant_uid", "events": "event_uid", "samples": "sample_uid",
+                "libraries": "library_uid", "analyses": "analysis_uid", "files": "file_uniq_name",
+                "biosamples": "sample_name", "sra": "file_path"
+            };
+
+            // ==========================================
+            // AG GRID CONFIGURATION
+            // ==========================================
+            const gridOptions = {
+                rowData: [],
+                columnDefs: [],
+                rowSelection: 'multiple',
+                rowMultiSelectWithClick: true, // Native Gmail-style toggle on click
+                suppressCellFocus: true,       // Removes outline when clicking cells
+                suppressRowClickSelection: false,
+                defaultColDef: {
+                    sortable: true,
+                    filter: 'agTextColumnFilter', // Native text filtering
+                    resizable: true,
+                    flex: 1,
+                    minWidth: 100
+                },
+                getRowId: params => params.data[ID_MAP[currentTable]],
+                // Hook into native sort/filter events to trigger our server fetch
+                onSortChanged: () => { currentPage = 1; fetchData(); },
+                onFilterChanged: () => { currentPage = 1; fetchData(); }
+            };
+
+            // Initialize Grid
+            const gridDiv = document.querySelector('#myGrid');
+            gridApi = agGrid.createGrid(gridDiv, gridOptions);
+
+            // ==========================================
+            // SERVER DATA FETCHING
+            // ==========================================
+            async function fetchData() {
+                gridApi.showLoadingOverlay();
+
+                // 1. Extract AG Grid's current Sort state
+                const sortState = gridApi.getColumnState()
+                    .filter(s => s.sort)
+                    .map(s => ({ field: s.colId, dir: s.sort }));
+
+                // 2. Extract AG Grid's current Filter state
+                const filterModel = gridApi.getFilterModel();
+                const filterState = Object.keys(filterModel).map(key => ({
+                    field: key,
+                    type: "like",
+                    value: filterModel[key].filter
+                }));
+
+                const payload = {
+                    table: currentTable,
+                    page: currentPage,
+                    size: parseInt(pageSizeSelector.value, 10),
+                    sort: sortState,
+                    filter: filterState
+                };
+
+                try {
+                    const response = await fetch('/api/browse', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.error) {
+                        gridApi.hideOverlay();
+                        showErrorModal(result.error);
+                        return;
+                    }
+
+                    // Dynamically build column definitions if they are empty or we switched tabs
+                    if (result.data.length > 0 && gridOptions.columnDefs.length === 0) {
+                        const keys = Object.keys(result.data[0]).filter(k => k !== ID_MAP[currentTable]);
+                        
+                        const colDefs = [
+                            { headerCheckboxSelection: true, checkboxSelection: true, width: 50, pinned: 'left', filter: false, sortable: false, flex: 0 }
+                        ];
+                        
+                        keys.forEach(k => colDefs.push({ field: k, headerName: k }));
+                        gridApi.setGridOption('columnDefs', colDefs);
+                    }
+
+                    lastPage = result.last_page;
+                    gridApi.setGridOption('rowData', result.data);
+                    updatePaginationUI();
+                    updateActionBar();
+
+                } catch (err) {
+                    gridApi.hideOverlay();
+                    showErrorModal(`Network Error: ${err.message}`);
+                }
             }
 
-            // 2. Dynamically generate basic column definitions
-            const columns = Object.keys(data[0]).map(key => ({
-                accessorKey: key,
-                header: key
-            }));
+            // ==========================================
+            // ACTION BAR
+            // ==========================================
+            function updateActionBar() {
+                actionBar.innerHTML = ''; 
+                const actions = ACTION_CONFIG[currentTable] || [];
+                
+                actions.forEach(action => {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn btn-primary';
+                    btn.innerHTML = `<span class="material-symbols-outlined">${action.icon}</span> ${action.label}`;
+                    
+                    btn.addEventListener('click', async () => {
+                        // Natively grab all selected rows from the grid
+                        const selectedData = gridApi.getSelectedRows();
+                        if (selectedData.length === 0) {
+                            showErrorModal("Please select at least one row to perform this action.");
+                            return;
+                        }
 
-            // 3. Create the bare-bones TanStack Table instance
-            const table = createTable({
-                data: data,
-                columns: columns,
-                getCoreRowModel: getCoreRowModel()
+                        const payloadData = selectedData.map(row => row[action.payloadKey]).filter(Boolean);
+                        
+                        if (payloadData.length === 0) {
+                            showErrorModal(`None of the selected rows contain a valid '${action.payloadKey}'.`);
+                            return;
+                        }
+
+                        try {
+                            const response = await fetch(action.endpoint, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ items: payloadData })
+                            });
+                            
+                            const data = await response.json();
+                            if (!response.ok || data.error) {
+                                showErrorModal(data.error || `Server Error: ${response.status}`);
+                            } else {
+                                gridApi.deselectAll();
+                                fetchData();
+                            }
+                        } catch (err) {
+                            showErrorModal(`Network Error: ${err.message}`);
+                        }
+                    });
+                    actionBar.appendChild(btn);
+                });
+            }
+
+            // ==========================================
+            // UI CONTROLS & LISTENERS
+            // ==========================================
+            function updatePaginationUI() {
+                document.getElementById('page-info').textContent = `Page ${currentPage} of ${lastPage}`;
+                document.getElementById('btn-prev').disabled = currentPage <= 1;
+                document.getElementById('btn-next').disabled = currentPage >= lastPage;
+                
+                document.getElementById('btn-prev').classList.toggle('disabled', currentPage <= 1);
+                document.getElementById('btn-next').classList.toggle('disabled', currentPage >= lastPage);
+            }
+
+            document.getElementById('btn-prev').addEventListener('click', () => {
+                if (currentPage > 1) { currentPage--; fetchData(); }
             });
 
-            // 4. Render the Headers natively
-            const thead = document.getElementById('ts-thead');
-            thead.innerHTML = table.getHeaderGroups().map(headerGroup => `
-                <tr>
-                    ${headerGroup.headers.map(header => `
-                        <th>${header.column.columnDef.header}</th>
-                    `).join('')}
-                </tr>
-            `).join('');
+            document.getElementById('btn-next').addEventListener('click', () => {
+                if (currentPage < lastPage) { currentPage++; fetchData(); }
+            });
 
-            // 5. Render the Body natively
-            const tbody = document.getElementById('ts-tbody');
-            tbody.innerHTML = table.getRowModel().rows.map(row => `
-                <tr>
-                    ${row.getVisibleCells().map(cell => `
-                        <td>${cell.getValue() || ''}</td>
-                    `).join('')}
-                </tr>
-            `).join('');
-        }
+            document.getElementById('refresh-btn').addEventListener('click', () => {
+                fetchData();
+            });
 
-        // Boot the app
-        initializeMinimalTable();
+            pageSizeSelector.addEventListener('change', () => {
+                currentPage = 1;
+                fetchData();
+            });
+
+            tabButtons.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    tabButtons.forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    
+                    currentTable = e.target.getAttribute('data-table');
+                    currentPage = 1;
+                    
+                    // Clear the grid columns/data/filters completely on tab switch
+                    gridApi.setGridOption('columnDefs', []);
+                    gridApi.setFilterModel(null);
+                    gridApi.applyColumnState({ state: [], defaultState: { sort: null } });
+                    
+                    fetchData();
+                });
+            });
+
+            // Initial Load
+            fetchData();
+        });
     </script>
 </body>
 </html>
+
