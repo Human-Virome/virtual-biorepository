@@ -95,457 +95,67 @@
     <script type="module">
         import {
             createTable,
-            getCoreRowModel,
-            getSortedRowModel,
-            getFilteredRowModel,
-            getPaginationRowModel
+            getCoreRowModel
         } from 'https://esm.sh/@tanstack/table-core@8.10.7';
 
-        const refreshBtn = document.getElementById('refresh-btn');
-        const pageSizeSelector = document.getElementById('page-size-selector');
-        const tabButtons = document.querySelectorAll('.tab-btn');
-        const thead = document.getElementById('ts-thead');
-        const tbody = document.getElementById('ts-tbody');
-        const actionBar = document.getElementById('dynamic-action-bar');
-        const tableScrollContainer = document.getElementById('table-scroll-container');
-        
-        let currentTable = "participants";
-        let refreshClicked = "false";
-        let tableInstance = null;
-        let tableData = [];
-        let pageCount = -1;
-        let externalSelectionMap = new Map();
+        async function initializeMinimalTable() {
+            // 1. Fetch a static chunk of Participants data
+            const response = await fetch('/api/browse', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    table: 'participants',
+                    page: 1,
+                    size: 100, 
+                    sort: [],
+                    filter: []
+                })
+            });
+            
+            const result = await response.json();
+            const data = result.data || [];
 
-        // Modal Handlers (attached to window to act globally)
-        window.showErrorModal = function(msg) {
-            document.getElementById('error-message').textContent = msg;
-            document.getElementById('error-modal').classList.add('show');
-        };
-        window.closeErrorModal = function() {
-            document.getElementById('error-modal').classList.remove('show');
-        };
-
-        const ACTION_CONFIG = {
-            "biosamples": [
-                { id: "btn-assign-biosample", label: "Assign BioSample IDs", icon: "assignment", endpoint: "/api/biosamples/assign", payloadKey: "sample_name" }
-            ],
-            "sra": [
-                { id: "btn-export-sra", label: "Export for SRA", icon: "ios_share", endpoint: "/api/sra/export", payloadKey: "file_path" }
-            ]
-        };
-
-        const ID_MAP = {
-            "participants": "participant_uid",
-            "events": "event_uid",
-            "samples": "sample_uid",
-            "libraries": "library_uid",
-            "analyses": "analysis_uid",
-            "files": "file_uniq_name",
-            "biosamples": "sample_name",
-            "sra": "file_path"
-        };
-
-        function calculatePageSize() {
-            if (pageSizeSelector.value !== "auto") return parseInt(pageSizeSelector.value, 10);
-            const containerHeight = tableScrollContainer.clientHeight;
-            const rowHeight = 35; // Approximate row height with padding
-            let size = Math.floor(containerHeight / rowHeight);
-            return size > 0 ? size : 10;
-        }
-
-        // ==========================================
-        // TANSTACK STATE MANAGEMENT
-        // ==========================================
-        let tableState = {
-            pagination: { pageIndex: 0, pageSize: calculatePageSize() },
-            sorting: [],
-            columnFilters: [],
-            rowSelection: {} // Managed by TanStack natively via row.id
-        };
-
-        let lastToggledId = null;
-
-        // ==========================================
-        // DATA FETCHING & MAPPING
-        // ==========================================
-        async function fetchData() {
-            // Translate TanStack State -> Tabulator JSON format for database.r
-            const payload = {
-                table: currentTable,
-                refresh: refreshClicked,
-                page: tableState.pagination.pageIndex + 1, // R expects 1-indexed
-                size: tableState.pagination.pageSize,
-                sort: tableState.sorting.map(s => ({
-                    field: s.id,
-                    dir: s.desc ? "desc" : "asc"
-                })),
-                filter: tableState.columnFilters.map(f => ({
-                    field: f.id,
-                    type: "like",
-                    value: f.value
-                }))
-            };
-
-            refreshClicked = "false";
-
-            try {
-                const response = await fetch('/api/browse', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                
-                const result = await response.json();
-                
-                if (result.error) {
-                    window.showErrorModal(result.error);
-                    return;
-                }
-
-                tableData = result.data.map(row => ({ ...row, id: row[ID_MAP[currentTable]] }));
-                pageCount = result.last_page;
-                
-                // If initializing or changing tables, we need to build dynamic columns
-                if (!tableInstance || tableInstance.options.meta.tableName !== currentTable) {
-                    initializeTable(tableData);
-                } else {
-                    tableInstance.setOptions(prev => ({ ...prev, data: tableData, pageCount }));
-                    renderTbody();
-                    renderPagination();
-                }
-
-            } catch (err) {
-                console.error(err);
-                window.showErrorModal("Failed to fetch data.");
+            if (data.length === 0) {
+                document.getElementById('ts-tbody').innerHTML = '<tr><td style="padding: 2rem;">No data found.</td></tr>';
+                return;
             }
-        }
 
-        // ==========================================
-        // DYNAMIC COLUMN GENERATION
-        // ==========================================
-        function generateColumns(data) {
-            if (data.length === 0) return [];
-            
-            const keys = Object.keys(data[0]).filter(k => k !== 'id');
-            const cols = [
-                {
-                    id: 'custom_select',
-                    header: '',
-                    size: 50,
-                    cell: (info) => `<input type="checkbox" ${info.row.getIsSelected() ? "checked" : ""} style="pointer-events: none;">`
-                }
-            ];
+            // 2. Dynamically generate basic column definitions
+            const columns = Object.keys(data[0]).map(key => ({
+                accessorKey: key,
+                header: key
+            }));
 
-            keys.forEach(k => {
-                cols.push({
-                    accessorKey: k,
-                    header: k,
-                    id: k
-                });
+            // 3. Create the bare-bones TanStack Table instance
+            const table = createTable({
+                data: data,
+                columns: columns,
+                getCoreRowModel: getCoreRowModel()
             });
 
-            return cols;
-        }
-
-        // ==========================================
-        // TABLE INITIALIZATION
-        // ==========================================
-        function initializeTable(data) {
-            const columns = generateColumns(data);
-            
-            tableInstance = createTable({
-                data: tableData,
-                columns,
-                pageCount,
-                state: tableState,
-                getRowId: row => row.id,
-                onStateChange: (updater) => {
-                    tableState = typeof updater === 'function' ? updater(tableState) : updater;
-                    tableInstance.setOptions(prev => ({ ...prev, state: tableState }));
-                    
-                    // Trigger a re-fetch if pagination, sorting, or filtering changed
-                    if (updater.name !== 'rowSelection') {
-                        fetchData();
-                    } else {
-                        renderTbody(); // Only repaint rows if selection changes
-                    }
-                },
-                manualPagination: true,
-                manualSorting: true,
-                manualFiltering: true,
-                getCoreRowModel: getCoreRowModel(),
-                meta: { tableName: currentTable }
-            });
-
-            renderThead();
-            renderTbody();
-            renderPagination();
-            updateActionBar();
-        }
-
-        // ==========================================
-        // DOM RENDERING
-        // ==========================================
-        function renderThead() {
-            thead.innerHTML = tableInstance.getHeaderGroups().map(headerGroup => `
+            // 4. Render the Headers natively
+            const thead = document.getElementById('ts-thead');
+            thead.innerHTML = table.getHeaderGroups().map(headerGroup => `
                 <tr>
                     ${headerGroup.headers.map(header => `
-                        <th style="width: ${header.getSize() === 50 ? '50px' : 'auto'}">
-                            <div style="cursor: pointer; display: flex; align-items: center; gap: 0.5rem;" 
-                                 onclick="handleSort('${header.column.id}')">
-                                ${header.isPlaceholder ? '' : header.column.columnDef.header}
-                                ${header.column.getIsSorted() ? (header.column.getIsSorted() === 'desc' ? ' ???' : ' ???') : ''}
-                            </div>
-                            ${header.column.id !== 'custom_select' ? `
-                                <input class="ts-filter-input" type="text" placeholder="Filter..." 
-                                       value="${header.column.getFilterValue() || ''}"
-                                       oninput="handleFilter('${header.column.id}', this.value)" />
-                            ` : ''}
-                        </th>
+                        <th>${header.column.columnDef.header}</th>
+                    `).join('')}
+                </tr>
+            `).join('');
+
+            // 5. Render the Body natively
+            const tbody = document.getElementById('ts-tbody');
+            tbody.innerHTML = table.getRowModel().rows.map(row => `
+                <tr>
+                    ${row.getVisibleCells().map(cell => `
+                        <td>${cell.getValue() || ''}</td>
                     `).join('')}
                 </tr>
             `).join('');
         }
 
-        function renderTbody() {
-            if (tableData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="100%" style="text-align: center; padding: 2rem;">No data available</td></tr>`;
-                return;
-            }
-
-            const rowsHtml = tableInstance.getRowModel().rows.map(row => {
-                const isSelected = row.getIsSelected();
-                const rowClass = isSelected ? 'row-selected' : '';
-                return `
-                    <tr id="row-${row.id}" class="${rowClass}" data-rowid="${row.id}">
-                        ${row.getVisibleCells().map(cell => `
-                            <td>${cell.column.id === 'custom_select' 
-                                ? cell.column.columnDef.cell({row}) 
-                                : cell.getValue() || ''}
-                            </td>
-                        `).join('')}
-                    </tr>
-                `;
-            }).join('');
-
-            tbody.innerHTML = rowsHtml;
-
-            // Attach event listeners for Gmail-style multiselection
-            Array.from(tbody.querySelectorAll('tr')).forEach(tr => {
-                tr.addEventListener('click', (e) => {
-                    // Ignore clicks on input fields
-                    if (e.target.tagName.toLowerCase() === 'input' && e.target.type === 'text') return;
-                    handleRowClick(e, tr.dataset.rowid);
-                });
-            });
-            
-            // Sync external selection map for Action Bar
-            externalSelectionMap.clear();
-            Object.keys(tableState.rowSelection).forEach(id => {
-                const rowData = tableData.find(r => r.id === id);
-                if (rowData) externalSelectionMap.set(id, rowData);
-            });
-        }
-
-        function renderPagination() {
-            const paginationContainer = document.getElementById('ts-pagination');
-            const canPrev = tableState.pagination.pageIndex > 0;
-            const canNext = tableState.pagination.pageIndex + 1 < pageCount;
-
-            paginationContainer.innerHTML = `
-                <button class="tabulator-page ${!canPrev ? 'disabled' : ''}" ${!canPrev ? 'disabled' : ''} onclick="handlePageChange(-1)">Prev</button>
-                <span id="ts-page-info" style="font-size: 0.8125rem; color: var(--text-muted);">Page ${tableState.pagination.pageIndex + 1} of ${pageCount === -1 ? '...' : pageCount}</span>
-                <button class="tabulator-page ${!canNext ? 'disabled' : ''}" ${!canNext ? 'disabled' : ''} onclick="handlePageChange(1)">Next</button>
-            `;
-        }
-
-        // ==========================================
-        // GMAIL-STYLE MULTISELECTION LOGIC
-        // ==========================================
-        window.handleRowClick = function(e, currentId) {
-            const rows = tableInstance.getRowModel().rows;
-            const row = rows.find(r => r.id === currentId);
-            if (!row) return;
-
-            const isSelected = row.getIsSelected();
-            let newSelection = { ...tableState.rowSelection };
-
-            if (e.shiftKey && lastToggledId !== null) {
-                // Clear native text highlighting
-                if (window.getSelection) window.getSelection().removeAllRanges();
-
-                const startIndex = rows.findIndex(r => r.id === lastToggledId);
-                const endIndex = rows.findIndex(r => r.id === currentId);
-
-                if (startIndex > -1 && endIndex > -1) {
-                    const min = Math.min(startIndex, endIndex);
-                    const max = Math.max(startIndex, endIndex);
-                    
-                    // Determine what the target state should be based on the anchor row
-                    const anchorIsSelected = !!newSelection[lastToggledId];
-                    
-                    for (let i = min; i <= max; i++) {
-                        const targetId = rows[i].id;
-                        if (anchorIsSelected) {
-                            newSelection[targetId] = true;
-                        } else {
-                            delete newSelection[targetId];
-                        }
-                    }
-                }
-            } else {
-                // Standard Toggle
-                if (isSelected) {
-                    delete newSelection[currentId];
-                } else {
-                    newSelection[currentId] = true;
-                }
-                lastToggledId = currentId;
-            }
-
-            tableInstance.setRowSelection(newSelection);
-        };
-
-        // ==========================================
-        // EVENT HANDLERS FOR HEADLESS UI
-        // ==========================================
-        window.handleSort = function(columnId) {
-            if (columnId === 'custom_select') return;
-            const currentSort = tableState.sorting.find(s => s.id === columnId);
-            let newSorting = [];
-
-            if (!currentSort) {
-                newSorting = [{ id: columnId, desc: false }];
-            } else if (!currentSort.desc) {
-                newSorting = [{ id: columnId, desc: true }];
-            } // If it was desc, default to empty (remove sort)
-
-            tableInstance.setSorting(newSorting);
-            renderThead(); // Repaint arrows
-        };
-
-        // Debounced Filtering
-        let filterTimeout;
-        window.handleFilter = function(columnId, value) {
-            clearTimeout(filterTimeout);
-            filterTimeout = setTimeout(() => {
-                let filters = tableState.columnFilters.filter(f => f.id !== columnId);
-                if (value.trim() !== '') {
-                    filters.push({ id: columnId, value: value.trim() });
-                }
-                
-                // Reset page on filter change
-                tableState.pagination.pageIndex = 0; 
-                tableInstance.setColumnFilters(filters);
-            }, 400);
-        };
-
-        window.handlePageChange = function(direction) {
-            const newIndex = tableState.pagination.pageIndex + direction;
-            if (newIndex >= 0 && newIndex < pageCount) {
-                tableInstance.setPagination({ ...tableState.pagination, pageIndex: newIndex });
-            }
-        };
-
-        // ==========================================
-        // ACTION BAR GENERATOR
-        // ==========================================
-        function updateActionBar() {
-            actionBar.innerHTML = ''; 
-            const actions = ACTION_CONFIG[currentTable] || [];
-            
-            actions.forEach(action => {
-                const btn = document.createElement('button');
-                btn.className = 'btn btn-primary';
-                btn.id = action.id;
-                btn.innerHTML = `<span class="material-symbols-outlined">${action.icon}</span> ${action.label}`;
-                
-                btn.addEventListener('click', async () => {
-                    const selectedRows = Array.from(externalSelectionMap.values());
-                    if (selectedRows.length === 0) {
-                        window.showErrorModal("Please select at least one row to perform this action.");
-                        return;
-                    }
-
-                    const payloadData = selectedRows
-                        .map(row => row[action.payloadKey])
-                        .filter(val => val !== undefined && val !== null && val !== "");
-                    
-                    if (payloadData.length === 0) {
-                        window.showErrorModal(`None of the selected rows contain a valid '${action.payloadKey}'.`);
-                        return;
-                    }
-
-                    try {
-                        const response = await fetch(action.endpoint, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ items: payloadData })
-                        });
-                        
-                        const data = await response.json();
-                        if (!response.ok || data.error) {
-                            window.showErrorModal(data.error || `Server Error: ${response.status}`);
-                        } else {
-                            tableInstance.resetRowSelection();
-                            refreshClicked = "true";
-                            fetchData();
-                        }
-                    } catch (err) {
-                        window.showErrorModal(`Network Error: ${err.message}`);
-                    }
-                });
-                actionBar.appendChild(btn);
-            });
-        }
-
-        // ==========================================
-        // GLOBAL LISTENERS
-        // ==========================================
-        refreshBtn.addEventListener('click', () => {
-            refreshClicked = "true";
-            fetchData();
-        });
-
-        pageSizeSelector.addEventListener('change', () => {
-            tableState.pagination.pageSize = calculatePageSize();
-            tableState.pagination.pageIndex = 0; // Reset to page 1
-            tableInstance.setPagination(tableState.pagination);
-        });
-
-        tabButtons.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                tabButtons.forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
-                
-                currentTable = e.target.getAttribute('data-table');
-                tableState.rowSelection = {}; // Clear selections
-                tableState.sorting = []; // Reset sorting
-                tableState.columnFilters = []; // Reset filters
-                tableState.pagination.pageIndex = 0; // Reset page
-                
-                if (tableInstance) tableInstance.resetRowSelection();
-                fetchData();
-            });
-        });
-
-        // Initialize first fetch
-        fetchData();
-        
-        // Resize observer
-        let resizeTimer;
-        window.addEventListener('resize', () => {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(() => {
-                if (pageSizeSelector.value === "auto") {
-                    const newSize = calculatePageSize();
-                    if (tableState.pagination.pageSize !== newSize) {
-                        tableState.pagination.pageSize = newSize;
-                        tableInstance.setPagination(tableState.pagination);
-                    }
-                }
-            }, 200);
-        });
+        // Boot the app
+        initializeMinimalTable();
     </script>
 </body>
 </html>
