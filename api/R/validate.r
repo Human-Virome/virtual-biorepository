@@ -305,6 +305,7 @@ validate_numbers <- function (env) {
       }
     }
     
+    env$df[[field]] <- x_num
   }
   
   if (length(errors))
