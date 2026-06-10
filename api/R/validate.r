@@ -156,6 +156,7 @@ reformat_ids <- function (env) {
     
     # 5. Finalize and Assign
     env$df[[field]] <- unlist(result_list)
+    env$df[[field]][is_empty] <- NA
     
   }
   
