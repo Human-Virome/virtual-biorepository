@@ -132,87 +132,28 @@
                 return size > 0 ? size : 1;
             }
 
-            let lastIndex = -1; // Track our anchor for shift-clicks
+            let lastVisualIndex = -1; // Track the anchor row
 
             const table = new Tabulator("#data-table", {
                 layout: "fitData", 
                 autoColumns: true, 
                 
-                // 1. Keep the API active so your action bar still works
+                // 1. Native Web Paradigm: Clicking rows/checkboxes toggles them naturally
                 selectableRows: true, 
                 
-                // 2. Map the ID so Tabulator's internal API doesn't lose track of rows
-                dataReceive: function(data) {
-                    const idMap = {
-                        "participants": "participant_uid",
-                        "events": "event_uid",
-                        "samples": "sample_uid",
-                        "libraries": "library_uid",
-                        "analyses": "analysis_uid",
-                        "files": "file_uniq_name",
-                        "biosamples": "sample_name",
-                        "sra": "file_path"
-                    };
-                    const idField = idMap[currentTable];
-                    data.forEach(row => { row.id = row[idField]; });
-                    return data;
-                },
-            
                 autoColumnsDefinitions: function(definitions) {
-                    definitions = definitions.filter(col => col.field !== "id");
-            
-                    // 3. INJECT CUSTOM GMAIL-MODE FORMATTER
+                    // 2. Use the built-in formatter, no custom cellClick logic!
                     definitions.unshift({
-                        field: "gmail_checkbox",
-                        title: "", 
-                        headerSort: false,
+                        formatter: "rowSelection",
+                        titleFormatter: "rowSelection",
                         hozAlign: "center",
-                        frozen: true,
+                        headerSort: false,
                         width: 50,
-                        formatter: function(cell) {
-                            // THE MAGIC TRICK: pointer-events: none
-                            // This stops the browser from auto-checking the box, killing the race condition.
-                            // We dictate the checkmark's visual state 100% via Javascript now.
-                            const checked = cell.getRow().isSelected() ? "checked" : "";
-                            return `<input type='checkbox' class='gmail-box' style='pointer-events: none;' ${checked} />`;
-                        },
-                        cellClick: function(e, cell) {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            
-                            const row = cell.getRow();
-                            const table = cell.getTable();
-                            const rows = table.getRows("active");
-                            const currentIndex = rows.findIndex(r => r === row);
-                            
-                            // Check state BEFORE we alter anything
-                            const isCurrentlySelected = row.isSelected();
-                            
-                            if (e.shiftKey && lastIndex > -1) {
-                                // Prevent standard blue text highlighting
-                                if (window.getSelection) window.getSelection().removeAllRanges();
-                                
-                                const start = Math.min(currentIndex, lastIndex);
-                                const end = Math.max(currentIndex, lastIndex);
-                                const rowsToChange = rows.slice(start, end + 1);
-                                
-                                // If the anchor was checked, uncheck the range. Otherwise, check it.
-                                if (isCurrentlySelected) {
-                                    table.deselectRow(rowsToChange);
-                                } else {
-                                    table.selectRow(rowsToChange);
-                                }
-                            } else {
-                                // Standard click toggle (No Ctrl/Cmd required)
-                                row.toggleSelect();
-                            }
-                            
-                            lastIndex = currentIndex;
-                        }
+                        frozen: true
                     });
             
                     definitions.forEach((column) => {
-                        if (column.field !== "gmail_checkbox") {
+                        if (column.formatter !== "rowSelection") {
                             column.headerFilter = "input";
                         }
                     });
@@ -220,13 +161,35 @@
                     return definitions;
                 },
                 
-                // 4. NEUTRALIZE native row clicks. 
-                // This ensures clicking a row's text doesn't randomly deselect all your checkboxes.
+                // 3. The true "Gmail Mode" Gap Filler
                 rowClick: function(e, row) {
-                    return; 
-                },
+                    const rows = row.getTable().getRows("active");
+                    const currentIndex = rows.findIndex(r => r === row);
             
-                // ... standard ajax setup ...
+                    if (e.shiftKey && lastVisualIndex !== -1 && lastVisualIndex !== currentIndex) {
+                        
+                        // Prevent the browser from highlighting random text blue
+                        if (window.getSelection) window.getSelection().removeAllRanges();
+            
+                        // Defer execution by 1 tick so Tabulator can finish its native toggle first
+                        setTimeout(() => {
+                            const start = Math.min(currentIndex, lastVisualIndex);
+                            const end = Math.max(currentIndex, lastVisualIndex);
+                            const rowsToChange = rows.slice(start, end + 1);
+                            
+                            // Read the row's official state AFTER Tabulator just changed it
+                            if (row.isSelected()) {
+                                row.getTable().selectRow(rowsToChange);
+                            } else {
+                                row.getTable().deselectRow(rowsToChange);
+                            }
+                        }, 0);
+                    }
+            
+                    // Always update the anchor for the next click
+                    lastVisualIndex = currentIndex;
+                },
+                
                 ajaxURL: "/api/browse",
                 ajaxConfig: "POST", 
                 ajaxContentType: "json",
@@ -242,29 +205,13 @@
                 paginationSize: calculatePageSize(), 
                 sortMode: "remote",
                 filterMode: "remote", 
+                
                 placeholder: "No data available in this table",
             });
             
-            // 5. INSTANT UI SYNC
-            // Force the DOM to update our custom checkboxes instantly when the Tabulator API fires
-            table.on("rowSelected", function(row){
-                const cell = row.getCell("gmail_checkbox");
-                if(cell && cell.getElement()) {
-                    const cb = cell.getElement().querySelector('.gmail-box');
-                    if(cb) cb.checked = true;
-                }
-            });
-            
-            table.on("rowDeselected", function(row){
-                const cell = row.getCell("gmail_checkbox");
-                if(cell && cell.getElement()) {
-                    const cb = cell.getElement().querySelector('.gmail-box');
-                    if(cb) cb.checked = false;
-                }
-            });
-            
+            // Reset the anchor whenever the data reloads or the tab changes
             table.on("dataLoaded", function() {
-                lastIndex = -1;
+                lastVisualIndex = -1;
             });
 
             // Re-mount the hanging Excel-tabs to the footer
