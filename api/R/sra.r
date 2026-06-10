@@ -22,13 +22,13 @@ sra_refresh <- function (db) {
       libraries.user                        as user
       
     FROM files
-      LEFT JOIN sra        ON file.file_uniq_name = sra.file_path
+      LEFT JOIN sra        ON files.file_uniq_name = sra.file_path
       LEFT JOIN libraries  USING (library_uid)
       LEFT JOIN biosamples ON libraries.sample_uid =libraries.sample_uid
       
     WHERE sra.file_path IS NULL
-      AND file.data_type = 'scrubbed_sequence_reads'
-      AND file.user = @user"
+      AND files.data_type = 'scrubbed_sequence_reads'
+      AND files.user = @user"
   
   sra <- db_query(db, sql, 'SraRefr1', simplify = FALSE)
   
