@@ -82,3 +82,7 @@ systemctl restart mariadb nginx fail2ban
 
 mysql -u root < /var/www/vbr/config/database.sql
 ```
+
+
+In case of git complaints:
+`git push origin main --force`

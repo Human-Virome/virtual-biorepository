@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,12 +8,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     
-    <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/tabulator-tables@6.4.0/dist/css/tabulator.min.css" rel="stylesheet">
     <link href="style.css" rel="stylesheet"/>
 </head>
 
 <body>
-  
+
     <!--#include virtual="/app/header.html" -->
   
     <main class="mpa-container">
@@ -23,7 +22,7 @@
             <div class="section-header flex-row flex-between" style="align-items: center; margin-bottom: 1rem;">
                 
                 <div class="flex-row" style="align-items: center; gap: 0.5rem;" id="dynamic-action-bar">
-                </div>
+                    </div>
                 
                 <div class="flex-row" style="align-items: center; gap: 0.75rem;">
                     <div class="input-group">
@@ -58,7 +57,7 @@
             
         </div>
     </main>
-  
+
     <!--#include virtual="/app/footer.html" -->
   
     <div id="error-modal" class="modal-overlay">
@@ -76,7 +75,7 @@
         </div>
     </div>
   
-    <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/tabulator-tables@6.4.0/dist/js/tabulator.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
           
@@ -89,9 +88,11 @@
             
             let currentTable   = "participants";
             let refreshClicked = "false";
+            
+            // Track the anchor row for Shift+Click range selection
+            let lastClickedRowIndex = -1;
 
             // --- Configuration for Tab-Specific Actions ---
-            // Easy to add logic for future tabs here.
             const ACTION_CONFIG = {
                 "biosamples": [
                     {
@@ -134,16 +135,15 @@
                 return size > 0 ? size : 1;
             }
 
-            // Track the anchor row for Shift+Click range selection
-            let anchorRow = null;
-
-            // Tabulator Initialization
+            // Tabulator 6.x Initialization
             const table = new Tabulator("#data-table", {
-                layout: "fitData",
-                autoColumns: true,
-                selectable: true,
+                layout: "fitData", 
+                autoColumns: true, 
                 
-                // Inject the checkbox column here so autoColumns doesn't overwrite it
+                // Tabulator 6 API: Enables row clicking to toggle selection state
+                selectableRows: true,
+                
+                // INJECT the checkbox column here so autoColumns doesn't overwrite it
                 autoColumnsDefinitions: function(definitions) {
                     definitions.unshift({
                         formatter: "rowSelection",
@@ -161,6 +161,37 @@
                     });
                     
                     return definitions;
+                },
+                
+                // Custom Shift+Click range selection to preserve "toggle" behavior
+                rowClick: function(e, row) {
+                    const rows = table.getRows(); // Gets all currently visible/filtered rows
+                    const currentIndex = rows.findIndex(r => r === row);
+
+                    if (e.shiftKey && lastClickedRowIndex !== -1) {
+                        const start = Math.min(currentIndex, lastClickedRowIndex);
+                        const end = Math.max(currentIndex, lastClickedRowIndex);
+                        
+                        // Match the selection state of the "anchor" (the row we shift-clicked from)
+                        const anchorRow = rows[lastClickedRowIndex];
+                        const isSelecting = anchorRow.isSelected();
+                        
+                        for (let i = start; i <= end; i++) {
+                            if (isSelecting) {
+                                rows[i].select();
+                            } else {
+                                rows[i].deselect();
+                            }
+                        }
+                        
+                        // Clear the annoying blue text selection that happens natively in the browser
+                        if (window.getSelection) {
+                            window.getSelection().removeAllRanges();
+                        }
+                    }
+                    
+                    // Always update the anchor row for the next shift-click
+                    lastClickedRowIndex = currentIndex;
                 },
                 
                 ajaxURL: "/api/browse",
@@ -181,3 +212,125 @@
                 
                 placeholder: "No data available in this table",
             });
+
+            // Reset the shift-click anchor whenever the table data changes/refreshes
+            table.on("dataLoaded", function() {
+                lastClickedRowIndex = -1;
+            });
+
+            // Re-mount the hanging Excel-tabs to the footer
+            table.on("tableBuilt", function() {
+                const footer = dataTableContainer.querySelector('.tabulator-footer');
+                if(footer) {
+                    footer.insertBefore(excelTabs, footer.firstChild);
+                }
+                updateActionBar(currentTable);
+            });
+
+            // Action Bar Generator
+            function updateActionBar(tableName) {
+                actionBar.innerHTML = ''; // clear current actions
+                
+                const actions = ACTION_CONFIG[tableName] || [];
+                
+                actions.forEach(action => {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn btn-primary';
+                    btn.id = action.id;
+                    btn.innerHTML = `<span class="material-symbols-outlined">${action.icon}</span> ${action.label}`;
+                    
+                    btn.addEventListener('click', async () => {
+                        const selectedRows = table.getSelectedData();
+                        
+                        if (selectedRows.length === 0) {
+                            showErrorModal("Please select at least one row to perform this action.");
+                            return;
+                        }
+
+                        // Extract data based on payloadKey (ignoring empty/undefined cells)
+                        const payloadData = selectedRows
+                            .map(row => row[action.payloadKey])
+                            .filter(val => val !== undefined && val !== null && val !== "");
+                        
+                        if (payloadData.length === 0) {
+                            showErrorModal(`None of the selected rows contain a valid '${action.payloadKey}'.`);
+                            return;
+                        }
+
+                        try {
+                            const response = await fetch(action.endpoint, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ items: payloadData }) // adjust body key as needed by your backend
+                            });
+                            
+                            const data = await response.json();
+                            
+                            if (response.ok && data.error) {
+                                // 200 OK but handled error exists in payload
+                                showErrorModal(data.error);
+                            } else if (!response.ok) {
+                                // System/HTTP Error
+                                showErrorModal(`Server Error: ${response.status} ${response.statusText}`);
+                            } else {
+                                // Success - Force a refresh to see the new states
+                                refreshClicked = "true";
+                                table.setData();
+                            }
+                        } catch (err) {
+                            showErrorModal(`Network Error: ${err.message}`);
+                        }
+                    });
+                    
+                    actionBar.appendChild(btn);
+                });
+            }
+
+            // Tab Switching functionality
+            tabButtons.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    tabButtons.forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    
+                    currentTable = e.target.getAttribute('data-table');
+                    
+                    table.clearData();
+                    table.setData();
+                    updateActionBar(currentTable);
+                });
+            });
+
+            // Handle standard refresh
+            refreshBtn.addEventListener('click', () => {
+                refreshClicked = "true";
+                table.setData();
+            });
+
+            // Handle Page Size manual override
+            pageSizeSelector.addEventListener('change', () => {
+                const newSize = calculatePageSize();
+                table.setPageSize(newSize);
+            });
+
+            // Throttled viewport resizing (only auto-updates if "auto" is selected)
+            function debounce(func, wait) {
+                let timeout;
+                return function(...args) {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func.apply(this, args), wait);
+                };
+            }
+
+            window.addEventListener('resize', debounce(() => {
+                if (dataTableContainer.clientHeight > 0 && pageSizeSelector.value === "auto") { 
+                    const newSize = calculatePageSize();
+                    if (table.getPageSize() !== newSize) {
+                        table.setPageSize(newSize);
+                    }
+                }
+            }, 200));
+            
+        });
+    </script>
+</body>
+</html>
