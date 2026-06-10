@@ -159,25 +159,25 @@ biosamples_refresh <- function (db) {
   
   if (nrow(biosamples) > 0) {
     
-    biosamples[['host_age']] <- ifelse(
+    biosamples[['host_age']] <- data.table::fifelse(
       test = is.na(biosamples[['host_age']]), 
       yes  = 'not collected', 
       no   = paste(biosamples[['host_age']], biosamples[['_age_units']]) )
     
-    biosamples[['host_height']] <- ifelse(
+    biosamples[['host_height']] <- data.table::fifelse(
       test = is.na(biosamples[['host_height']]), 
       yes  = 'not collected', 
       no   = paste(biosamples[['host_height']], biosamples[['_height_units']]) )
     
-    biosamples[['pet_farm_animal']] <- ifelse(
+    biosamples[['pet_farm_animal']] <- data.table::fifelse(
       test = is.na(biosamples[['_animal_exposure']]), 
       no   = 'not collected', 
-      yes  = ifelse(
+      yes  = data.table::fifelse(
         test = is.na(biosamples[['_exposure_animal_type']]), 
         no   = paste0('yes;', biosamples[['_animal_exposure']]), 
         yes  = 'no' ))
     
-    biosamples[['collection_date']] <- ifelse(
+    biosamples[['collection_date']] <- data.table::fifelse(
       test = is.na(biosamples[['collection_date']]), 
       yes  = biosamples[['collection_month_year']], 
       no   = biosamples[['collection_date']] )
