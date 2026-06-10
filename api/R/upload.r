@@ -19,8 +19,8 @@ ingest_file <- function (db, file, commit) {
     },
     error = function (e) {
       DBI::dbRollback(db)
-      stop(e$message)
-      #stop(as.character(e))
+      #stop(e$message)
+      stop(as.character(e))
     })
   
   # No errors to report
