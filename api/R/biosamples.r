@@ -179,7 +179,7 @@ biosamples_refresh <- function (db) {
     
     biosamples[['collection_date']] <- data.table::fifelse(
       test = is.na(biosamples[['collection_date']]), 
-      yes  = biosamples[['collection_month_year']], 
+      yes  = biosamples[['_collection_month_year']], 
       no   = biosamples[['collection_date']] )
     
     biosamples[['host']]     <- txid_to_name(biosamples[['host']])
