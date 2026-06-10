@@ -56,7 +56,7 @@ chmod 640 /etc/httpuv.env
 
 git clone https://github.com/Human-Virome/virtual-biorepository.git /var/www/vbr
 git config --global --add safe.directory /var/www/vbr
-chown -R www-data:www-data /var/www/vbr
+chown -R www-data:www-data /var/www
 
 # Apply Configs (Backup defaults first to prevent symlink errors)
 mv /etc/nginx/nginx.conf  /etc/nginx/nginx.conf.bak

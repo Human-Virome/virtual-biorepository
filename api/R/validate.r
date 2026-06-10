@@ -10,7 +10,7 @@ validate_req_columns <- function (env) {
   # All the MariaDB table's column names
   sql    <- sprintf("DESC `%s`", env$tbl)
   desc   <- db_query(env$db, sql, 'ValReq1', simplify = FALSE)
-  fields <- desc[['Fields']]
+  fields <- desc[['Field']]
   
   given   <- names(env$df)
   missing <- setdiff(fields, given)
