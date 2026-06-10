@@ -19,7 +19,7 @@ sra_refresh <- function (db) {
       NULL                                  as library_selection,
       libraries.paired_or_single            as library_layout,
       libraries.sequencing_instrument_model as instrument_model,
-      libraries.user                        as user,
+      libraries.user                        as user
       
     FROM files
       LEFT JOIN sra        ON file.file_uniq_name = sra.file_path
