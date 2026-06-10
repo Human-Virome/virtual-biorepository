@@ -206,7 +206,7 @@ footer nav a:hover { color: #f1f5f9; }
 }
 
 .tabulator-header .tabulator-col-content {
-    padding: 0.875rem 1rem !important;
+    padding: 0.5rem 0.75rem !important; /* Reduced for compact rows */
 }
 
 .tabulator-header-filter input {
@@ -227,25 +227,35 @@ footer nav a:hover { color: #f1f5f9; }
 }
 
 .tabulator-row { 
-    background-color: var(--surface) !important;
+    background-color: var(--surface) !important; /* Solid background to block white */
     border-bottom: 1px solid var(--border-color) !important;
-    color: #ffffff !important; /* Forces row text to pure white */
-    font-size: 0.875rem;
-    transition: background-color 0.2s ease;
+    color: #ffffff !important; 
+    font-size: 0.8125rem; /* Slightly smaller text for compact look */
+    transition: background-color 0.1s ease;
 }
 
 .tabulator-row.tabulator-row-even { 
-    background-color: rgba(255, 255, 255, 0.03) !important;
+    background-color: var(--surface-high) !important; /* Solid lighter dark theme color */
 }
 
 .tabulator-row:hover { 
     background-color: rgba(137, 206, 255, 0.08) !important;
 }
 
+/* Selected Row styling (Crucial for visual feedback when checking boxes) */
+.tabulator-row.tabulator-selected {
+    background-color: rgba(137, 206, 255, 0.15) !important;
+}
+
+.tabulator-row.tabulator-selected:hover {
+    background-color: rgba(137, 206, 255, 0.25) !important;
+}
+
 .tabulator-cell { 
-    padding: 0.875rem 1rem !important;
+    padding: 0.375rem 0.75rem !important; /* Reduced padding */
     border-right: 1px solid var(--border-color) !important;
-    color: #ffffff !important; /* Forces individual cell text to pure white */
+    color: #ffffff !important; 
+    vertical-align: middle; /* Ensures text stays centered in smaller rows */
 }
 
 /* Unified Footer holding both Tabs and Pagination */
@@ -318,7 +328,6 @@ footer nav a:hover { color: #f1f5f9; }
 .tabulator-tableholder::-webkit-scrollbar-track { background: var(--surface); }
 .tabulator-tableholder::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
 .tabulator-tableholder::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
-
 /* --- Excel-like Tabs (Hanging from the footer) --- */
 .excel-tabs {
     display: flex;

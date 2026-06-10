@@ -129,7 +129,10 @@
                 const containerHeight = dataTableContainer.clientHeight;
                 const nonRowHeight = 135; 
                 const availableHeight = containerHeight - nonRowHeight;
-                const rowHeight = 42; 
+                
+                // Adjusted for new compact row CSS
+                const rowHeight = 32; 
+                
                 let size = Math.floor(availableHeight / rowHeight);
                 return size > 0 ? size : 1;
             }
@@ -143,22 +146,25 @@
                 selectableRows: true,
                 selectableRangeMode: "click",
                 
-                // Prepend the Checkbox Column alongside autoColumns
-                columns: [
-                    {
-                        formatter: "rowSelection", 
-                        titleFormatter: "rowSelection", 
-                        hozAlign: "center", 
-                        headerSort: false, 
+                // INJECT the checkbox column here so autoColumns doesn't overwrite it
+                autoColumnsDefinitions: function(definitions) {
+                    // 1. Add the checkbox column to the front
+                    definitions.unshift({
+                        formatter: "rowSelection",
+                        titleFormatter: "rowSelection",
+                        hozAlign: "center",
+                        headerSort: false,
                         width: 50,
                         frozen: true
-                    }
-                ],
-                
-                autoColumnsDefinitions: function(definitions) {
-                    definitions.forEach((column) => {
-                        column.headerFilter = "input";
                     });
+
+                    // 2. Add header filters to all other columns
+                    definitions.forEach((column) => {
+                        if (column.formatter !== "rowSelection") {
+                            column.headerFilter = "input";
+                        }
+                    });
+                    
                     return definitions;
                 },
                 
