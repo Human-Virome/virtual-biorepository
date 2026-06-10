@@ -163,34 +163,31 @@
                     return definitions;
                 },
                 
-                // Custom Shift+Click range selection to preserve "toggle" behavior
+                // Custom Shift+Click range selection to preserve "toggle" behavior.
+                // selectableRows toggles the clicked row synchronously on click; we defer the
+                // range fill to a microtask so it runs AFTER that toggle and reliably wins.
                 rowClick: function(e, row) {
-                    const rows = table.getRows(); // Gets all currently visible/filtered rows
+                    const rows = table.getRows();
                     const currentIndex = rows.findIndex(r => r === row);
-
-                    if (e.shiftKey && lastClickedRowIndex !== -1) {
-                        const start = Math.min(currentIndex, lastClickedRowIndex);
-                        const end = Math.max(currentIndex, lastClickedRowIndex);
-                        
-                        // Match the selection state of the "anchor" (the row we shift-clicked from)
+                
+                    if (e.shiftKey && lastClickedRowIndex !== -1 && lastClickedRowIndex < rows.length) {
                         const anchorRow = rows[lastClickedRowIndex];
                         const isSelecting = anchorRow.isSelected();
-                        
-                        for (let i = start; i <= end; i++) {
-                            if (isSelecting) {
-                                rows[i].select();
-                            } else {
-                                rows[i].deselect();
+                
+                        const start = Math.min(currentIndex, lastClickedRowIndex);
+                        const end   = Math.max(currentIndex, lastClickedRowIndex);
+                
+                        queueMicrotask(() => {
+                            for (let i = start; i <= end; i++) {
+                                isSelecting ? rows[i].select() : rows[i].deselect();
                             }
-                        }
-                        
-                        // Clear the annoying blue text selection that happens natively in the browser
+                        });
+                
                         if (window.getSelection) {
                             window.getSelection().removeAllRanges();
                         }
                     }
-                    
-                    // Always update the anchor row for the next shift-click
+                
                     lastClickedRowIndex = currentIndex;
                 },
                 
