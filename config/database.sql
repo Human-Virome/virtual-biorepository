@@ -250,7 +250,7 @@ CREATE TABLE IF NOT EXISTS sra (
   BioSample                     VARCHAR(50),
   BioProject                    TINYTEXT,
   file_format                   TINYTEXT,
-  library_name                  TINYTEXT,
+  library_name                  VARCHAR(255),
   library_strategy              TINYTEXT,
   library_source                TINYTEXT,
   library_selection             TINYTEXT,

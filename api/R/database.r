@@ -26,7 +26,7 @@ db_query <- function (db, sql, err_code, params = NULL, simplify = TRUE, req1 = 
       
       sql  <- trimws(gsub("[\n\r\t\ ]+", " ", sql))
       verb <- toupper(strsplit(substr(sql, 1, 10), ' ', fixed = TRUE)[[1]][[1]])
-      if (!verb %in% c("SELECT", "INSERT", "UPDATE", "DELETE", "SET", "SHOW"))
+      if (!verb %in% c("SELECT", "INSERT", "UPDATE", "DELETE", "SET", "SHOW", "DESC"))
         stop("Invalid SQL verb: '", verb, "'.")
       
       

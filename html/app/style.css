@@ -182,32 +182,31 @@ footer nav a:hover { color: #f1f5f9; }
 
 
 /* --- Dark Theme Tabulator Overrides --- */
-.tabulator { 
-    background-color: var(--surface) !important; 
-    border: 1px solid var(--border-color) !important; 
-    border-bottom: none !important; 
+.tabulator {
+    background-color: var(--surface) !important;
+    border: 1px solid var(--border-color) !important;
+    border-bottom: none !important;
     border-radius: 0.5rem 0.5rem 0 0;
-    color: #ffffff !important; 
-    font-family: var(--font-main); 
+    color: #ffffff !important;
+    font-family: var(--font-main);
 }
 
-.tabulator-header { 
-    background-color: var(--surface-high) !important; 
-    border-bottom: 2px solid var(--border-color) !important; 
-    color: var(--text-muted) !important; 
-    font-size: 0.75rem; 
-    text-transform: uppercase; 
-    letter-spacing: 0.05em; 
-    font-weight: 700; 
+.tabulator-header {
+    background-color: var(--surface-high) !important;
+    border-bottom: 2px solid var(--border-color) !important;
+    color: var(--text-muted) !important;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    font-weight: 700;
 }
 
 .tabulator-header .tabulator-col { 
-    background-color: var(--surface-high) !important; 
-    border-right: 1px solid var(--border-color) !important; 
+    background-color: var(--surface-high) !important;
+    border-right: 1px solid var(--border-color) !important;
 }
 
-.tabulator-header .tabulator-col-content { 
-    padding: 0.875rem 1rem !important; 
+.tabulator-header .tabulator-col-content {
+    padding: 0.875rem 1rem !important;
 }
 
 .tabulator-header-filter input {
@@ -228,33 +227,33 @@ footer nav a:hover { color: #f1f5f9; }
 }
 
 .tabulator-row { 
-    background-color: var(--surface) !important; 
-    border-bottom: 1px solid var(--border-color) !important; 
+    background-color: var(--surface) !important;
+    border-bottom: 1px solid var(--border-color) !important;
     color: #ffffff !important; /* Forces row text to pure white */
-    font-size: 0.875rem; 
-    transition: background-color 0.2s ease; 
+    font-size: 0.875rem;
+    transition: background-color 0.2s ease;
 }
 
 .tabulator-row.tabulator-row-even { 
-    background-color: rgba(255, 255, 255, 0.03) !important; 
+    background-color: rgba(255, 255, 255, 0.03) !important;
 }
 
 .tabulator-row:hover { 
-    background-color: rgba(137, 206, 255, 0.08) !important; 
+    background-color: rgba(137, 206, 255, 0.08) !important;
 }
 
 .tabulator-cell { 
-    padding: 0.875rem 1rem !important; 
-    border-right: 1px solid var(--border-color) !important; 
+    padding: 0.875rem 1rem !important;
+    border-right: 1px solid var(--border-color) !important;
     color: #ffffff !important; /* Forces individual cell text to pure white */
 }
 
 /* Unified Footer holding both Tabs and Pagination */
 .tabulator-footer { 
-    background-color: var(--surface-high) !important; 
-    border-top: 1px solid var(--border-color) !important; 
-    color: var(--text-main) !important; 
-    padding: 0 0 0.75rem 0 !important; 
+    background-color: var(--surface-high) !important;
+    border-top: 1px solid var(--border-color) !important;
+    color: var(--text-main) !important;
+    padding: 0 0 0.75rem 0 !important;
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
@@ -268,8 +267,8 @@ footer nav a:hover { color: #f1f5f9; }
 
 /* Pagination Container */
 .tabulator-footer .tabulator-paginator {
-    align-self: flex-start; 
-    padding: 0.375rem 1rem 0 1rem !important; 
+    align-self: flex-start;
+    padding: 0.375rem 1rem 0 1rem !important;
     font-family: var(--font-main);
     font-size: 0.8125rem;
     display: flex;
@@ -282,10 +281,10 @@ footer nav a:hover { color: #f1f5f9; }
 
 /* Pagination Controls */
 .tabulator-footer .tabulator-page { 
-    border: 1px solid transparent !important; 
-    background: transparent !important; 
-    color: var(--text-muted) !important; 
-    border-radius: 0.375rem; 
+    border: 1px solid transparent !important;
+    background: transparent !important;
+    color: var(--text-muted) !important;
+    border-radius: 0.375rem;
     margin: 0 0.125rem;
     padding: 0.375rem 0.75rem;
     font-family: var(--font-main);
@@ -294,16 +293,16 @@ footer nav a:hover { color: #f1f5f9; }
     transition: all 0.2s ease;
 }
 
-.tabulator-footer .tabulator-page:not(.disabled):hover { 
+.tabulator-footer .tabulator-page:not(.disabled):hover {
     background: rgba(255, 255, 255, 0.05) !important;
-    color: #ffffff !important; 
+    color: #ffffff !important;
     border-color: transparent !important;
 }
 
 .tabulator-footer .tabulator-page.active { 
-    background: var(--surface) !important; 
-    color: var(--primary) !important; 
-    border-color: var(--border-color) !important; 
+    background: var(--surface) !important;
+    color: var(--primary) !important;
+    border-color: var(--border-color) !important;
     font-weight: 600;
 }
 
@@ -339,7 +338,6 @@ footer nav a:hover { color: #f1f5f9; }
     font-family: var(--font-main);
     font-size: 0.8125rem;
     font-weight: 500;
-    text-transform: capitalize;
     transition: all 0.2s ease;
     white-space: nowrap;
 }
@@ -360,9 +358,25 @@ footer nav a:hover { color: #f1f5f9; }
 .tab-btn.active::before {
     content: "";
     position: absolute;
-    top: -1px; 
+    top: -1px;
     left: 0;
     right: 0;
     height: 2px;
     background-color: var(--surface);
 }
+
+
+
+/* Modal Styles */
+.modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 10000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+.modal-overlay.show { display: flex; opacity: 1; }
+.modal-content { max-width: 450px; width: 100%; margin: 0 1rem; }
