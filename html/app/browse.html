@@ -78,310 +78,314 @@
     <script type="text/javascript" src="https://unpkg.com/tabulator-tables@6.4.0/dist/js/tabulator.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-          
-            const refreshBtn = document.getElementById('refresh-btn');
-            const pageSizeSelector = document.getElementById('page-size-selector');
-            const tabButtons = document.querySelectorAll('.tab-btn');
-            const dataTableContainer = document.getElementById('data-table');
-            const excelTabs = document.getElementById('excel-tabs');
-            const actionBar = document.getElementById('dynamic-action-bar');
-            
-            let currentTable   = "participants";
-            let refreshClicked = "false";
-
-            // --- Configuration for Tab-Specific Actions ---
-            const ACTION_CONFIG = {
-                "biosamples": [
-                    {
-                        id: "btn-assign-biosample",
-                        label: "Assign BioSample IDs",
-                        icon: "assignment",
-                        endpoint: "/api/biosamples/assign",
-                        payloadKey: "sample_name"
-                    }
-                ],
-                "sra": [
-                    {
-                        id: "btn-export-sra",
-                        label: "Export for SRA",
-                        icon: "ios_share",
-                        endpoint: "/api/sra/export",
-                        payloadKey: "file_path"
-                    }
-                ]
-            };
-
-            // Modal Handlers
-            window.showErrorModal = function(msg) {
-                document.getElementById('error-message').textContent = msg;
-                document.getElementById('error-modal').classList.add('show');
-            };
-            window.closeErrorModal = function() {
-                document.getElementById('error-modal').classList.remove('show');
-            };
-
-            function calculatePageSize() {
-                if (pageSizeSelector.value !== "auto") {
-                    return parseInt(pageSizeSelector.value, 10);
+        
+        const refreshBtn = document.getElementById('refresh-btn');
+        const pageSizeSelector = document.getElementById('page-size-selector');
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        const dataTableContainer = document.getElementById('data-table');
+        const excelTabs = document.getElementById('excel-tabs');
+        const actionBar = document.getElementById('dynamic-action-bar');
+        
+        let currentTable   = "participants";
+        let refreshClicked = "false";
+    
+        // --- Configuration for Tab-Specific Actions ---
+        const ACTION_CONFIG = {
+            "biosamples": [
+                {
+                    id: "btn-assign-biosample",
+                    label: "Assign BioSample IDs",
+                    icon: "assignment",
+                    endpoint: "/api/biosamples/assign",
+                    payloadKey: "sample_name"
                 }
-                const containerHeight = dataTableContainer.clientHeight;
-                const nonRowHeight = 135; 
-                const availableHeight = containerHeight - nonRowHeight;
-                const rowHeight = 32; // Adjusted for compact row CSS
-                let size = Math.floor(availableHeight / rowHeight);
-                return size > 0 ? size : 1;
+            ],
+            "sra": [
+                {
+                    id: "btn-export-sra",
+                    label: "Export for SRA",
+                    icon: "ios_share",
+                    endpoint: "/api/sra/export",
+                    payloadKey: "file_path"
+                }
+            ]
+        };
+    
+        // Modal Handlers
+        window.showErrorModal = function(msg) {
+            document.getElementById('error-message').textContent = msg;
+            document.getElementById('error-modal').classList.add('show');
+        };
+        window.closeErrorModal = function() {
+            document.getElementById('error-modal').classList.remove('show');
+        };
+    
+        function calculatePageSize() {
+            if (pageSizeSelector.value !== "auto") {
+                return parseInt(pageSizeSelector.value, 10);
             }
-
-            // Track the actual ID, not the Row Object wrapper, so it survives Tabulator's internal updates
-            let lastSelectedId = null; 
-            
-            function handleShiftClick(e, clickedRow) {
-                if (e.shiftKey && lastSelectedId !== null) {
-                    // Clear native browser text highlighting
+            const containerHeight = dataTableContainer.clientHeight;
+            const nonRowHeight = 135; 
+            const availableHeight = containerHeight - nonRowHeight;
+            const rowHeight = 32; 
+            let size = Math.floor(availableHeight / rowHeight);
+            return size > 0 ? size : 1;
+        }
+    
+        // ==========================================
+        // EXTERNAL SELECTION CONTROLLER
+        // ==========================================
+        const selectedRowsMap = new Map(); // Stores id -> full row data
+        let lastToggledId = null;          // Anchor for shift-click
+        let lastToggledState = true;       // Tracks if anchor was selected or deselected
+    
+        function clearSelectionState() {
+            selectedRowsMap.clear();
+            lastToggledId = null;
+        }
+        // ==========================================
+        
+        const table = new Tabulator("#data-table", {
+            layout: "fitData", 
+            autoColumns: true, 
+            // selectableRows: true is INTENTIONALLY REMOVED. 
+        
+            dataReceive: function(data) {
+                const idMap = {
+                    "participants": "participant_uid",
+                    "events": "event_uid",
+                    "samples": "sample_uid",
+                    "libraries": "library_uid",
+                    "analyses": "analysis_uid",
+                    "files": "file_uniq_name",
+                    "biosamples": "sample_name",
+                    "sra": "file_path"
+                };
+                const idField = idMap[currentTable];
+                data.forEach(row => { row.id = row[idField]; });
+                return data;
+            },
+        
+            autoColumnsDefinitions: function(definitions) {
+                definitions = definitions.filter(col => col.field !== "id");
+        
+                definitions.unshift({
+                    field: "custom_select",
+                    title: "",
+                    headerSort: false,
+                    hozAlign: "center",
+                    frozen: true,
+                    width: 50,
+                    formatter: function(cell) {
+                        const rowData = cell.getData();
+                        // Check our external map to see if this row should be checked
+                        const isChecked = selectedRowsMap.has(rowData.id);
+                        return `<input type="checkbox" ${isChecked ? "checked" : ""} style="pointer-events: none;">`;
+                    }
+                });
+        
+                definitions.forEach((column) => {
+                    if (column.field !== "custom_select") {
+                        column.headerFilter = "input";
+                    }
+                });
+                
+                return definitions;
+            },
+    
+            // rowFormatter handles applying the correct background color to rows natively
+            // as they are scrolled into view or paginated.
+            rowFormatter: function(row) {
+                const data = row.getData();
+                if (!data || !data.id) return;
+    
+                const el = row.getElement();
+                if (selectedRowsMap.has(data.id)) {
+                    el.classList.add("tabulator-selected"); // Reuse Tabulator's native highlight class
+                } else {
+                    el.classList.remove("tabulator-selected");
+                }
+            },
+        
+            rowClick: function(e, row) {
+                const currentData = row.getData();
+                const currentId = currentData.id;
+                const currentTableRef = row.getTable();
+    
+                if (e.shiftKey && lastToggledId !== null) {
+                    // Clear native text highlighting caused by shift-clicking
                     if (window.getSelection) window.getSelection().removeAllRanges();
-            
-                    const table = clickedRow.getTable();
-                    const activeRows = table.getRows("active"); 
+    
+                    const activeRows = currentTableRef.getRows("active"); 
                     
-                    // CRITICAL FIX: Use .getIndex() instead of strict object equality (r === row)
-                    const startIndex = activeRows.findIndex(r => r.getIndex() === lastSelectedId);
-                    const endIndex = activeRows.findIndex(r => r.getIndex() === clickedRow.getIndex());
-            
+                    const startIndex = activeRows.findIndex(r => r.getData().id === lastToggledId);
+                    const endIndex = activeRows.findIndex(r => r.getData().id === currentId);
+    
                     if (startIndex > -1 && endIndex > -1) {
                         const min = Math.min(startIndex, endIndex);
                         const max = Math.max(startIndex, endIndex);
-                        const range = activeRows.slice(min, max + 1);
-            
-                        if (clickedRow.isSelected()) {
-                            table.selectRow(range);
-                        } else {
-                            table.deselectRow(range);
+    
+                        // Apply the state of the anchor to all rows in the range (Gmail style)
+                        for (let i = min; i <= max; i++) {
+                            const targetData = activeRows[i].getData();
+                            if (lastToggledState) {
+                                selectedRowsMap.set(targetData.id, targetData);
+                            } else {
+                                selectedRowsMap.delete(targetData.id);
+                            }
                         }
                     }
+                } else {
+                    // Standard Click - Toggle State
+                    if (selectedRowsMap.has(currentId)) {
+                        selectedRowsMap.delete(currentId);
+                        lastToggledState = false;
+                    } else {
+                        selectedRowsMap.set(currentId, currentData);
+                        lastToggledState = true;
+                    }
+                    lastToggledId = currentId;
                 }
-                // Always update the anchor for the next click
-                lastSelectedId = clickedRow.getIndex();
+    
+                // Force visible rows to rebuild cells and trigger rowFormatter.
+                // This instantly repaints checkboxes and background colors.
+                currentTableRef.getRows("active").forEach(r => r.reformat());
+            },
+        
+            ajaxURL: "/api/browse",
+            ajaxConfig: "POST", 
+            ajaxContentType: "json",
+            
+            ajaxParams: function() {
+                const params = { table: currentTable, refresh: refreshClicked };
+                refreshClicked = "false";
+                return params;
+            },
+        
+            pagination: true,
+            paginationMode: "remote",
+            paginationSize: calculatePageSize(), 
+            sortMode: "remote",
+            filterMode: "remote", 
+            placeholder: "No data available in this table",
+        });
+    
+        // Re-mount the hanging Excel-tabs to the footer
+        table.on("tableBuilt", function() {
+            const footer = dataTableContainer.querySelector('.tabulator-footer');
+            if(footer) {
+                footer.insertBefore(excelTabs, footer.firstChild);
             }
+            updateActionBar(currentTable);
+        });
+    
+        // Action Bar Generator
+        function updateActionBar(tableName) {
+            actionBar.innerHTML = ''; 
             
-            const table = new Tabulator("#data-table", {
-                layout: "fitData", 
-                autoColumns: true, 
-                selectableRows: true, // Native click-to-toggle
+            const actions = ACTION_CONFIG[tableName] || [];
             
-                dataReceive: function(data) {
-                    const idMap = {
-                        "participants": "participant_uid",
-                        "events": "event_uid",
-                        "samples": "sample_uid",
-                        "libraries": "library_uid",
-                        "analyses": "analysis_uid",
-                        "files": "file_uniq_name",
-                        "biosamples": "sample_name",
-                        "sra": "file_path"
-                    };
-                    const idField = idMap[currentTable];
-                    data.forEach(row => { row.id = row[idField]; });
-                    return data;
-                },
-            
-                autoColumnsDefinitions: function(definitions) {
-                    definitions = definitions.filter(col => col.field !== "id");
-            
-                    definitions.unshift({
-                        field: "custom_select",
-                        title: "",
-                        headerSort: false,
-                        hozAlign: "center",
-                        frozen: true,
-                        width: 50,
-                        formatter: function(cell) {
-                            const checked = cell.getRow().isSelected() ? "checked" : "";
-                            // CRITICAL FIX: pointer-events:none lets the click pass through the HTML input 
-                            // directly to the Tabulator cell, completely eliminating the race condition.
-                            return `<input type="checkbox" ${checked} style="pointer-events: none;">`;
-                        },
-                        cellClick: function(e, cell) {
-                            e.stopPropagation(); // Stop rowClick from double-firing
-                            
-                            const row = cell.getRow();
-                            row.toggleSelect(); // Toggle state natively via API
-                            handleShiftClick(e, row);
-                        }
-                    });
-            
-                    definitions.forEach((column) => {
-                        if (column.field !== "custom_select") {
-                            column.headerFilter = "input";
-                        }
-                    });
-                    
-                    return definitions;
-                },
-            
-                rowClick: function(e, row) {
-                    // Tabulator naturally toggled the row via 'selectableRows: true'. 
-                    // We just run the shift logic.
-                    handleShiftClick(e, row);
-                },
-            
-                ajaxURL: "/api/browse",
-                ajaxConfig: "POST", 
-                ajaxContentType: "json",
+            actions.forEach(action => {
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-primary';
+                btn.id = action.id;
+                btn.innerHTML = `<span class="material-symbols-outlined">${action.icon}</span> ${action.label}`;
                 
-                ajaxParams: function() {
-                    const params = { table: currentTable, refresh: refreshClicked };
-                    refreshClicked = "false";
-                    return params;
-                },
-            
-                pagination: true,
-                paginationMode: "remote",
-                paginationSize: calculatePageSize(), 
-                sortMode: "remote",
-                filterMode: "remote", 
-                placeholder: "No data available in this table",
+                btn.addEventListener('click', async () => {
+                    // Pull data from our external Map, NOT Tabulator's native selection
+                    const selectedRows = Array.from(selectedRowsMap.values());
+                    
+                    if (selectedRows.length === 0) {
+                        showErrorModal("Please select at least one row to perform this action.");
+                        return;
+                    }
+    
+                    const payloadData = selectedRows
+                        .map(row => row[action.payloadKey])
+                        .filter(val => val !== undefined && val !== null && val !== "");
+                    
+                    if (payloadData.length === 0) {
+                        showErrorModal(`None of the selected rows contain a valid '${action.payloadKey}'.`);
+                        return;
+                    }
+    
+                    try {
+                        const response = await fetch(action.endpoint, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ items: payloadData })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (response.ok && data.error) {
+                            showErrorModal(data.error);
+                        } else if (!response.ok) {
+                            showErrorModal(`Server Error: ${response.status} ${response.statusText}`);
+                        } else {
+                            // Success - Clear selection map, force refresh
+                            clearSelectionState();
+                            refreshClicked = "true";
+                            table.setData();
+                        }
+                    } catch (err) {
+                        showErrorModal(`Network Error: ${err.message}`);
+                    }
+                });
+                
+                actionBar.appendChild(btn);
             });
-            
-            // UI SYNCHRONIZER
-            table.on("rowSelected", function(row){
-                const cell = row.getCell("custom_select");
-                if(cell && cell.getElement()) {
-                    const input = cell.getElement().querySelector("input");
-                    if(input) input.checked = true;
-                }
-            });
-            
-            table.on("rowDeselected", function(row){
-                const cell = row.getCell("custom_select");
-                if(cell && cell.getElement()) {
-                    const input = cell.getElement().querySelector("input");
-                    if(input) input.checked = false;
-                }
-            });
-            
-            // Reset anchor on tab switch/reload
-            table.on("dataLoaded", function() {
-                lastSelectedId = null;
-            });
-            
-            // Reset the anchor row whenever you switch tabs or reload data
-            table.on("dataLoaded", function() {
-                lastSelectedRow = null;
-            });
-
-            // Re-mount the hanging Excel-tabs to the footer
-            table.on("tableBuilt", function() {
-                const footer = dataTableContainer.querySelector('.tabulator-footer');
-                if(footer) {
-                    footer.insertBefore(excelTabs, footer.firstChild);
-                }
+        }
+    
+        // Tab Switching functionality
+        tabButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                tabButtons.forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                
+                currentTable = e.target.getAttribute('data-table');
+                
+                // Clear selections when changing datasets
+                clearSelectionState();
+                
+                table.clearData();
+                table.setData();
                 updateActionBar(currentTable);
             });
-
-            // Action Bar Generator
-            function updateActionBar(tableName) {
-                actionBar.innerHTML = ''; // clear current actions
-                
-                const actions = ACTION_CONFIG[tableName] || [];
-                
-                actions.forEach(action => {
-                    const btn = document.createElement('button');
-                    btn.className = 'btn btn-primary';
-                    btn.id = action.id;
-                    btn.innerHTML = `<span class="material-symbols-outlined">${action.icon}</span> ${action.label}`;
-                    
-                    btn.addEventListener('click', async () => {
-                        const selectedRows = table.getSelectedData();
-                        
-                        if (selectedRows.length === 0) {
-                            showErrorModal("Please select at least one row to perform this action.");
-                            return;
-                        }
-
-                        // Extract data based on payloadKey (ignoring empty/undefined cells)
-                        const payloadData = selectedRows
-                            .map(row => row[action.payloadKey])
-                            .filter(val => val !== undefined && val !== null && val !== "");
-                        
-                        if (payloadData.length === 0) {
-                            showErrorModal(`None of the selected rows contain a valid '${action.payloadKey}'.`);
-                            return;
-                        }
-
-                        try {
-                            const response = await fetch(action.endpoint, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ items: payloadData }) // adjust body key as needed by your backend
-                            });
-                            
-                            const data = await response.json();
-                            
-                            if (response.ok && data.error) {
-                                // 200 OK but handled error exists in payload
-                                showErrorModal(data.error);
-                            } else if (!response.ok) {
-                                // System/HTTP Error
-                                showErrorModal(`Server Error: ${response.status} ${response.statusText}`);
-                            } else {
-                                // Success - Force a refresh to see the new states
-                                refreshClicked = "true";
-                                table.setData();
-                            }
-                        } catch (err) {
-                            showErrorModal(`Network Error: ${err.message}`);
-                        }
-                    });
-                    
-                    actionBar.appendChild(btn);
-                });
-            }
-
-            // Tab Switching functionality
-            tabButtons.forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    tabButtons.forEach(b => b.classList.remove('active'));
-                    e.target.classList.add('active');
-                    
-                    currentTable = e.target.getAttribute('data-table');
-                    
-                    table.clearData();
-                    table.setData();
-                    updateActionBar(currentTable);
-                });
-            });
-
-            // Handle standard refresh
-            refreshBtn.addEventListener('click', () => {
-                refreshClicked = "true";
-                table.setData();
-            });
-
-            // Handle Page Size manual override
-            pageSizeSelector.addEventListener('change', () => {
-                const newSize = calculatePageSize();
-                table.setPageSize(newSize);
-            });
-
-            // Throttled viewport resizing (only auto-updates if "auto" is selected)
-            function debounce(func, wait) {
-                let timeout;
-                return function(...args) {
-                    clearTimeout(timeout);
-                    timeout = setTimeout(() => func.apply(this, args), wait);
-                };
-            }
-
-            window.addEventListener('resize', debounce(() => {
-                if (dataTableContainer.clientHeight > 0 && pageSizeSelector.value === "auto") { 
-                    const newSize = calculatePageSize();
-                    if (table.getPageSize() !== newSize) {
-                        table.setPageSize(newSize);
-                    }
-                }
-            }, 200));
-            
         });
+    
+        // Handle standard refresh
+        refreshBtn.addEventListener('click', () => {
+            // Optionally, call clearSelectionState() here if you want refresh to clear selections.
+            refreshClicked = "true";
+            table.setData();
+        });
+    
+        // Handle Page Size manual override
+        pageSizeSelector.addEventListener('change', () => {
+            const newSize = calculatePageSize();
+            table.setPageSize(newSize);
+        });
+    
+        // Throttled viewport resizing
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+    
+        window.addEventListener('resize', debounce(() => {
+            if (dataTableContainer.clientHeight > 0 && pageSizeSelector.value === "auto") { 
+                const newSize = calculatePageSize();
+                if (table.getPageSize() !== newSize) {
+                    table.setPageSize(newSize);
+                }
+            }
+        }, 200));
+        
+    });
     </script>
 </body>
 </html>
