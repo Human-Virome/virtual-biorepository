@@ -142,9 +142,8 @@
                 layout: "fitData", 
                 autoColumns: true, 
                 
-                // Enable row selection and range selection (shift+click)
+                // Enable row selection. Shift+Click range selection is built-in natively!
                 selectableRows: true,
-                selectableRangeMode: "click",
                 
                 // INJECT the checkbox column here so autoColumns doesn't overwrite it
                 autoColumnsDefinitions: function(definitions) {
@@ -155,7 +154,12 @@
                         hozAlign: "center",
                         headerSort: false,
                         width: 50,
-                        frozen: true
+                        frozen: true,
+                        // Isolate the checkbox: prevents a checkbox click from bubbling 
+                        // up to the row and triggering the "clear other rows" logic.
+                        cellClick: function(e, cell) {
+                            e.stopPropagation();
+                        }
                     });
 
                     // 2. Add header filters to all other columns
