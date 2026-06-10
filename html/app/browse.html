@@ -7,24 +7,8 @@
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-    <link href="style.css" rel="stylesheet"/>
-    
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.2.1/styles/ag-grid.css">
-    
-    <style>
-        /* Theme overrides to blend AG Grid smoothly into your custom UI
-        .ag-theme-quartz-dark {
-            --ag-background-color: var(--surface);
-            --ag-header-background-color: var(--surface-high);
-            --ag-border-color: var(--border-color);
-            --ag-row-hover-color: #2b354a;
-            --ag-selected-row-background-color: #1e3a5f;
-            --ag-font-family: var(--font-main);
-            --ag-font-size: 0.8125rem;
-        } */
-        /* Hide AG Grid's native pagination to use your custom footer layout seamlessly */
-        .ag-paging-panel { display: none !important; }
-    </style>
+    <link href="style.css" rel="stylesheet"/>
 </head>
 
 <body>
@@ -58,19 +42,18 @@
                 
                 <div class="tabulator-footer" id="custom-footer" style="padding: 0.5rem; display: flex; justify-content: space-between; align-items: center; background: var(--surface-high); border-top: 1px solid var(--border-color);">
                     <div class="excel-tabs" id="excel-tabs">
-                        <button class="tab-btn active" data-table="participants">participants</button>
-                        <button class="tab-btn" data-table="events">events</button>
-                        <button class="tab-btn" data-table="samples">samples</button>
-                        <button class="tab-btn" data-table="libraries">libraries</button>
-                        <button class="tab-btn" data-table="analyses">analyses</button>
-                        <button class="tab-btn" data-table="files">files</button>
-                        <button class="tab-btn" data-table="biosamples">biosamples</button>
-                        <button class="tab-btn" data-table="sra">sra</button>
-                    </div>
-                    <div class="tabulator-paginator" style="display: flex; align-items: center; gap: 0.5rem;">
-                        <button id="btn-prev" class="tabulator-page">Prev</button>
-                        <span id="page-info" style="font-size: 0.8125rem; color: var(--text-muted);">Page 1</span>
-                        <button id="btn-next" class="tabulator-page">Next</button>
+                        <div class="tab-group-divider">
+                            <button class="tab-btn active" data-table="participants">participants</button>
+                            <button class="tab-btn" data-table="events">events</button>
+                            <button class="tab-btn" data-table="samples">samples</button>
+                            <button class="tab-btn" data-table="libraries">libraries</button>
+                            <button class="tab-btn" data-table="analyses">analyses</button>
+                            <button class="tab-btn" data-table="files">files</button>
+                        </div>
+                        <div class="tab-group-derived">
+                            <button class="tab-btn" data-table="biosamples">biosamples</button>
+                            <button class="tab-btn" data-table="sra">sra</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -130,23 +113,38 @@
             // AG GRID CONFIGURATION
             // ==========================================
             const gridOptions = {
+                // Enable Native Pagination
+                pagination: true,
+                paginationPageSize: 100,
+                paginationPageSizeSelector: [100, 500, 1000, 5000],
+                
+                // Grid behavior
                 rowData: [],
                 columnDefs: [],
                 rowSelection: 'multiple',
-                rowMultiSelectWithClick: true, // Native Gmail-style toggle on click
-                suppressCellFocus: true,       // Removes outline when clicking cells
+                rowMultiSelectWithClick: true,
+                suppressCellFocus: true,
                 suppressRowClickSelection: false,
+                
+                // Default column settings
                 defaultColDef: {
                     sortable: true,
-                    filter: 'agTextColumnFilter', // Native text filtering
+                    filter: 'agTextColumnFilter',
+                    floatingFilter: true, // Enables the quick filter row per column
                     resizable: true,
                     flex: 1,
-                    minWidth: 100
+                    minWidth: 120,
+                    wrapText: true,       // Prevents truncation
+                    autoHeight: true      // Adjusts row height to content
                 },
+                
+                // Row identification and event handling
                 getRowId: params => params.data[ID_MAP[currentTable]],
-                // Hook into native sort/filter events to trigger our server fetch
-                onSortChanged: () => { currentPage = 1; fetchData(); },
-                onFilterChanged: () => { currentPage = 1; fetchData(); }
+                
+                // Note: With native pagination enabled, you may prefer to handle 
+                // sorting/filtering server-side via onSortChanged and onFilterChanged
+                onSortChanged: () => { fetchData(); },
+                onFilterChanged: () => { fetchData(); }
             };
 
             // Initialize Grid

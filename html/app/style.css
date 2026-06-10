@@ -180,13 +180,25 @@ footer nav a:hover { color: #f1f5f9; }
 
 
 
+.ag-theme-quartz-dark {
+    --ag-row-height: 35px;        /* Reduces vertical density */
+    --ag-header-height: 40px;
+    --ag-font-size: 13px;
+}
 
 
 /* --- Excel-like Tabs (Hanging from the footer) --- */
+
 .excel-tabs {
     display: flex;
-    padding: 0 0.5rem;
-    overflow-x: auto;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.tab-group-divider {
+    border-right: 1px solid var(--border-color);
+    margin-right: 0.5rem;
+    padding-right: 0.5rem;
 }
 
 .tab-btn {
