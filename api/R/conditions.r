@@ -7,7 +7,7 @@ condition_check_events <- function (env) {
   age         <- !is.na(env$df[['age']])
   age_units   <- !is.na(env$df[['age_units']])
   age_range   <- !is.na(env$df[['age_range']])
-  has_animals <- sapply(env$df[['animal_exposure']], identical, 'yes')
+  has_animals <- unname(sapply(env$df[['animal_exposure']], identical, 'yes'))
   animal_list <- !is.na(env$df[['exposure_animal_type']])
   
   is_missing <- !(age | age_range)
@@ -63,8 +63,8 @@ condition_check_events <- function (env) {
   unexpected_animals <- animal_list & !has_animals
   if (any(unexpected_animals)) {
     bad_rows <- head(which(unexpected_animals))
-    msg <- "%s:%d: `animal_exposure` must be \"yes\" when `exposure_animal_type` is given."
-    msg <- sprintf(msg, env$tbl, bad_rows + 1)
+    msg <- "%s:%d: `animal_exposure` must be \"yes\" when `exposure_animal_type` is given (%s)."
+    msg <- sprintf(msg, env$tbl, bad_rows + 1, env$df[['exposure_animal_type']][bad_rows])
     errors <- c(errors, msg)
   }
   
