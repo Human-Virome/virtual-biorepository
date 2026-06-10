@@ -132,52 +132,43 @@
                 return size > 0 ? size : 1;
             }
 
-            let lastSelectedRowIndex = -1; // Track the anchor for shift-clicks
-
             const table = new Tabulator("#data-table", {
                 layout: "fitData", 
                 autoColumns: true, 
                 
-                // Natively allows clicking checkboxes to toggle them independently
+                // 1. Enable standard native row selection
                 selectableRows: true, 
                 
+                // 2. Map your dynamic primary keys to Tabulator's required 'id' field
+                // This instantly fixes the native Shift-Click range selection algorithm
+                dataReceive: function(data) {
+                    const idMap = {
+                        "participants": "participant_uid",
+                        "events": "event_uid",
+                        "samples": "sample_uid",
+                        "libraries": "library_uid",
+                        "analyses": "analysis_uid",
+                        "files": "file_uniq_name",
+                        "biosamples": "sample_name",
+                        "sra": "file_path"
+                    };
+                    const idField = idMap[currentTable];
+                    
+                    data.forEach(row => { row.id = row[idField]; });
+                    return data;
+                },
+                
                 autoColumnsDefinitions: function(definitions) {
+                    // Hide the newly injected generic 'id' column from the visual table
+                    definitions = definitions.filter(col => col.field !== "id");
+                    
                     definitions.unshift({
                         formatter: "rowSelection",
                         titleFormatter: "rowSelection",
                         hozAlign: "center",
                         headerSort: false,
                         width: 50,
-                        frozen: true,
-                        cellClick: function(e, cell) {
-                            const rows = cell.getTable().getRows("active");
-                            const currentRow = cell.getRow();
-                            const currentIndex = rows.findIndex(r => r === currentRow);
-            
-                            // If Shift is held and we have a previous anchor
-                            if (e.shiftKey && lastSelectedRowIndex > -1) {
-                                
-                                // Clear the annoying blue text selection natively
-                                if (window.getSelection) window.getSelection().removeAllRanges();
-            
-                                const start = Math.min(currentIndex, lastSelectedRowIndex);
-                                const end = Math.max(currentIndex, lastSelectedRowIndex);
-            
-                                // Tabulator's native formatter just toggled this row before this event fired.
-                                // We grab its new state and batch-apply it to the whole range.
-                                const isSelecting = currentRow.isSelected();
-                                const rowsToChange = rows.slice(start, end + 1);
-            
-                                if (isSelecting) {
-                                    cell.getTable().selectRow(rowsToChange);
-                                } else {
-                                    cell.getTable().deselectRow(rowsToChange);
-                                }
-                            }
-                            
-                            // Always set the anchor for the next click
-                            lastSelectedRowIndex = currentIndex;
-                        }
+                        frozen: true
                     });
             
                     definitions.forEach((column) => {
@@ -206,11 +197,6 @@
                 filterMode: "remote", 
                 
                 placeholder: "No data available in this table",
-            });
-            
-            // Reset the shift-click anchor whenever the table data changes/refreshes
-            table.on("dataLoaded", function() {
-                lastSelectedRowIndex = -1;
             });
 
             // Re-mount the hanging Excel-tabs to the footer
