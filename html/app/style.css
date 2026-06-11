@@ -186,8 +186,10 @@ footer nav a:hover { color: #f1f5f9; }
     --ag-row-height: 35px;
     --ag-header-height: 40px;
     --ag-font-size: 13px;
-    --ag-wrapper-border-radius: 0px;
+    --ag-wrapper-border-radius: 0px; 
     --ag-border-color: rgba(255, 255, 255, 0.1); 
+    --ag-header-background-color: var(--surface); 
+    --ag-background-color: var(--surface);
 }
 
 .ag-theme-quartz-dark .ag-root-wrapper {
@@ -223,21 +225,20 @@ footer nav a:hover { color: #f1f5f9; }
 
 /* --- 1. Seamless AG Grid Wrapper --- */
 .ag-integrated-wrapper {
-    border: 1px solid var(--ag-border-color, rgba(255, 255, 255, 0.1)); 
+    border: 1px solid rgba(255, 255, 255, 0.1); 
     border-radius: 0.5rem; 
     overflow: hidden; 
     display: flex; 
     flex-direction: column; 
     flex-grow: 1;
     min-height: 0;
-    /* Use your app's standard surface color here */
     background-color: var(--surface); 
 }
 
 .ag-custom-toolbar {
     padding: 0.6rem 1rem;
-    background-color: var(--ag-header-background-color, #182230);
-    border-bottom: 1px solid var(--ag-border-color, rgba(255, 255, 255, 0.1)); 
+    background-color: var(--surface);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Strip native borders from the grid so the wrapper handles it */
