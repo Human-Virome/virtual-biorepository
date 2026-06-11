@@ -3,7 +3,7 @@
 browse_db_table <- function (db, table) {
   
   sql <- sprintf("SELECT * FROM `%s` WHERE `user` = @user", table)
-  res <- db_query(db, final_sql, ec("ApiBrws"), simplify = FALSE)
+  res <- db_query(db, sql, "BrwsDb1", simplify = FALSE)
   
   res$user   <- NULL
   res$hvp_id <- NULL
