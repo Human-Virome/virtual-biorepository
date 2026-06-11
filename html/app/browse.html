@@ -8,8 +8,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@35.3.1/styles/ag-grid.css">
-    
     <link href="style.css" rel="stylesheet"/>
 </head>
 
@@ -36,7 +34,7 @@
                 </div>
             </div>
     
-            <div class="workspace-layout ag-integrated-wrapper ag-theme-quartz-dark">
+            <div class="workspace-layout ag-integrated-wrapper">
     
                 <div class="ag-custom-toolbar flex-between">
                     
@@ -111,6 +109,7 @@
             // AG Grid V35+ fully supports native multiRow clicking and shift-clicking natively 
             // under this new `rowSelection` config object format
             const gridOptions = {
+                theme: agGrid.themeQuartz.withPart(agGrid.colorSchemeDark),
                 pagination: true,
                 paginationPageSize: 100,
                 paginationPageSizeSelector: [20, 50, 100, 500, 1000, 5000],
