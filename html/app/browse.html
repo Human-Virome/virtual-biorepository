@@ -283,15 +283,16 @@
                     checkboxes: true,
                     enableClickSelection: true,
                     isRowSelectable: rowNode => {
-                        // Guard clause in case data isn't fully attached yet
-                        if (!rowNode.data) return false;
-                        
-                        if (currentTable === 'biosamples') {
-                            const acc = rowNode.data.biosample_accession;
-                            return acc !== null && acc !== undefined && String(acc).trim() !== '';
-                        }
-                        return true; 
-                    }
+                      // Guard clause in case data isn't fully attached yet
+                      if (!rowNode.data) return false;
+                      
+                      if (currentTable === 'biosamples') {
+                          const acc = rowNode.data.biosample_accession;
+                          // UPDATED: Now returns true (selectable) if the value is blank
+                          return acc === null || acc === undefined || String(acc).trim() === '';
+                      }
+                      return true; 
+                  }
                 } : undefined);
             }
 
