@@ -12,7 +12,6 @@ use vbr;
 # hvp:p-abcdef
 CREATE TABLE IF NOT EXISTS participants (
   hvp_id                         VARCHAR(50)  NOT NULL UNIQUE,
-  `user`                         VARCHAR(255) NOT NULL,
   participant_uid                VARCHAR(255) NOT NULL PRIMARY KEY,
   cohort_uid                     TEXT,
   host_taxon                     TINYTEXT,
@@ -25,13 +24,13 @@ CREATE TABLE IF NOT EXISTS participants (
   mode_of_birth_delivery         TINYTEXT,
   blood_type                     TINYTEXT,
   family_medical_history         ENUM('yes','no'),
+  `user`                         VARCHAR(255) NOT NULL,
   INDEX (`user`)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 # hvp:e-abcdef
 CREATE TABLE IF NOT EXISTS events (
   hvp_id                                  VARCHAR(50)  NOT NULL UNIQUE,
-  `user`                                  VARCHAR(255) NOT NULL,
   event_uid                               VARCHAR(255) NOT NULL PRIMARY KEY,
   participant_uid                         VARCHAR(255) NOT NULL,
   age                                     FLOAT UNSIGNED,
@@ -91,6 +90,7 @@ CREATE TABLE IF NOT EXISTS events (
   acute_health_status_at_sampling         ENUM('yes','no'),
   acute_health_status_at_sampling_comment TEXT,
   time_last_toothbrush                    FLOAT UNSIGNED,
+  `user`                                  VARCHAR(255) NOT NULL,
   INDEX (`user`),
   FOREIGN KEY (participant_uid) REFERENCES participants(participant_uid)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
@@ -98,7 +98,6 @@ CREATE TABLE IF NOT EXISTS events (
 # hvp:s-abcdef
 CREATE TABLE IF NOT EXISTS samples (
   hvp_id                   VARCHAR(50)  NOT NULL UNIQUE,
-  `user`                   VARCHAR(255) NOT NULL,
   sample_uid               VARCHAR(255) NOT NULL PRIMARY KEY,
   biosample_id             VARCHAR(50),
   participant_uid          VARCHAR(255) NOT NULL,
@@ -127,6 +126,7 @@ CREATE TABLE IF NOT EXISTS samples (
   is_control_sample        ENUM('yes','no'),
   negative_control_type    TINYTEXT,
   postive_control_type     TINYTEXT,
+  `user`                   VARCHAR(255) NOT NULL,
   INDEX (`user`),
   FOREIGN KEY (event_uid)       REFERENCES events(event_uid),
   FOREIGN KEY (participant_uid) REFERENCES participants(participant_uid)
@@ -135,7 +135,6 @@ CREATE TABLE IF NOT EXISTS samples (
 # hvp:l-abcdef
 CREATE TABLE IF NOT EXISTS libraries (
   hvp_id                      VARCHAR(50)  NOT NULL UNIQUE,
-  `user`                      VARCHAR(255) NOT NULL,
   library_uid                 VARCHAR(255) NOT NULL PRIMARY KEY,
   sample_uid                  VARCHAR(255) NOT NULL,
   bioproject_id               TINYTEXT,
@@ -153,6 +152,7 @@ CREATE TABLE IF NOT EXISTS libraries (
   paired_or_single            TINYTEXT,
   sequencing_platform         TINYTEXT,
   sequencing_instrument_model TINYTEXT,
+  `user`                      VARCHAR(255) NOT NULL,
   INDEX (`user`),
   FOREIGN KEY (sample_uid) REFERENCES samples(sample_uid)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
@@ -160,7 +160,6 @@ CREATE TABLE IF NOT EXISTS libraries (
 # hvp:a-abcdef
 CREATE TABLE IF NOT EXISTS analyses (
   hvp_id                 VARCHAR(50)  NOT NULL UNIQUE,
-  `user`                 VARCHAR(255) NOT NULL,
   analysis_uid           VARCHAR(255) NOT NULL PRIMARY KEY,
   analysis_description   TEXT,
   pipeline_name          TINYTEXT,
@@ -169,13 +168,13 @@ CREATE TABLE IF NOT EXISTS analyses (
   sop_url                TINYTEXT,
   community_workspace    TINYTEXT,
   pipeline_container_url TINYTEXT,
+  `user`                 VARCHAR(255) NOT NULL,
   INDEX (`user`)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 # hvp:f-abcdef
 CREATE TABLE IF NOT EXISTS files (
   hvp_id                  VARCHAR(50)  NOT NULL UNIQUE,
-  `user`                  VARCHAR(255) NOT NULL,
   file_uniq_name          VARCHAR(255) NOT NULL PRIMARY KEY,
   library_uid             VARCHAR(255),
   bioproject_id           TINYTEXT,
@@ -187,6 +186,7 @@ CREATE TABLE IF NOT EXISTS files (
   access                  TINYTEXT,
   data_use_condition      TINYTEXT,
   data_use_specific_limit TINYTEXT,
+  `user`                  VARCHAR(255) NOT NULL,
   INDEX (`user`),
   FOREIGN KEY (library_uid)  REFERENCES libraries(library_uid),
   FOREIGN KEY (analysis_uid) REFERENCES analyses(analysis_uid)
@@ -197,7 +197,6 @@ CREATE TABLE IF NOT EXISTS files (
 # https://submit.ncbi.nlm.nih.gov/biosample/template/?package-0=Metagenome.environmental.1.0&action=definition
 CREATE TABLE IF NOT EXISTS biosamples (
   hvp_id                      VARCHAR(50)  NOT NULL UNIQUE,
-  `user`                      VARCHAR(255) NOT NULL,
   sample_name                 VARCHAR(50)  NOT NULL PRIMARY KEY,
   ncbi_status                 TINYTEXT,
   biosample_accession         VARCHAR(50)  UNIQUE,
@@ -236,6 +235,7 @@ CREATE TABLE IF NOT EXISTS biosamples (
   social_det_collected        ENUM('yes','no'),
   time_last_toothbrush        FLOAT UNSIGNED,
   lat_lon                     TINYTEXT NOT NULL DEFAULT ('not collected'),
+  `user`                      VARCHAR(255) NOT NULL,
   INDEX (`user`),
   FOREIGN KEY (hvp_id)            REFERENCES samples(hvp_id),
   FOREIGN KEY (host_subject_id)   REFERENCES participants(participant_uid),
@@ -244,7 +244,7 @@ CREATE TABLE IF NOT EXISTS biosamples (
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 CREATE TABLE IF NOT EXISTS sra (
-  `user`                        VARCHAR(255) NOT NULL,
+  hvp_id                        VARCHAR(50)  NOT NULL UNIQUE,
   file_path                     VARCHAR(255) NOT NULL PRIMARY KEY,
   sample_name                   VARCHAR(50)  NOT NULL,
   BioSample                     VARCHAR(50),
@@ -257,6 +257,7 @@ CREATE TABLE IF NOT EXISTS sra (
   library_layout                TINYTEXT,
   library_construction_protocol TINYTEXT,
   instrument_model              TINYTEXT,
+  `user`                        VARCHAR(255) NOT NULL,
   INDEX (`user`),
   FOREIGN KEY (file_path)    REFERENCES files(file_uniq_name),
   FOREIGN KEY (sample_name)  REFERENCES samples(sample_uid),

@@ -129,9 +129,6 @@ ingest_table <- function (env) {
     'events'    = derive_cols_events(env),
     'libraries' = derive_cols_libraries(env) )
   
-  env$df[['hvp_id']] <- create_hvp_ids(env)
-  env$df[['user']]   <- attr(env$db, 'user')
-  
   db_append(env$db, env$tbl, env$df, 'InTbl1')
   
   switch(
