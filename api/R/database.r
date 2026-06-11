@@ -105,13 +105,11 @@ db_append <- function (db, tbl, df, err_code) {
   stopifnot(!anyNA(new_ids)) # Too many collisions (highly unlikely).
   
   df[['hvp_id']] <- new_ids
-  
-  if (!hasName(df, 'user'))
-    df[['user']] <- attr(db, 'user')
+  df[['user']]   <- NULL
   
   colnames     <- paste0("`", names(df), "`", collapse = ", ")
   placeholders <- paste0(rep("?", ncol(df)),  collapse = ", ")
-  fmt <- "INSERT INTO `%s` (%s) VALUES (%s)"
+  fmt <- "INSERT INTO `%s` (%s, `user`) VALUES (%s, @user)"
   sql <- sprintf(fmt, tbl, colnames, placeholders)
   
   db_query(db, sql, err_code, params = unname(as.list(df)))
