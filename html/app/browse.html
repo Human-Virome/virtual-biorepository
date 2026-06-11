@@ -182,7 +182,9 @@
             gridApi = agGrid.createGrid(gridDiv, gridOptions);
     
             async function loadClientData() {
+              
                 gridApi.setGridOption('loading', true);
+                updateRowSelection();
             
                 try {
                     const response = await fetch(`/api/browse/${currentTable}`);
@@ -267,10 +269,11 @@
                     filteredEl.style.display = 'none';
                 }
             }
-
-            function updateActionBar() {
+            
+            
+            // --- Handle selection state independently ---
+            function updateRowSelection() {
               
-                actionBar.innerHTML = ''; 
                 const actions    = ACTION_CONFIG[currentTable] || [];
                 const hasActions = actions.length > 0;
                 
@@ -279,14 +282,23 @@
                     headerCheckbox: true,
                     checkboxes: true,
                     enableClickSelection: true,
-                    isRowSelectable: params => {
+                    isRowSelectable: rowNode => {
+                        // Guard clause in case data isn't fully attached yet
+                        if (!rowNode.data) return false;
+                        
                         if (currentTable === 'biosamples') {
-                            const acc = params.data?.biosample_accession;
+                            const acc = rowNode.data.biosample_accession;
                             return acc !== null && acc !== undefined && String(acc).trim() !== '';
                         }
                         return true; 
                     }
                 } : undefined);
+            }
+
+            function updateActionBar() {
+              
+                actionBar.innerHTML = ''; 
+                const actions    = ACTION_CONFIG[currentTable] || [];
                 
                 actions.forEach(action => {
                     const btn = document.createElement('button');
