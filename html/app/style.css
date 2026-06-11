@@ -180,63 +180,22 @@ footer nav a:hover { color: #f1f5f9; }
 
 
 
-/* --- AG Grid Data Table --- */
-
-.ag-theme-quartz-dark {
-    --ag-row-height: 35px;
-    --ag-header-height: 40px;
-    --ag-font-size: 13px;
-    --ag-wrapper-border-radius: 0px; 
-    --ag-border-color: rgba(255, 255, 255, 0.1);
-}
-
-.ag-theme-quartz-dark .ag-root-wrapper {
-    border: none !important;
-    border-radius: 0 !important;
-}
-
-.ag-paging-panel {
-    display: flex !important;
-    justify-content: space-between !important;
-}
-
-.ag-paging-page-size-selector { margin-right: auto; }
-
-
-/* --- Embedded Toolbar Sizing --- */
-.action-toolbar .btn,
-.action-toolbar .form-control {
-    height: 32px;            /* Forces a compact, uniform height */
-    padding-top: 0;
-    padding-bottom: 0;
-    font-size: 0.8125rem;    /* Scales down the font */
-}
-
-.action-toolbar .btn {
-    padding-left: 0.75rem;
-    padding-right: 0.75rem;
-}
-
-.action-toolbar .btn .material-symbols-outlined {
-    font-size: 16px;         /* Scales down the icons inside the buttons */
-}
-
-/* --- 1. Seamless AG Grid Wrapper --- */
+/* --- Seamless AG Grid Wrapper --- */
 .ag-integrated-wrapper {
-    border: 1px solid var(--ag-border-color); 
+    border: 1px solid #30363d; /* Native Quartz Dark border */
     border-radius: 0.5rem; 
     overflow: hidden; 
     display: flex; 
     flex-direction: column; 
     flex-grow: 1;
     min-height: 0;
-    background-color: var(--ag-background-color); 
+    background-color: #181d1f; /* Native Quartz Dark base background */
 }
 
 .ag-custom-toolbar {
     padding: 0.6rem 1rem;
-    background-color: var(--ag-header-background-color);
-    border-bottom: 1px solid var(--ag-border-color);
+    background-color: #222628; /* Native Quartz Dark header background */
+    border-bottom: 1px solid #30363d; /* Native Quartz Dark border */
 }
 
 /* --- Strip Native Borders --- */
@@ -307,9 +266,9 @@ footer nav a:hover { color: #f1f5f9; }
 }
 
 .ag-custom-input {
-    background-color: var(--bg-main, #0b1326);
-    border: 1px solid var(--ag-border-color, rgba(255, 255, 255, 0.1));
-    color: var(--text-main, #e5e7eb);
+    background-color: #181d1f;
+    border: 1px solid #30363d;
+    color: #e5e7eb;
     padding: 0.35rem 0.75rem 0.35rem 2.25rem;
     border-radius: 0.25rem;
     font-family: inherit;
@@ -320,7 +279,7 @@ footer nav a:hover { color: #f1f5f9; }
 
 .ag-custom-input:focus {
     outline: none;
-    border-color: rgba(255, 255, 255, 0.3);
+    border-color: #4b5563;
 }
 
 /* --- Sleek Action Buttons --- */
@@ -363,62 +322,6 @@ footer nav a:hover { color: #f1f5f9; }
 #myGrid {
     border-top: none !important;
 }
-
-
-/* --- Excel-like Tabs (Hanging from the footer) --- */
-
-.excel-tabs {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-}
-
-.tab-group-divider {
-    border-right: 1px solid var(--border-color);
-    margin-right: 0.5rem;
-    padding-right: 0.5rem;
-}
-
-.tab-btn {
-    background-color: transparent;
-    border: 1px solid transparent;
-    border-top: none; 
-    padding: 0.5rem 1.25rem;
-    margin-right: 0.25rem;
-    cursor: pointer;
-    color: var(--text-muted);
-    border-radius: 0 0 0.375rem 0.375rem; 
-    font-family: var(--font-main);
-    font-size: 0.8125rem;
-    font-weight: 500;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-}
-
-.tab-btn:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-    color: #ffffff;
-}
-
-.tab-btn.active {
-    background-color: var(--surface);
-    border-color: var(--border-color);
-    color: var(--primary);
-    font-weight: 600;
-    position: relative;
-}
-
-.tab-btn.active::before {
-    content: "";
-    position: absolute;
-    top: -1px;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background-color: var(--surface);
-}
-
-
 
 
 
