@@ -182,19 +182,19 @@ footer nav a:hover { color: #f1f5f9; }
 
 /* --- Seamless AG Grid Wrapper --- */
 .ag-integrated-wrapper {
-    border: 1px solid #334155; /* Native DarkBlue border */
+    border: 1px solid #334155;
     border-radius: 0.5rem; 
     overflow: hidden; 
     display: flex; 
     flex-direction: column; 
     flex-grow: 1;
     min-height: 0;
-    background-color: #0f172a; /* Native DarkBlue base background */
+    background-color: #0f172a;
 }
 
 .ag-custom-toolbar {
     padding: 0.6rem 1rem;
-    background-color: #1e293b; /* Native DarkBlue header background */
+    background-color: #2a3340;
     border-bottom: 1px solid #334155; 
 }
 
