@@ -285,6 +285,71 @@ footer nav a:hover { color: #f1f5f9; }
 }
 
 
+
+/* --- Custom Grid Footer --- */
+.ag-custom-footer {
+    padding: 0.75rem 1rem;
+    border-top: 1px solid #334155;
+    background-color: #2a3340;
+    color: #fff;
+    align-items: center;
+    font-size: 0.85rem;
+}
+
+.ag-custom-footer .footer-section {
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+
+.ag-custom-footer .footer-left {
+    justify-content: flex-start;
+    gap: 0.5rem;
+}
+
+.ag-custom-footer .footer-center {
+    justify-content: center;
+    gap: 1rem;
+    font-weight: 500;
+    text-align: center;
+}
+
+.ag-custom-footer .footer-right {
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.ag-custom-footer-select {
+    padding: 0.2rem;
+    width: auto;
+    background-color: #1e293b;
+    color: #fff;
+    border: 1px solid #334155;
+    border-radius: 4px;
+}
+
+.ag-custom-footer .stat-selected {
+    color: #38bdf8;
+    display: none; /* Hidden by default */
+}
+
+.ag-custom-footer .stat-filtered {
+    color: #fbbf24;
+    display: none; /* Hidden by default */
+}
+
+.ag-custom-footer .ag-icon-btn {
+    padding: 0.2rem;
+    color: #fff;
+}
+
+/* Spinner Animation for Action Buttons */
+@keyframes spin { 
+    100% { transform: rotate(360deg); } 
+}
+
+
+
 /* --- 2. Modern Dark Theme Tabs (Pill Style) --- */
 .top-tabs {
     display: flex;

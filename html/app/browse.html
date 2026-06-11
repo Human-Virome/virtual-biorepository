@@ -56,35 +56,38 @@
             
                 <div id="myGrid" style="flex-grow: 1; width: 100%;"></div>
 
-                <div class="custom-grid-footer flex-between" style="padding: 0.75rem 1rem; border-top: 1px solid #334155; background: #2a3340; align-items: center; font-size: 0.85rem; color: #fff;">
+                <div class="ag-custom-footer flex-between">
                     
-                    <div style="flex: 1; display: flex; gap: 1rem;">
-                        <span id="stat-selected">0 Selected</span>
-                        <span id="stat-filtered" style="display: none;">(Filtered from 0 total)</span>
+                    <div class="footer-section footer-left">
+                        <label for="page-size-select">Page Size:</label>
+                        <select id="page-size-select" class="ag-custom-input ag-custom-footer-select">
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                            <option value="100" selected>100</option>
+                            <option value="500">500</option>
+                        </select>
                     </div>
-                
-                    <div style="flex: 1; text-align: center; font-weight: 600; color: var(--text-main);">
+
+                    <div class="footer-section footer-center">
+                        <span id="stat-selected" class="stat-selected">0 Selected</span>
                         <span id="stat-total">Total: 0 rows</span>
+                        <span id="stat-filtered" class="stat-filtered">(Filtered from 0)</span>
                     </div>
-                
-                    <div style="flex: 1; display: flex; justify-content: flex-end; align-items: center; gap: 1rem;">
-                        
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <label for="page-size-select">Page Size:</label>
-                            <select id="page-size-select" class="ag-custom-input" style="padding: 0.2rem; width: auto;">
-                                <option value="20">20</option>
-                                <option value="50">50</option>
-                                <option value="100" selected>100</option>
-                                <option value="500">500</option>
-                            </select>
-                        </div>
-                
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <button id="btn-prev-page" class="ag-icon-btn" style="padding: 0.2rem;"><span class="material-symbols-outlined">chevron_left</span></button>
-                            <span id="stat-page-info">Page 1 of 1</span>
-                            <button id="btn-next-page" class="ag-icon-btn" style="padding: 0.2rem;"><span class="material-symbols-outlined">chevron_right</span></button>
-                        </div>
-                
+
+                    <div class="footer-section footer-right">
+                        <button id="btn-first-page" class="ag-icon-btn" title="First Page">
+                            <span class="material-symbols-outlined">keyboard_double_arrow_left</span>
+                        </button>
+                        <button id="btn-prev-page" class="ag-icon-btn" title="Previous Page">
+                            <span class="material-symbols-outlined">chevron_left</span>
+                        </button>
+                        <span id="stat-page-info">Page 1 of 1</span>
+                        <button id="btn-next-page" class="ag-icon-btn" title="Next Page">
+                            <span class="material-symbols-outlined">chevron_right</span>
+                        </button>
+                        <button id="btn-last-page" class="ag-icon-btn" title="Last Page">
+                            <span class="material-symbols-outlined">keyboard_double_arrow_right</span>
+                        </button>
                     </div>
                 </div>
                 
@@ -118,16 +121,20 @@
             const actionBar = document.getElementById('dynamic-action-bar');
             const searchInput = document.getElementById('quick-filter-input');
             
+            // Custom Footer Elements
+            const pageSizeSelect = document.getElementById('page-size-select');
+            const btnFirstPage = document.getElementById('btn-first-page');
+            const btnPrevPage = document.getElementById('btn-prev-page');
+            const btnNextPage = document.getElementById('btn-next-page');
+            const btnLastPage = document.getElementById('btn-last-page');
+            
             let currentTable = "participants";
             let gridApi;
-            
-            // --- NEW: Toggle State & Helper ---
             let hideEmptyColumns = true; 
     
             function getEmptyColumns(data) {
                 if (!data || data.length === 0) return [];
                 const keys = Object.keys(data[0]);
-                // Find columns where every row's value is null, undefined, or an empty string
                 return keys.filter(key => 
                     data.every(row => row[key] === null || row[key] === undefined || row[key] === '')
                 );
@@ -150,18 +157,10 @@
                 paginationPageSize: 100,
                 paginationPageSizeSelector: [20, 50, 100, 500, 1000, 5000],
                 columnDefs: [],
-                
                 suppressPaginationPanel: true,
                 onPaginationChanged: updateCustomFooter,
                 onSelectionChanged: updateCustomFooter,
                 onModelUpdated: updateCustomFooter,
-                
-                rowSelection: {
-                    mode: 'multiRow',
-                    headerCheckbox: true,
-                    checkboxes: true,
-                    enableClickSelection: true
-                },
                 
                 selectionColumnDef: {
                     width: 50,
@@ -179,10 +178,18 @@
                     minWidth: 120,
                     tooltipValueGetter: (params) => params.value 
                 },
-                // --- UPDATED: Universally use hvp_id as the row identifier ---
+                
                 getRowId: params => {
                     if (!params.data) return undefined;
                     return params.data.hvp_id;
+                },
+                
+                isRowSelectable: params => {
+                    if (currentTable === 'biosamples') {
+                        const acc = params.data?.biosample_accession;
+                        return acc !== null && acc !== undefined && String(acc).trim() !== '';
+                    }
+                    return true; 
                 }
             };
     
@@ -191,7 +198,7 @@
     
             async function loadClientData() {
                 gridApi.showLoadingOverlay();
-            
+    
                 try {
                     const response = await fetch(`/api/browse/${currentTable}`);
                     const result   = await response.json();
@@ -201,21 +208,18 @@
                         showErrorModal(result.error);
                         return;
                     }
-            
+    
                     const currentCols = gridApi.getColumnDefs() || [];
                     if (result.data.length > 0 && currentCols.length === 0) {
                         const keys = Object.keys(result.data[0]); 
-                        const emptyCols = getEmptyColumns(result.data);
+                        const emptyCols = getEmptyColumns(result.data); 
                         
-                        // --- NEW: Find the first key that isn't hvp_id so we can pin it ---
                         const firstVisibleKey = keys.find(k => k !== 'hvp_id');
                         
                         const colDefs = keys.map(k => ({ 
                             field: k, 
                             headerName: k,
-                            // --- UPDATED: Always hide hvp_id, otherwise respect empty column toggle ---
                             hide: k === 'hvp_id' ? true : (hideEmptyColumns && emptyCols.includes(k)),
-                            // --- NEW: Pin the first non-hvp_id column to the left ---
                             pinned: k === firstVisibleKey ? 'left' : null
                         }));
                         
@@ -228,41 +232,95 @@
                     } else if (result.data.length === 0 && currentCols.length === 0) {
                         gridApi.setGridOption('columnDefs', []);
                     }
-            
+    
                     gridApi.setGridOption('rowData', result.data);
-            
+    
                     gridApi.hideOverlay();
                     updateActionBar();
-            
+    
                 } catch (err) {
                     gridApi.hideOverlay();
                     showErrorModal(`Network Error: ${err.message}`);
                 }
             }
     
+            function updateCustomFooter() {
+                if (!gridApi) return;
+            
+                // 1. Pagination Details
+                const currentPage = gridApi.paginationGetCurrentPage() + 1;
+                const totalPages = gridApi.paginationGetTotalPages() || 1;
+                document.getElementById('stat-page-info').textContent = `Page ${currentPage} of ${totalPages}`;
+                
+                btnFirstPage.disabled = currentPage === 1;
+                btnPrevPage.disabled = currentPage === 1;
+                btnNextPage.disabled = currentPage === totalPages;
+                btnLastPage.disabled = currentPage === totalPages;
+            
+                // 2. Selection Details
+                const selectedCount = gridApi.getSelectedRows().length;
+                const selectedEl = document.getElementById('stat-selected');
+                if (selectedCount > 0) {
+                    selectedEl.textContent = `${selectedCount} Selected`;
+                    selectedEl.style.display = 'inline';
+                } else {
+                    selectedEl.style.display = 'none';
+                }
+            
+                // 3. Filter & Total Details
+                const displayedCount = gridApi.getDisplayedRowCount();
+                const rowData = gridApi.getGridOption('rowData');
+                const absoluteTotal = rowData ? rowData.length : 0;
+            
+                document.getElementById('stat-total').textContent = `Total: ${absoluteTotal} rows`;
+            
+                const filteredEl = document.getElementById('stat-filtered');
+                if (displayedCount < absoluteTotal) {
+                    filteredEl.textContent = `(Filtered to ${displayedCount})`;
+                    filteredEl.style.display = 'inline';
+                } else {
+                    filteredEl.style.display = 'none';
+                }
+            }
+
             function updateActionBar() {
                 actionBar.innerHTML = ''; 
                 const actions = ACTION_CONFIG[currentTable] || [];
                 
+                const hasActions = actions.length > 0;
+                gridApi.setGridOption('rowSelection', hasActions ? {
+                    mode: 'multiRow',
+                    headerCheckbox: true,
+                    checkboxes: true,
+                    enableClickSelection: true
+                } : undefined);
+                
                 actions.forEach(action => {
                     const btn = document.createElement('button');
-                    btn.className = 'ag-icon-btn';
-                    btn.innerHTML = `<span class="material-symbols-outlined">${action.icon}</span> ${action.label}`;
+                    btn.className = 'ag-icon-btn action-btn';
+                    btn.disabled = true; 
+                    btn.style.opacity = '0.5'; 
+                    
+                    btn.innerHTML = `<span class="material-symbols-outlined action-icon">${action.icon}</span> <span class="action-label">${action.label}</span>`;
+                    
+                    const selectionListener = () => {
+                        const hasSelection = gridApi.getSelectedRows().length > 0;
+                        btn.disabled = !hasSelection;
+                        btn.style.opacity = hasSelection ? '1' : '0.5';
+                    };
+                    gridApi.addEventListener('selectionChanged', selectionListener);
                     
                     btn.addEventListener('click', async () => {
                         const selectedData = gridApi.getSelectedRows();
-                        if (selectedData.length === 0) {
-                            showErrorModal("Please select at least one row to perform this action.");
-                            return;
-                        }
-    
                         const payloadData = selectedData.map(row => row[action.payloadKey]).filter(Boolean);
                         
-                        if (payloadData.length === 0) {
-                            showErrorModal(`None of the selected rows contain a valid '${action.payloadKey}'.`);
-                            return;
-                        }
-    
+                        const iconSpan = btn.querySelector('.action-icon');
+                        const originalIcon = iconSpan.textContent;
+                        iconSpan.textContent = 'sync'; 
+                        iconSpan.style.animation = 'spin 1s linear infinite'; 
+                        btn.disabled = true;
+                        btn.style.opacity = '0.5';
+            
                         try {
                             const response = await fetch(action.endpoint, {
                                 method: 'POST',
@@ -274,33 +332,35 @@
                             if (!response.ok || data.error) {
                                 showErrorModal(data.error || `Server Error: ${response.status}`);
                             } else {
-                                gridApi.deselectAll();
-                                loadClientData(); 
+                                gridApi.deselectAll(); 
+                                await loadClientData(); 
                             }
                         } catch (err) {
                             showErrorModal(`Network Error: ${err.message}`);
+                        } finally {
+                            iconSpan.textContent = originalIcon;
+                            iconSpan.style.animation = 'none';
+                            selectionListener(); 
                         }
                     });
+                    
                     actionBar.appendChild(btn);
                 });
-    
-                // --- NEW: Append the Toggle Empty Columns Button ---
+            
                 const toggleBtn = document.createElement('button');
                 toggleBtn.className = 'ag-icon-btn';
                 
-                // Helper to sync the icon and tooltip with the current state
                 const updateToggleUI = () => {
                     toggleBtn.title = hideEmptyColumns ? "Show Empty Columns" : "Hide Empty Columns";
                     toggleBtn.innerHTML = `<span class="material-symbols-outlined">${hideEmptyColumns ? 'visibility' : 'visibility_off'}</span>`;
                 };
                 
-                updateToggleUI(); // Set initial UI
-    
+                updateToggleUI(); 
+            
                 toggleBtn.addEventListener('click', () => {
                     hideEmptyColumns = !hideEmptyColumns;
                     updateToggleUI();
                     
-                    // Extract current data to re-evaluate which columns are empty
                     const rowData = [];
                     gridApi.forEachNode(node => rowData.push(node.data));
                     
@@ -319,8 +379,16 @@
             });
     
             document.getElementById('refresh-btn').addEventListener('click', () => {
+                gridApi.deselectAll();
                 loadClientData();
             });
+
+            // Pagination Listeners
+            pageSizeSelect.addEventListener('change', e => gridApi.setGridOption('paginationPageSize', Number(e.target.value)));
+            btnFirstPage.addEventListener('click', () => gridApi.paginationGoToFirstPage());
+            btnPrevPage.addEventListener('click', () => gridApi.paginationGoToPreviousPage());
+            btnNextPage.addEventListener('click', () => gridApi.paginationGoToNextPage());
+            btnLastPage.addEventListener('click', () => gridApi.paginationGoToLastPage());
     
             tabButtons.forEach(btn => {
                 btn.addEventListener('click', (e) => {
@@ -337,59 +405,6 @@
                     loadClientData();
                 });
             });
-        
-        
-            
-            // --- Custom Footer Logic ---
-            const pageSizeSelect = document.getElementById('page-size-select');
-            const btnPrevPage = document.getElementById('btn-prev-page');
-            const btnNextPage = document.getElementById('btn-next-page');
-            
-            // Handle Page Size Change
-            pageSizeSelect.addEventListener('change', (e) => {
-                gridApi.setGridOption('paginationPageSize', Number(e.target.value));
-            });
-            
-            // Handle Pagination Buttons
-            btnPrevPage.addEventListener('click', () => gridApi.paginationGoToPreviousPage());
-            btnNextPage.addEventListener('click', () => gridApi.paginationGoToNextPage());
-            
-            // Main Update Function
-            function updateCustomFooter() {
-                if (!gridApi) return;
-            
-                // 1. Pagination Details
-                const currentPage = gridApi.paginationGetCurrentPage() + 1;
-                const totalPages = gridApi.paginationGetTotalPages() || 1;
-                document.getElementById('stat-page-info').textContent = `Page ${currentPage} of ${totalPages}`;
-                
-                // Disable/Enable buttons based on page
-                btnPrevPage.disabled = currentPage === 1;
-                btnNextPage.disabled = currentPage === totalPages;
-            
-                // 2. Selection Details
-                const selectedCount = gridApi.getSelectedRows().length;
-                document.getElementById('stat-selected').textContent = `${selectedCount} Selected`;
-            
-                // 3. Filter & Total Details
-                // getDisplayedRowCount() respects filters. 
-                // gridApi.getGridOption('rowData').length gets the absolute total.
-                const displayedCount = gridApi.getDisplayedRowCount();
-                const rowData = gridApi.getGridOption('rowData');
-                const absoluteTotal = rowData ? rowData.length : 0;
-            
-                document.getElementById('stat-total').textContent = `Total: ${displayedCount} rows`;
-            
-                const filteredEl = document.getElementById('stat-filtered');
-                if (displayedCount < absoluteTotal) {
-                    filteredEl.textContent = `(Filtered from ${absoluteTotal} total)`;
-                    filteredEl.style.display = 'inline';
-                } else {
-                    filteredEl.style.display = 'none';
-                }
-            }
-            
-            
     
             // Initialize Grid
             loadClientData();
@@ -397,6 +412,4 @@
     </script>
 </body>
 </html>
-
-
 
