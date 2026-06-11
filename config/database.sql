@@ -99,8 +99,8 @@ CREATE TABLE IF NOT EXISTS events (
 CREATE TABLE IF NOT EXISTS samples (
   hvp_id                   VARCHAR(50)  NOT NULL UNIQUE,
   `user`                   VARCHAR(255) NOT NULL,
-  biosample_id             VARCHAR(50),
   sample_uid               VARCHAR(255) NOT NULL PRIMARY KEY,
+  biosample_id             VARCHAR(50),
   participant_uid          VARCHAR(255) NOT NULL,
   event_uid                VARCHAR(255) NOT NULL,
   lab                      TINYTEXT,
@@ -198,11 +198,11 @@ CREATE TABLE IF NOT EXISTS files (
 CREATE TABLE IF NOT EXISTS biosamples (
   hvp_id                      VARCHAR(50)  NOT NULL UNIQUE,
   `user`                      VARCHAR(255) NOT NULL,
+  sample_name                 VARCHAR(50)  NOT NULL PRIMARY KEY,
   ncbi_status                 TINYTEXT,
   biosample_accession         VARCHAR(50)  UNIQUE,
   host_subject_id             VARCHAR(50)  NOT NULL,
   sampling_event_id           VARCHAR(50)  NOT NULL,
-  sample_name                 VARCHAR(50)  NOT NULL PRIMARY KEY,
   organism                    TINYTEXT,
   host_tissue_sampled         TINYTEXT,
   host_body_product           TINYTEXT,
@@ -265,6 +265,6 @@ CREATE TABLE IF NOT EXISTS sra (
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 
-INSERT INTO `participants` (`hvp_id`, `user`, `participant_uid`)              VALUES ('hvp:p-mock', 'Daniel.Smith@bcm.edu', 'mock');
-INSERT INTO `events`       (`hvp_id`, `user`, `participant_uid`, `event_uid`) VALUES ('hvp:e-mock', 'Daniel.Smith@bcm.edu', 'mock', 'mock');
+INSERT INTO `participants` (`hvp_id`, `user`, `participant_uid`)              VALUES ('hvp:p-mock', 'VBR', 'mock');
+INSERT INTO `events`       (`hvp_id`, `user`, `participant_uid`, `event_uid`) VALUES ('hvp:e-mock', 'VBR', 'mock', 'mock');
 

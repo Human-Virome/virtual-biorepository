@@ -81,9 +81,39 @@ db_query <- function (db, sql, err_code, params = NULL, simplify = TRUE, req1 = 
 
 # Append data frame's rows to mariadb table
 db_append <- function (db, tbl, df, err_code) {
-  columns      <- paste0("`", names(df), "`", collapse = ", ")
+  
+  prefix <- switch(
+    EXPR = tbl,
+    'participants' = "hvp:p-",
+    'events'       = "hvp:e-",
+    'samples'      = "hvp:s-",
+    'libraries'    = "hvp:l-",
+    'analyses'     = "hvp:a-",
+    'files'        = "hvp:f-",
+    'biosamples'   = "hvp:b-",
+    'sra'          = "hvp:r-",
+    stop('bad table name') )
+  
+  # Generate 5 extra IDs in case of collisions.
+  n <- nrow(df)
+  new_ids <- stringi::stri_rand_strings(n + 5, 8)
+  new_ids <- paste0(prefix, new_ids)
+  
+  # Avoid colliding with existing IDs.
+  current <- db_query(db, sprintf('SELECT hvp_id FROM `%s`', tbl), 'CrHvId')
+  new_ids <- setdiff(new_ids, current)[seq_len(n)]
+  stopifnot(!anyNA(new_ids)) # Too many collisions (highly unlikely).
+  
+  df[['hvp_id']] <- new_ids
+  
+  if (!hasName(df, 'user'))
+    df[['user']] <- attr(db, 'user')
+  
+  colnames     <- paste0("`", names(df), "`", collapse = ", ")
   placeholders <- paste0(rep("?", ncol(df)),  collapse = ", ")
-  sql <- sprintf("INSERT INTO `%s` (%s) VALUES (%s)", tbl, columns, placeholders)
+  fmt <- "INSERT INTO `%s` (%s) VALUES (%s)"
+  sql <- sprintf(fmt, tbl, colnames, placeholders)
+  
   db_query(db, sql, err_code, params = unname(as.list(df)))
 }
 

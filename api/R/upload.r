@@ -144,32 +144,3 @@ ingest_table <- function (env) {
 
 
 
-create_hvp_ids <- function (env) {
-  
-  prefix <- switch(
-    EXPR = env$tbl,
-    'participants' = "hvp:p-",
-    'events'       = "hvp:e-",
-    'samples'      = "hvp:s-",
-    'libraries'    = "hvp:l-",
-    'analyses'     = "hvp:a-",
-    'files'        = "hvp:f-",
-    stop('bad table name') )
-  
-  # Generate 5 extra IDs in case of collisions.
-  n <- nrow(env$df)
-  new_ids <- stringi::stri_rand_strings(n + 5, 8)
-  new_ids <- paste0(prefix, new_ids)
-  
-  # Avoid colliding with existing IDs.
-  current <- db_query(env$db, sprintf('SELECT hvp_id FROM `%s`', env$tbl), 'CrHvId')
-  new_ids <- setdiff(new_ids, current)[seq_len(n)]
-  
-  # Too many collisions (highly unlikely).
-  stopifnot(!anyNA(new_ids))
-  
-  return (new_ids)
-}
-
-
-

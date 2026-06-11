@@ -112,12 +112,6 @@
                 "sra": [{ id: "btn-export-sra", label: "Export for SRA", icon: "ios_share", endpoint: "/api/sra/export", payloadKey: "file_path" }]
             };
     
-            const ID_MAP = {
-                "participants": "participant_uid", "events": "event_uid", "samples": "sample_uid",
-                "libraries": "library_uid", "analyses": "analysis_uid", "files": "file_uniq_name",
-                "biosamples": "sample_name", "sra": "file_path"
-            };
-    
             const gridOptions = {
                 theme: agGrid.themeQuartz.withPart(agGrid.colorSchemeDarkBlue),
                 pagination: true,
@@ -148,9 +142,10 @@
                     minWidth: 120,
                     tooltipValueGetter: (params) => params.value 
                 },
+                // --- UPDATED: Universally use hvp_id as the row identifier ---
                 getRowId: params => {
                     if (!params.data) return undefined;
-                    return params.data[ID_MAP[currentTable]];
+                    return params.data.hvp_id;
                 }
             };
     
@@ -159,7 +154,7 @@
     
             async function loadClientData() {
                 gridApi.showLoadingOverlay();
-    
+            
                 try {
                     const response = await fetch(`/api/browse/${currentTable}`);
                     const result   = await response.json();
@@ -169,17 +164,22 @@
                         showErrorModal(result.error);
                         return;
                     }
-    
+            
                     const currentCols = gridApi.getColumnDefs() || [];
                     if (result.data.length > 0 && currentCols.length === 0) {
                         const keys = Object.keys(result.data[0]); 
-                        const emptyCols = getEmptyColumns(result.data); // Identify empty columns
+                        const emptyCols = getEmptyColumns(result.data);
+                        
+                        // --- NEW: Find the first key that isn't hvp_id so we can pin it ---
+                        const firstVisibleKey = keys.find(k => k !== 'hvp_id');
                         
                         const colDefs = keys.map(k => ({ 
                             field: k, 
                             headerName: k,
-                            // --- NEW: Set default visibility based on state ---
-                            hide: hideEmptyColumns && emptyCols.includes(k)
+                            // --- UPDATED: Always hide hvp_id, otherwise respect empty column toggle ---
+                            hide: k === 'hvp_id' ? true : (hideEmptyColumns && emptyCols.includes(k)),
+                            // --- NEW: Pin the first non-hvp_id column to the left ---
+                            pinned: k === firstVisibleKey ? 'left' : null
                         }));
                         
                         gridApi.setGridOption('columnDefs', colDefs);
@@ -191,12 +191,12 @@
                     } else if (result.data.length === 0 && currentCols.length === 0) {
                         gridApi.setGridOption('columnDefs', []);
                     }
-    
+            
                     gridApi.setGridOption('rowData', result.data);
-    
+            
                     gridApi.hideOverlay();
                     updateActionBar();
-    
+            
                 } catch (err) {
                     gridApi.hideOverlay();
                     showErrorModal(`Network Error: ${err.message}`);
