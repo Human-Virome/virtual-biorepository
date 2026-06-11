@@ -41,9 +41,6 @@
                     
                     <div class="flex-row" style="align-items: center; gap: 0.5rem;">
                         <div id="dynamic-action-bar" class="flex-row" style="gap: 0.5rem;"></div>
-                        
-                        <div class="vertical-divider"></div>
-                        
                         <button id="refresh-btn" class="ag-icon-btn" title="Refresh Data">
                             <span class="material-symbols-outlined">refresh</span>
                         </button>
@@ -178,14 +175,6 @@
                 getRowId: params => {
                     if (!params.data) return undefined;
                     return params.data.hvp_id;
-                },
-                
-                isRowSelectable: params => {
-                    if (currentTable === 'biosamples') {
-                        const acc = params.data?.biosample_accession;
-                        return acc !== null && acc !== undefined && String(acc).trim() !== '';
-                    }
-                    return true; 
                 }
             };
     
@@ -193,18 +182,18 @@
             gridApi = agGrid.createGrid(gridDiv, gridOptions);
     
             async function loadClientData() {
-                gridApi.showLoadingOverlay();
-    
+                gridApi.setGridOption('loading', true);
+            
                 try {
                     const response = await fetch(`/api/browse/${currentTable}`);
                     const result   = await response.json();
                     
                     if (result.error) {
-                        gridApi.hideOverlay();
+                        gridApi.setGridOption('loading', false);
                         showErrorModal(result.error);
                         return;
                     }
-    
+            
                     const currentCols = gridApi.getColumnDefs() || [];
                     if (result.data.length > 0 && currentCols.length === 0) {
                         const keys = Object.keys(result.data[0]); 
@@ -228,14 +217,14 @@
                     } else if (result.data.length === 0 && currentCols.length === 0) {
                         gridApi.setGridOption('columnDefs', []);
                     }
-    
+            
                     gridApi.setGridOption('rowData', result.data);
-    
-                    gridApi.hideOverlay();
+            
+                    gridApi.setGridOption('loading', false);
                     updateActionBar();
-    
+            
                 } catch (err) {
-                    gridApi.hideOverlay();
+                    gridApi.setGridOption('loading', false);
                     showErrorModal(`Network Error: ${err.message}`);
                 }
             }
@@ -280,15 +269,23 @@
             }
 
             function updateActionBar() {
+              
                 actionBar.innerHTML = ''; 
-                const actions = ACTION_CONFIG[currentTable] || [];
-                
+                const actions    = ACTION_CONFIG[currentTable] || [];
                 const hasActions = actions.length > 0;
+                
                 gridApi.setGridOption('rowSelection', hasActions ? {
                     mode: 'multiRow',
                     headerCheckbox: true,
                     checkboxes: true,
-                    enableClickSelection: true
+                    enableClickSelection: true,
+                    isRowSelectable: params => {
+                        if (currentTable === 'biosamples') {
+                            const acc = params.data?.biosample_accession;
+                            return acc !== null && acc !== undefined && String(acc).trim() !== '';
+                        }
+                        return true; 
+                    }
                 } : undefined);
                 
                 actions.forEach(action => {
