@@ -7,8 +7,7 @@
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-    
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@35.3.0/styles/ag-grid.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.2.1/styles/ag-grid.css">
     <link href="style.css" rel="stylesheet"/>
 </head>
 
@@ -38,6 +37,7 @@
             <div class="workspace-layout ag-integrated-wrapper">
                 
                 <div class="ag-custom-toolbar flex-between">
+                    
                     <div class="filter-wrapper">
                         <span class="material-symbols-outlined filter-icon">filter_list</span>
                         <input type="text" id="quick-filter-input" placeholder="Filter..." class="ag-custom-input" />
@@ -77,7 +77,7 @@
         </div>
     </div>
   
-    <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@35.3.0/dist/ag-grid-community.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31.2.1/dist/ag-grid-community.min.js"></script>
     
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -106,23 +106,14 @@
             };
 
             const gridOptions = {
-                // Resolves Error #239: Tells v35+ to use the external CSS files and class names
-                theme: "legacy", 
-                
-                rowModelType: 'infinite',
+                rowModelType: 'infinite', // Shift to infinite model for server-side pagination
                 pagination: true,
                 paginationPageSize: 100,
                 paginationPageSizeSelector: [100, 500, 1000, 5000],
                 cacheBlockSize: 100,
                 columnDefs: [],
-                
-                // Resolves rowMultiSelectWithClick, multiple string, and checkboxSelection deprecations
-                rowSelection: {
-                    mode: 'multiRow',
-                    checkboxes: true,
-                    enableSelectionWithoutKeys: true
-                },
-                
+                rowSelection: 'multiple',
+                rowMultiSelectWithClick: true,
                 defaultColDef: {
                     sortable: true,
                     resizable: true,
@@ -131,6 +122,7 @@
                     tooltipValueGetter: (params) => params.value 
                 },
                 getRowId: params => {
+                    // Protect against loading-row stubs before data fully arrives
                     if (!params.data) return undefined;
                     return params.data[ID_MAP[currentTable]];
                 }
@@ -139,12 +131,13 @@
             const gridDiv = document.querySelector('#myGrid');
             gridApi = agGrid.createGrid(gridDiv, gridOptions);
 
+            // The datasource acts as the engine for all sorting, searching, and paging
             function setServerDataSource() {
                 const dataSource = {
                     getRows: async (params) => {
-                        // Resolves showLoadingOverlay deprecation
-                        gridApi.setGridOption("loading", true);
+                        gridApi.showLoadingOverlay();
 
+                        // Map startRow to our 1-based page index system
                         const page = Math.floor(params.startRow / gridApi.paginationGetPageSize()) + 1;
                         const size = params.endRow - params.startRow;
 
@@ -171,26 +164,38 @@
                             const result = await response.json();
                             
                             if (result.error) {
-                                gridApi.setGridOption("loading", false);
+                                gridApi.hideOverlay();
                                 showErrorModal(result.error);
                                 params.failCallback();
                                 return;
                             }
 
-                            // Dynamic column generation (Simplified: AG Grid injects the checkbox natively now)
+                            // Generate columns dynamically if not yet set
                             if (result.data.length > 0 && gridApi.getColumnDefs().length === 0) {
                                 const keys = Object.keys(result.data[0]).filter(k => k !== ID_MAP[currentTable]);
-                                const colDefs = keys.map(k => ({ field: k, headerName: k }));
+                                const colDefs = [{
+                                    checkboxSelection: true, 
+                                    pinned: 'left', 
+                                    sortable: false, 
+                                    flex: 0,
+                                    width: 50, 
+                                    minWidth: 50, 
+                                    maxWidth: 50,
+                                    resizable: false,
+                                    suppressSizeToFit: true 
+                                }];
+                                keys.forEach(k => colDefs.push({ field: k, headerName: k }));
                                 gridApi.setGridOption('columnDefs', colDefs);
                             }
 
-                            gridApi.setGridOption("loading", false);
+                            gridApi.hideOverlay();
                             updateActionBar();
                             
+                            // Native AG Grid hand-off for total_rows!
                             params.successCallback(result.data, result.total_rows);
 
                         } catch (err) {
-                            gridApi.setGridOption("loading", false);
+                            gridApi.hideOverlay();
                             showErrorModal(`Network Error: ${err.message}`);
                             params.failCallback();
                         }
@@ -235,7 +240,7 @@
                                 showErrorModal(data.error || `Server Error: ${response.status}`);
                             } else {
                                 gridApi.deselectAll();
-                                setServerDataSource(); 
+                                setServerDataSource(); // Refresh the grid
                             }
                         } catch (err) {
                             showErrorModal(`Network Error: ${err.message}`);
@@ -247,10 +252,12 @@
 
             // --- Event Listeners ---
 
+            // Debounced Global Search Listener
             let typingTimer;
             searchInput.addEventListener('input', () => {
                 clearTimeout(typingTimer);
                 typingTimer = setTimeout(() => {
+                    // Re-assigning the datasource automatically jumps the grid back to page 1
                     setServerDataSource(); 
                 }, 500); 
             });
@@ -267,14 +274,18 @@
                     currentTable = e.target.getAttribute('data-table');
                     
                     gridApi.setGridOption('columnDefs', []);
-                    searchInput.value = ''; 
+                    searchInput.value = ''; // Reset the quick filter on tab switch
                     
                     setServerDataSource();
                 });
             });
 
+            // Initialize Grid
             setServerDataSource();
         });
     </script>
 </body>
 </html>
+
+
+
