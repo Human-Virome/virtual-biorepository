@@ -180,7 +180,7 @@ footer nav a:hover { color: #f1f5f9; }
 
 
 
-/* --- 1. Seamless AG Grid Wrapper --- */
+/* --- Seamless AG Grid Wrapper --- */
 .ag-integrated-wrapper {
     /* Natively matched Quartz Dark Blue Theme Border */
     border: 1px solid #334155; 
@@ -193,17 +193,14 @@ footer nav a:hover { color: #f1f5f9; }
     background-color: #0f172a; 
 }
 
-/* --- Enterprise Mimic Toolbar (.ag-toolbar) --- */
 .ag-custom-toolbar {
-    /* Matches the height and background of the Enterprise ag-toolbar */
     padding: 0.4rem 1rem;
-    background-color: #1e293b; /* Aligns perfectly with the grid header background */
+    background-color: #2a3340;
     border-bottom: 1px solid #334155; 
     display: flex;
     align-items: center;
 }
 
-/* --- Filter Input Styling (.ag-toolbar-input-field) --- */
 .filter-wrapper {
     position: relative;
     display: flex;
@@ -213,27 +210,25 @@ footer nav a:hover { color: #f1f5f9; }
 .filter-wrapper .filter-icon {
     position: absolute;
     left: 0.6rem;
-    color: #64748b; /* Muted icon color */
+    color: #64748b;
     font-size: 1.1rem;
     pointer-events: none;
 }
 
 .ag-custom-input {
-    /* Darker, sunken background to contrast with the toolbar */
-    background-color: #0f172a; 
+    background-color: #1f2836; 
     border: 1px solid #334155; 
     color: #f1f5f9; 
-    padding: 0 0.75rem 0 2rem; /* Room for the left icon */
-    border-radius: 4px; /* Native ag-grid corner radius */
+    padding: 0 0.75rem 0 2rem;
+    border-radius: 4px;
     font-family: inherit;
-    font-size: 13px; /* Matches the grid's native data font size */
+    font-size: 13px;
     width: 250px; 
-    height: 32px; /* Standard Enterprise input height */
+    height: 32px;
     transition: all 0.2s ease;
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15); /* Subtle inner shadow */
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 
-/* Mimics the native Enterprise focus glow */
 .ag-custom-input:focus {
     outline: none;
     border-color: #3b82f6; 
@@ -244,7 +239,6 @@ footer nav a:hover { color: #f1f5f9; }
     color: #64748b; 
 }
 
-/* --- Sleek Action Buttons (Matches Enterprise Toolbar Buttons) --- */
 .ag-icon-btn {
     background-color: transparent;
     border: 1px solid transparent; /* Enterprise buttons are borderless until hovered */
