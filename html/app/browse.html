@@ -18,20 +18,16 @@
     <main class="mpa-container">
         <div class="page-wrapper page-wrapper-full" style="display: flex; flex-direction: column; height: 100%;">
             
-            <div class="excel-tabs top-tabs flex-between" id="excel-tabs" style="margin-bottom: 0;">
-                <div class="flex-row" style="gap: 0;">
-                    <button class="tab-btn active" data-table="participants">participants</button>
-                    <button class="tab-btn" data-table="events">events</button>
-                    <button class="tab-btn" data-table="samples">samples</button>
-                    <button class="tab-btn" data-table="libraries">libraries</button>
-                    <button class="tab-btn" data-table="analyses">analyses</button>
-                    <button class="tab-btn" data-table="files">files</button>
-                </div>
-                
-                <div class="flex-row" style="gap: 0;">
-                    <button class="tab-btn" data-table="biosamples">biosamples</button>
-                    <button class="tab-btn" data-table="sra">sra</button>
-                </div>
+            <div class="excel-tabs top-tabs" id="excel-tabs" style="margin-bottom: 0;">
+                <button class="tab-btn" data-table="biosamples">biosamples</button>
+                <button class="tab-btn" data-table="sra">sra</button>
+                <div class="vertical-divider"></div>
+                <button class="tab-btn active" data-table="participants">participants</button>
+                <button class="tab-btn" data-table="events">events</button>
+                <button class="tab-btn" data-table="samples">samples</button>
+                <button class="tab-btn" data-table="libraries">libraries</button>
+                <button class="tab-btn" data-table="analyses">analyses</button>
+                <button class="tab-btn" data-table="files">files</button>
             </div>
     
             <div class="workspace-layout ag-integrated-wrapper">

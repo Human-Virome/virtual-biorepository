@@ -198,7 +198,7 @@ CREATE TABLE IF NOT EXISTS files (
 CREATE TABLE IF NOT EXISTS biosamples (
   hvp_id                      VARCHAR(50)  NOT NULL UNIQUE,
   sample_name                 VARCHAR(50)  NOT NULL PRIMARY KEY,
-  ncbi_status                 TINYTEXT,
+  ncbi_status                 TINYTEXT     DEFAULT ('not submitted'),
   biosample_accession         VARCHAR(50)  UNIQUE,
   host_subject_id             VARCHAR(50)  NOT NULL,
   sampling_event_id           VARCHAR(50)  NOT NULL,
