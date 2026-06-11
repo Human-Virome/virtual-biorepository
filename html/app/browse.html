@@ -151,6 +151,11 @@
                 paginationPageSizeSelector: [20, 50, 100, 500, 1000, 5000],
                 columnDefs: [],
                 
+                suppressPaginationPanel: true,
+                onPaginationChanged: updateCustomFooter,
+                onSelectionChanged: updateCustomFooter,
+                onModelUpdated: updateCustomFooter,
+                
                 rowSelection: {
                     mode: 'multiRow',
                     headerCheckbox: true,
