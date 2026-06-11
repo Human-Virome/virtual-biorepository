@@ -56,7 +56,7 @@
             
                 <div id="myGrid" style="flex-grow: 1; width: 100%;"></div>
 
-                <div class="custom-grid-footer flex-between" style="padding: 0.75rem 1rem; border-top: 1px solid var(--border-color); background: var(--bg-surface); align-items: center; font-size: 0.85rem; color: var(--text-muted);">
+                <div class="custom-grid-footer flex-between" style="padding: 0.75rem 1rem; border-top: 1px solid #334155; background: #2a3340; align-items: center; font-size: 0.85rem; color: #fff;">
                     
                     <div style="flex: 1; display: flex; gap: 1rem;">
                         <span id="stat-selected">0 Selected</span>
@@ -337,61 +337,63 @@
                     loadClientData();
                 });
             });
+        
+        
+            
+            // --- Custom Footer Logic ---
+            const pageSizeSelect = document.getElementById('page-size-select');
+            const btnPrevPage = document.getElementById('btn-prev-page');
+            const btnNextPage = document.getElementById('btn-next-page');
+            
+            // Handle Page Size Change
+            pageSizeSelect.addEventListener('change', (e) => {
+                gridApi.setGridOption('paginationPageSize', Number(e.target.value));
+            });
+            
+            // Handle Pagination Buttons
+            btnPrevPage.addEventListener('click', () => gridApi.paginationGoToPreviousPage());
+            btnNextPage.addEventListener('click', () => gridApi.paginationGoToNextPage());
+            
+            // Main Update Function
+            function updateCustomFooter() {
+                if (!gridApi) return;
+            
+                // 1. Pagination Details
+                const currentPage = gridApi.paginationGetCurrentPage() + 1;
+                const totalPages = gridApi.paginationGetTotalPages() || 1;
+                document.getElementById('stat-page-info').textContent = `Page ${currentPage} of ${totalPages}`;
+                
+                // Disable/Enable buttons based on page
+                btnPrevPage.disabled = currentPage === 1;
+                btnNextPage.disabled = currentPage === totalPages;
+            
+                // 2. Selection Details
+                const selectedCount = gridApi.getSelectedRows().length;
+                document.getElementById('stat-selected').textContent = `${selectedCount} Selected`;
+            
+                // 3. Filter & Total Details
+                // getDisplayedRowCount() respects filters. 
+                // gridApi.getGridOption('rowData').length gets the absolute total.
+                const displayedCount = gridApi.getDisplayedRowCount();
+                const rowData = gridApi.getGridOption('rowData');
+                const absoluteTotal = rowData ? rowData.length : 0;
+            
+                document.getElementById('stat-total').textContent = `Total: ${displayedCount} rows`;
+            
+                const filteredEl = document.getElementById('stat-filtered');
+                if (displayedCount < absoluteTotal) {
+                    filteredEl.textContent = `(Filtered from ${absoluteTotal} total)`;
+                    filteredEl.style.display = 'inline';
+                } else {
+                    filteredEl.style.display = 'none';
+                }
+            }
+            
+            
     
             // Initialize Grid
             loadClientData();
         });
-        
-        
-        
-        // --- Custom Footer Logic ---
-        const pageSizeSelect = document.getElementById('page-size-select');
-        const btnPrevPage = document.getElementById('btn-prev-page');
-        const btnNextPage = document.getElementById('btn-next-page');
-        
-        // Handle Page Size Change
-        pageSizeSelect.addEventListener('change', (e) => {
-            gridApi.setGridOption('paginationPageSize', Number(e.target.value));
-        });
-        
-        // Handle Pagination Buttons
-        btnPrevPage.addEventListener('click', () => gridApi.paginationGoToPreviousPage());
-        btnNextPage.addEventListener('click', () => gridApi.paginationGoToNextPage());
-        
-        // Main Update Function
-        function updateCustomFooter() {
-            if (!gridApi) return;
-        
-            // 1. Pagination Details
-            const currentPage = gridApi.paginationGetCurrentPage() + 1;
-            const totalPages = gridApi.paginationGetTotalPages() || 1;
-            document.getElementById('stat-page-info').textContent = `Page ${currentPage} of ${totalPages}`;
-            
-            // Disable/Enable buttons based on page
-            btnPrevPage.disabled = currentPage === 1;
-            btnNextPage.disabled = currentPage === totalPages;
-        
-            // 2. Selection Details
-            const selectedCount = gridApi.getSelectedRows().length;
-            document.getElementById('stat-selected').textContent = `${selectedCount} Selected`;
-        
-            // 3. Filter & Total Details
-            // getDisplayedRowCount() respects filters. 
-            // gridApi.getGridOption('rowData').length gets the absolute total.
-            const displayedCount = gridApi.getDisplayedRowCount();
-            const rowData = gridApi.getGridOption('rowData');
-            const absoluteTotal = rowData ? rowData.length : 0;
-        
-            document.getElementById('stat-total').textContent = `Total: ${displayedCount} rows`;
-        
-            const filteredEl = document.getElementById('stat-filtered');
-            if (displayedCount < absoluteTotal) {
-                filteredEl.textContent = `(Filtered from ${absoluteTotal} total)`;
-                filteredEl.style.display = 'inline';
-            } else {
-                filteredEl.style.display = 'none';
-            }
-        }
     </script>
 </body>
 </html>
