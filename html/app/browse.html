@@ -18,43 +18,42 @@
     <main class="mpa-container">
         <div class="page-wrapper page-wrapper-full" style="display: flex; flex-direction: column; height: 100%;">
             
-            <div class="browse-header-stack" style="display: flex; flex-direction: column; margin-bottom: 1rem;">
-                
-                <div class="excel-tabs top-tabs" id="excel-tabs">
-                    <div class="text-xs text-muted tab-group-label">UPLOADED DATA</div>
-                    <div class="tab-group-divider flex-row" style="gap: 0;">
-                        <button class="tab-btn active" data-table="participants">participants</button>
-                        <button class="tab-btn" data-table="events">events</button>
-                        <button class="tab-btn" data-table="samples">samples</button>
-                        <button class="tab-btn" data-table="libraries">libraries</button>
-                        <button class="tab-btn" data-table="analyses">analyses</button>
-                        <button class="tab-btn" data-table="files">files</button>
-                    </div>
-                    
-                    <div class="text-xs text-muted tab-group-label" style="margin-left: 0.5rem;">DERIVED</div>
-                    <div class="tab-group-derived flex-row" style="gap: 0;">
-                        <button class="tab-btn" data-table="biosamples">biosamples</button>
-                        <button class="tab-btn" data-table="sra">sra</button>
-                    </div>
+            <div class="excel-tabs top-tabs flex-between" id="excel-tabs" style="margin-bottom: 0;">
+                <div class="flex-row" style="gap: 0;">
+                    <button class="tab-btn active" data-table="participants">participants</button>
+                    <button class="tab-btn" data-table="events">events</button>
+                    <button class="tab-btn" data-table="samples">samples</button>
+                    <button class="tab-btn" data-table="libraries">libraries</button>
+                    <button class="tab-btn" data-table="analyses">analyses</button>
+                    <button class="tab-btn" data-table="files">files</button>
                 </div>
+                
+                <div class="flex-row" style="gap: 0;">
+                    <button class="tab-btn" data-table="biosamples">biosamples</button>
+                    <button class="tab-btn" data-table="sra">sra</button>
+                </div>
+            </div>
     
-                <div class="action-toolbar flex-between" style="padding-top: 1rem;">
-                    <div class="flex-row" style="align-items: center; gap: 0.5rem;" id="dynamic-action-bar"></div>
+            <div class="workspace-layout ag-integrated-wrapper">
+                
+                <div class="ag-custom-toolbar flex-between">
                     
-                    <div class="flex-row" style="align-items: center; gap: 0.75rem;">
-                        <div style="position: relative; display: flex; align-items: center;">
-                            <span class="material-symbols-outlined" style="position: absolute; left: 8px; color: var(--text-muted); pointer-events: none; font-size: 1.25rem;">search</span>
-                            <input type="text" id="quick-filter-input" placeholder="Global search..." class="form-control" style="padding-left: 2.25rem; width: 250px;" />
-                        </div>
-    
-                        <button id="refresh-btn" class="btn btn-secondary" title="Refresh Data">
+                    <div class="filter-wrapper">
+                        <span class="material-symbols-outlined filter-icon">filter_list</span>
+                        <input type="text" id="quick-filter-input" placeholder="Filter..." class="ag-custom-input" />
+                    </div>
+                    
+                    <div class="flex-row" style="align-items: center; gap: 0.5rem;">
+                        <div id="dynamic-action-bar" class="flex-row" style="gap: 0.5rem;"></div>
+                        
+                        <div class="vertical-divider"></div>
+                        
+                        <button id="refresh-btn" class="ag-icon-btn" title="Refresh Data">
                             <span class="material-symbols-outlined">refresh</span>
                         </button>
                     </div>
                 </div>
-            </div>
-    
-            <div class="workspace-layout" style="flex-grow: 1; display: flex; flex-direction: column; min-height: 0;">
+            
                 <div id="myGrid" class="ag-theme-quartz-dark" style="flex-grow: 1; width: 100%;"></div>
             </div>
             
@@ -120,8 +119,7 @@
                     resizable: true,
                     flex: 1,
                     minWidth: 120,
-                    wrapText: true,
-                    autoHeight: true
+                    tooltipValueGetter: (params) => params.value 
                 },
                 getRowId: params => {
                     // Protect against loading-row stubs before data fully arrives
@@ -175,9 +173,18 @@
                             // Generate columns dynamically if not yet set
                             if (result.data.length > 0 && gridApi.getColumnDefs().length === 0) {
                                 const keys = Object.keys(result.data[0]).filter(k => k !== ID_MAP[currentTable]);
-                                const colDefs = [
-                                    { headerCheckboxSelection: true, checkboxSelection: true, width: 50, pinned: 'left', sortable: false, flex: 0 }
-                                ];
+                                const colDefs = [{ 
+                                    headerCheckboxSelection: true, 
+                                    checkboxSelection: true, 
+                                    pinned: 'left', 
+                                    sortable: false, 
+                                    flex: 0,
+                                    width: 50, 
+                                    minWidth: 50, 
+                                    maxWidth: 50,
+                                    resizable: false,
+                                    suppressSizeToFit: true 
+                                }];
                                 keys.forEach(k => colDefs.push({ field: k, headerName: k }));
                                 gridApi.setGridOption('columnDefs', colDefs);
                             }
@@ -205,7 +212,7 @@
                 
                 actions.forEach(action => {
                     const btn = document.createElement('button');
-                    btn.className = 'btn btn-primary';
+                    btn.className = 'ag-icon-btn';
                     btn.innerHTML = `<span class="material-symbols-outlined">${action.icon}</span> ${action.label}`;
                     
                     btn.addEventListener('click', async () => {
