@@ -225,25 +225,29 @@ footer nav a:hover { color: #f1f5f9; }
 
 /* --- 1. Seamless AG Grid Wrapper --- */
 .ag-integrated-wrapper {
-    border: 1px solid rgba(255, 255, 255, 0.1); 
+    border: 1px solid var(--ag-border-color); 
     border-radius: 0.5rem; 
     overflow: hidden; 
     display: flex; 
     flex-direction: column; 
     flex-grow: 1;
     min-height: 0;
-    background-color: var(--surface); 
+    background-color: var(--ag-background-color); 
 }
 
 .ag-custom-toolbar {
     padding: 0.6rem 1rem;
-    background-color: var(--surface);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: var(--ag-header-background-color);
+    border-bottom: 1px solid var(--ag-border-color);
 }
 
-/* Strip native borders from the grid so the wrapper handles it */
+/* --- Strip Native Borders --- */
 #myGrid {
-    border: none !important; 
+    border: none !important;
+}
+
+#myGrid .ag-root-wrapper {
+    border: none !important;
     border-radius: 0 !important;
 }
 
