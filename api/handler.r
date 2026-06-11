@@ -13,8 +13,8 @@ app <- list(
       expr  = local({
       
         # Sanity checks
-        stopifnot(identical(req$REQUEST_METHOD, "POST"))
-        stopifnot(startsWith(req$PATH_INFO, "/api/"))
+        stopifnot(isTRUE(req$REQUEST_METHOD %in% c("GET", "POST")))
+        stopifnot(isTRUE(startsWith(req$PATH_INFO, "/api/")))
         stopifnot(isTRUE(nzchar(req$HTTP_X_OAUTH_EMAIL)))
         
         args <- list()

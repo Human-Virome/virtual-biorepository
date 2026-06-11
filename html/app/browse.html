@@ -113,7 +113,7 @@
             const gridOptions = {
                 pagination: true,
                 paginationPageSize: 100,
-                paginationPageSizeSelector: [100, 500, 1000, 5000],
+                paginationPageSizeSelector: [20, 50, 100, 500, 1000, 5000],
                 columnDefs: [],
                 
                 // --- V35 Update: New selection handling config ---
@@ -154,19 +154,9 @@
             async function loadClientData() {
                 gridApi.showLoadingOverlay();
 
-                // Removing server-side pagination, sorting, and filtering commands from the payload
-                const payload = {
-                    table: currentTable
-                };
-
                 try {
-                    const response = await fetch('/api/browse', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    
-                    const result = await response.json();
+                    const response = await fetch(`/api/browse/${currentTable}`);
+                    const result   = await response.json();
                     
                     if (result.error) {
                         gridApi.hideOverlay();
@@ -175,7 +165,6 @@
                     }
 
                     // Dynamically map standard text columns if they aren't initialized yet
-                    // The v35 selection config automatically injects your checkbox column so we map 1:1
                     const currentCols = gridApi.getColumnDefs() || [];
                     if (result.data.length > 0 && currentCols.length === 0) {
                         const keys = Object.keys(result.data[0]); 
