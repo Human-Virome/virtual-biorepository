@@ -89,7 +89,7 @@ db_append <- function (db, tbl, df, err_code) {
 
 
 
-# Format data for tabulator paging
+# Format data for AG Grid paging
 db_page <- function (db, err_code, table, page, size, sort, filter, where = NULL) {
   
   page <- as.integer(page)
@@ -100,59 +100,62 @@ db_page <- function (db, err_code, table, page, size, sort, filter, where = NULL
   
   ec <- function (x) sprintf('%s -> %s', err_code, x)
   
-  # Fetch valid columns for the requested table
-  cols   <- db_query(db, sprintf("SHOW COLUMNS FROM `%s`", table), ec("DbPage1"), simplify = FALSE)
-  fields <- setdiff(cols$Field, "user")
+  where     <- c("`user`=@user", where)
+  order_sql <- ""
+  params    <- list()
   
-  sapply(sort, function (x) {
-    stopifnot(
-      isTRUE(x$field %in% fields),
-      isTRUE(x$dir   %in% c("asc", "desc")) )})
-  
-  sapply(filter, function (x) {
-    stopifnot(
-      isTRUE(x$field %in% fields),
-      isTRUE(x$type  %in% c("=", "!=", "<", ">", "<=", ">=", "like")) )})
-  
-  
-  # Build WHERE Clause and Parameters
-  where_clauses <- c("`user`=@user", where)
-  params <- list()
-  
-  for (f in filter) {
-    where_clauses <- c(where_clauses, sprintf("`%s` LIKE ?", f$field))
+  # Only query db table structure when needed
+  if (length(sort) > 0 || isTRUE(nzchar(trimws(filter)))) {
     
-    # Tabulator sends raw strings for 'like' searches; MySQL requires wildcards
-    if (f$type == "like") {
-      params <- append(params, paste0("%", f$value, "%"))
-    } else {
-      params <- append(params, f$value)
+    # Fetch column information
+    sql        <- sprintf("SHOW COLUMNS FROM `%s`", table)
+    tbl_struct <- db_query(db, sql, ec("DbPage1"))
+    
+    # Assemble the ORDER BY clause
+    if (length(sort) > 0) {
+      
+      stopifnot(
+        isTRUE(all(names(sort)  %in% tbl_struct[['Field']])),
+        isTRUE(all(unname(sort) %in% c("asc", "desc"))) )
+      
+      order_sql <- sprintf("`%s` %s", names(sort), unname(sort))
+      order_sql <- paste(order_sql, collapse = ", ")
+      order_sql <- paste("ORDER BY", order_sql)
+    }
+    
+    # Add to the WHERE clause
+    if (isTRUE(nzchar(trimws(filter)))) {
+      
+      fields <- tbl_struct[grep("varchar|text", tolower(tbl_struct$Type)), 'Field']
+      fields <- setdiff(fields, 'user')
+      
+      if (length(fields) > 0) {
+        like_exprs <- sprintf("`%s` LIKE ?", fields)
+        where      <- c(where, sprintf("(%s)", paste(like_exprs, collapse = " OR ")))
+        
+        where_params <- rep(paste0("%", trimws(filter), "%"), length(fields))
+        params       <- c(params, as.list(where_params))
+      }
     }
   }
   
-  where_sql <- paste("WHERE", paste(where_clauses, collapse = " AND "))
-  
-  # Calculate Total Pages (last_page) required by Tabulator
-  count_sql  <- sprintf("SELECT COUNT(*) FROM `%s` %s", table, where_sql)
-  total_rows <- db_query(db, count_sql, ec("DbPage2"), params)
-  last_page  <- max(1L, as.integer(ceiling(total_rows / size)))
-  
-  # Build ORDER BY Clause
-  order_sql <- ""
-  if (length(sort) > 0) {
-    order_clauses <- sapply(sort, function(s) sprintf("`%s` %s", s$field, s$dir))
-    order_sql     <- paste("ORDER BY", paste(order_clauses, collapse = ", "))
-  }
-  
-  # Build LIMIT/OFFSET Clause
+  # Assemble the WHERE and LIMIT BY clauses
+  where_sql <- paste("WHERE", paste(where, collapse = " AND "))
   limit_sql <- sprintf("LIMIT %d OFFSET %d", size, (page - 1L) * size)
   
-  # Execute Final Query
+  # Calculate Total Pages (last_page) for frontend pagination matching
+  count_sql  <- sprintf("SELECT COUNT(*) FROM `%s` %s", table, where_sql)
+  total_rows <- db_query(db, count_sql, ec("DbPage2"), params)
+  
+  # Execute Final Paginated Query
   final_sql <- paste(sprintf("SELECT * FROM `%s`", table), where_sql, order_sql, limit_sql)
   result_df <- db_query(db, final_sql, ec("DbPage3"), params, simplify = FALSE)
   
-  # Clean up internal columns
-  result_df$user <- NULL
+  # Strip system columns before sending data down to client asset
+  result_df$user   <- NULL
+  result_df$hvp_id <- NULL
   
-  return (list(last_page = jsonlite::unbox(last_page), data = result_df))
+  return (list(
+    total_rows = jsonlite::unbox(total_rows), 
+    data       = result_df ))
 }

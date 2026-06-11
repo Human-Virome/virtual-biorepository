@@ -22,6 +22,11 @@
                 <div class="flex-row" style="align-items: center; gap: 0.5rem;" id="dynamic-action-bar"></div>
                 
                 <div class="flex-row" style="align-items: center; gap: 0.75rem;">
+                    <div style="position: relative; display: flex; align-items: center;">
+                        <span class="material-symbols-outlined" style="position: absolute; left: 8px; color: var(--text-muted); pointer-events: none; font-size: 1.25rem;">search</span>
+                        <input type="text" id="quick-filter-input" placeholder="Global search..." class="form-control" style="padding-left: 2.25rem; width: 250px;" />
+                    </div>
+
                     <button id="refresh-btn" class="btn btn-secondary" title="Refresh Data">
                         <span class="material-symbols-outlined">refresh</span>
                     </button>
@@ -74,6 +79,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const tabButtons = document.querySelectorAll('.tab-btn');
             const actionBar = document.getElementById('dynamic-action-bar');
+            const searchInput = document.getElementById('quick-filter-input');
             
             let currentTable = "participants";
             let gridApi;
@@ -96,85 +102,96 @@
             };
 
             const gridOptions = {
+                rowModelType: 'infinite', // Shift to infinite model for server-side pagination
                 pagination: true,
                 paginationPageSize: 100,
                 paginationPageSizeSelector: [100, 500, 1000, 5000],
-                rowData: [],
+                cacheBlockSize: 100,
                 columnDefs: [],
                 rowSelection: 'multiple',
                 rowMultiSelectWithClick: true,
                 defaultColDef: {
                     sortable: true,
-                    filter: 'agTextColumnFilter',
-                    floatingFilter: true,
                     resizable: true,
                     flex: 1,
                     minWidth: 120,
                     wrapText: true,
                     autoHeight: true
                 },
-                getRowId: params => params.data[ID_MAP[currentTable]],
-                onSortChanged: () => { fetchData(); },
-                onFilterChanged: () => { fetchData(); }
+                getRowId: params => {
+                    // Protect against loading-row stubs before data fully arrives
+                    if (!params.data) return undefined;
+                    return params.data[ID_MAP[currentTable]];
+                }
             };
 
             const gridDiv = document.querySelector('#myGrid');
             gridApi = agGrid.createGrid(gridDiv, gridOptions);
 
-            async function fetchData() {
-                gridApi.showLoadingOverlay();
+            // The datasource acts as the engine for all sorting, searching, and paging
+            function setServerDataSource() {
+                const dataSource = {
+                    getRows: async (params) => {
+                        gridApi.showLoadingOverlay();
 
-                const sortState = gridApi.getColumnState()
-                    .filter(s => s.sort)
-                    .map(s => ({ field: s.colId, dir: s.sort }));
+                        // Map startRow to our 1-based page index system
+                        const page = Math.floor(params.startRow / gridApi.paginationGetPageSize()) + 1;
+                        const size = params.endRow - params.startRow;
 
-                const filterModel = gridApi.getFilterModel();
-                const filterState = Object.keys(filterModel).map(key => ({
-                    field: key,
-                    type: "like",
-                    value: filterModel[key].filter
-                }));
+                        const sortObj = {};
+                        if (params.sortModel && params.sortModel.length > 0) {
+                            params.sortModel.forEach(s => { sortObj[s.colId] = s.sort; });
+                        }
 
-                const payload = {
-                    table: currentTable,
-                    page: gridApi.paginationGetCurrentPage() + 1,
-                    size: gridApi.paginationGetPageSize(),
-                    sort: sortState,
-                    filter: filterState
+                        const payload = {
+                            table:  currentTable,
+                            page:   page,
+                            size:   size,
+                            filter: searchInput.value.trim(),
+                            sort:   sortObj
+                        };
+
+                        try {
+                            const response = await fetch('/api/browse', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload)
+                            });
+                            
+                            const result = await response.json();
+                            
+                            if (result.error) {
+                                gridApi.hideOverlay();
+                                showErrorModal(result.error);
+                                params.failCallback();
+                                return;
+                            }
+
+                            // Generate columns dynamically if not yet set
+                            if (result.data.length > 0 && gridApi.getColumnDefs().length === 0) {
+                                const keys = Object.keys(result.data[0]).filter(k => k !== ID_MAP[currentTable]);
+                                const colDefs = [
+                                    { headerCheckboxSelection: true, checkboxSelection: true, width: 50, pinned: 'left', sortable: false, flex: 0 }
+                                ];
+                                keys.forEach(k => colDefs.push({ field: k, headerName: k }));
+                                gridApi.setGridOption('columnDefs', colDefs);
+                            }
+
+                            gridApi.hideOverlay();
+                            updateActionBar();
+                            
+                            // Native AG Grid hand-off for total_rows!
+                            params.successCallback(result.data, result.total_rows);
+
+                        } catch (err) {
+                            gridApi.hideOverlay();
+                            showErrorModal(`Network Error: ${err.message}`);
+                            params.failCallback();
+                        }
+                    }
                 };
 
-                try {
-                    const response = await fetch('/api/browse', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    
-                    const result = await response.json();
-                    
-                    if (result.error) {
-                        gridApi.hideOverlay();
-                        showErrorModal(result.error);
-                        return;
-                    }
-
-                    if (result.data.length > 0 && gridOptions.columnDefs.length === 0) {
-                        const keys = Object.keys(result.data[0]).filter(k => k !== ID_MAP[currentTable]);
-                        const colDefs = [
-                            { headerCheckboxSelection: true, checkboxSelection: true, width: 50, pinned: 'left', filter: false, sortable: false, flex: 0 }
-                        ];
-                        keys.forEach(k => colDefs.push({ field: k, headerName: k }));
-                        gridApi.setGridOption('columnDefs', colDefs);
-                    }
-
-                    gridApi.setGridOption('rowData', result.data);
-                    gridApi.hideOverlay();
-                    updateActionBar();
-
-                } catch (err) {
-                    gridApi.hideOverlay();
-                    showErrorModal(`Network Error: ${err.message}`);
-                }
+                gridApi.setGridOption('datasource', dataSource);
             }
 
             function updateActionBar() {
@@ -212,7 +229,7 @@
                                 showErrorModal(data.error || `Server Error: ${response.status}`);
                             } else {
                                 gridApi.deselectAll();
-                                fetchData();
+                                setServerDataSource(); // Refresh the grid
                             }
                         } catch (err) {
                             showErrorModal(`Network Error: ${err.message}`);
@@ -222,8 +239,20 @@
                 });
             }
 
+            // --- Event Listeners ---
+
+            // Debounced Global Search Listener
+            let typingTimer;
+            searchInput.addEventListener('input', () => {
+                clearTimeout(typingTimer);
+                typingTimer = setTimeout(() => {
+                    // Re-assigning the datasource automatically jumps the grid back to page 1
+                    setServerDataSource(); 
+                }, 500); 
+            });
+
             document.getElementById('refresh-btn').addEventListener('click', () => {
-                fetchData();
+                setServerDataSource();
             });
 
             tabButtons.forEach(btn => {
@@ -234,17 +263,18 @@
                     currentTable = e.target.getAttribute('data-table');
                     
                     gridApi.setGridOption('columnDefs', []);
-                    gridApi.setFilterModel(null);
-                    gridApi.applyColumnState({ state: [], defaultState: { sort: null } });
+                    searchInput.value = ''; // Reset the quick filter on tab switch
                     
-                    fetchData();
+                    setServerDataSource();
                 });
             });
 
-            fetchData();
+            // Initialize Grid
+            setServerDataSource();
         });
     </script>
 </body>
 </html>
+
 
 
