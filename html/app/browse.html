@@ -172,9 +172,7 @@
 
                             // Generate columns dynamically if not yet set
                             if (result.data.length > 0 && gridApi.getColumnDefs().length === 0) {
-                                
                                 const keys = Object.keys(result.data[0]); 
-                                
                                 const colDefs = [{
                                     checkboxSelection: true, 
                                     pinned: 'left', 
@@ -189,6 +187,16 @@
                                 
                                 keys.forEach(k => colDefs.push({ field: k, headerName: k }));
                                 gridApi.setGridOption('columnDefs', colDefs);
+                            
+                                // NEW: Auto-size all columns once they are injected
+                                // A tiny timeout ensures the DOM has rendered the headers before calculating widths
+                                setTimeout(() => {
+                                    // Get all the column IDs that were just created
+                                    const allColumnIds = gridApi.getColumns().map(col => col.getColId());
+                                    
+                                    // Tell AG Grid to calculate and apply the perfect width for each one
+                                    gridApi.autoSizeColumns(allColumnIds);
+                                }, 50);
                             }
 
                             gridApi.hideOverlay();
