@@ -55,6 +55,38 @@
                 </div>
             
                 <div id="myGrid" style="flex-grow: 1; width: 100%;"></div>
+
+                <div class="custom-grid-footer flex-between" style="padding: 0.75rem 1rem; border-top: 1px solid var(--border-color); background: var(--bg-surface); align-items: center; font-size: 0.85rem; color: var(--text-muted);">
+                    
+                    <div style="flex: 1; display: flex; gap: 1rem;">
+                        <span id="stat-selected">0 Selected</span>
+                        <span id="stat-filtered" style="display: none;">(Filtered from 0 total)</span>
+                    </div>
+                
+                    <div style="flex: 1; text-align: center; font-weight: 600; color: var(--text-main);">
+                        <span id="stat-total">Total: 0 rows</span>
+                    </div>
+                
+                    <div style="flex: 1; display: flex; justify-content: flex-end; align-items: center; gap: 1rem;">
+                        
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <label for="page-size-select">Page Size:</label>
+                            <select id="page-size-select" class="ag-custom-input" style="padding: 0.2rem; width: auto;">
+                                <option value="20">20</option>
+                                <option value="50">50</option>
+                                <option value="100" selected>100</option>
+                                <option value="500">500</option>
+                            </select>
+                        </div>
+                
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <button id="btn-prev-page" class="ag-icon-btn" style="padding: 0.2rem;"><span class="material-symbols-outlined">chevron_left</span></button>
+                            <span id="stat-page-info">Page 1 of 1</span>
+                            <button id="btn-next-page" class="ag-icon-btn" style="padding: 0.2rem;"><span class="material-symbols-outlined">chevron_right</span></button>
+                        </div>
+                
+                    </div>
+                </div>
                 
             </div>
             
@@ -304,6 +336,57 @@
             // Initialize Grid
             loadClientData();
         });
+        
+        
+        
+        // --- Custom Footer Logic ---
+        const pageSizeSelect = document.getElementById('page-size-select');
+        const btnPrevPage = document.getElementById('btn-prev-page');
+        const btnNextPage = document.getElementById('btn-next-page');
+        
+        // Handle Page Size Change
+        pageSizeSelect.addEventListener('change', (e) => {
+            gridApi.setGridOption('paginationPageSize', Number(e.target.value));
+        });
+        
+        // Handle Pagination Buttons
+        btnPrevPage.addEventListener('click', () => gridApi.paginationGoToPreviousPage());
+        btnNextPage.addEventListener('click', () => gridApi.paginationGoToNextPage());
+        
+        // Main Update Function
+        function updateCustomFooter() {
+            if (!gridApi) return;
+        
+            // 1. Pagination Details
+            const currentPage = gridApi.paginationGetCurrentPage() + 1;
+            const totalPages = gridApi.paginationGetTotalPages() || 1;
+            document.getElementById('stat-page-info').textContent = `Page ${currentPage} of ${totalPages}`;
+            
+            // Disable/Enable buttons based on page
+            btnPrevPage.disabled = currentPage === 1;
+            btnNextPage.disabled = currentPage === totalPages;
+        
+            // 2. Selection Details
+            const selectedCount = gridApi.getSelectedRows().length;
+            document.getElementById('stat-selected').textContent = `${selectedCount} Selected`;
+        
+            // 3. Filter & Total Details
+            // getDisplayedRowCount() respects filters. 
+            // gridApi.getGridOption('rowData').length gets the absolute total.
+            const displayedCount = gridApi.getDisplayedRowCount();
+            const rowData = gridApi.getGridOption('rowData');
+            const absoluteTotal = rowData ? rowData.length : 0;
+        
+            document.getElementById('stat-total').textContent = `Total: ${displayedCount} rows`;
+        
+            const filteredEl = document.getElementById('stat-filtered');
+            if (displayedCount < absoluteTotal) {
+                filteredEl.textContent = `(Filtered from ${absoluteTotal} total)`;
+                filteredEl.style.display = 'inline';
+            } else {
+                filteredEl.style.display = 'none';
+            }
+        }
     </script>
 </body>
 </html>

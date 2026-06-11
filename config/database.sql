@@ -237,10 +237,9 @@ CREATE TABLE IF NOT EXISTS biosamples (
   lat_lon                     TINYTEXT NOT NULL DEFAULT ('not collected'),
   `user`                      VARCHAR(255) NOT NULL,
   INDEX (`user`),
-  FOREIGN KEY (hvp_id)            REFERENCES samples(hvp_id),
+  FOREIGN KEY (sample_name)       REFERENCES samples(sample_uid),
   FOREIGN KEY (host_subject_id)   REFERENCES participants(participant_uid),
-  FOREIGN KEY (sampling_event_id) REFERENCES events(event_uid),
-  FOREIGN KEY (sample_name)       REFERENCES samples(sample_uid)
+  FOREIGN KEY (sampling_event_id) REFERENCES events(event_uid)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 CREATE TABLE IF NOT EXISTS sra (
