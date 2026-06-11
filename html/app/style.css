@@ -182,20 +182,73 @@ footer nav a:hover { color: #f1f5f9; }
 
 /* --- Seamless AG Grid Wrapper --- */
 .ag-integrated-wrapper {
-    border: 1px solid #30363d; /* Native Quartz Dark border */
+    border: 1px solid #334155; /* Native DarkBlue border */
     border-radius: 0.5rem; 
     overflow: hidden; 
     display: flex; 
     flex-direction: column; 
     flex-grow: 1;
     min-height: 0;
-    background-color: #181d1f; /* Native Quartz Dark base background */
+    background-color: #0f172a; /* Native DarkBlue base background */
 }
 
 .ag-custom-toolbar {
     padding: 0.6rem 1rem;
-    background-color: #222628; /* Native Quartz Dark header background */
-    border-bottom: 1px solid #30363d; /* Native Quartz Dark border */
+    background-color: #1e293b; /* Native DarkBlue header background */
+    border-bottom: 1px solid #334155; 
+}
+
+/* --- Filter Input Styling --- */
+.ag-custom-input {
+    background-color: #0f172a;
+    border: 1px solid #334155;
+    color: #e2e8f0;
+    padding: 0.35rem 0.75rem 0.35rem 2.25rem;
+    border-radius: 0.25rem;
+    font-family: inherit;
+    font-size: 0.875rem;
+    width: 250px; 
+    transition: all 0.2s ease;
+}
+
+.ag-custom-input:focus {
+    outline: none;
+    border-color: #475569;
+}
+
+/* --- Sleek Action Buttons --- */
+.ag-icon-btn {
+    background-color: transparent;
+    border: 1px solid #334155;
+    color: #cbd5e1;
+    border-radius: 0.375rem;
+    padding: 0.35rem 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.ag-icon-btn:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: #475569;
+    color: #ffffff;
+}
+
+.ag-icon-btn .material-symbols-outlined {
+    font-size: 1.1rem;
+}
+
+.vertical-divider {
+    width: 1px; 
+    height: 20px; 
+    background-color: #334155; 
+    margin: 0 0.25rem;
 }
 
 /* --- Strip Native Borders --- */
@@ -263,64 +316,6 @@ footer nav a:hover { color: #f1f5f9; }
     color: #9ca3af;
     font-size: 1.1rem;
     pointer-events: none;
-}
-
-.ag-custom-input {
-    background-color: #181d1f;
-    border: 1px solid #30363d;
-    color: #e5e7eb;
-    padding: 0.35rem 0.75rem 0.35rem 2.25rem;
-    border-radius: 0.25rem;
-    font-family: inherit;
-    font-size: 0.875rem;
-    width: 250px; 
-    transition: all 0.2s ease;
-}
-
-.ag-custom-input:focus {
-    outline: none;
-    border-color: #4b5563;
-}
-
-/* --- Sleek Action Buttons --- */
-
-.ag-icon-btn {
-    background-color: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    color: #e5e7eb;
-    border-radius: 0.375rem;
-    padding: 0.35rem 0.75rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.4rem;
-    font-size: 0.8125rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-}
-
-.ag-icon-btn:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.4);
-    color: #ffffff;
-}
-
-.ag-icon-btn .material-symbols-outlined {
-    font-size: 1.1rem;
-}
-
-.vertical-divider {
-    width: 1px; 
-    height: 20px; 
-    background-color: rgba(255, 255, 255, 0.1); 
-    margin: 0 0.25rem;
-}
-
-/* Remove default top border from grid since the toolbar has a bottom border */
-#myGrid {
-    border-top: none !important;
 }
 
 
