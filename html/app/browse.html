@@ -7,7 +7,9 @@
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.2.1/styles/ag-grid.css">
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@35.3.1/styles/ag-grid.css">
+    
     <link href="style.css" rel="stylesheet"/>
 </head>
 
@@ -78,7 +80,7 @@
         </div>
     </div>
   
-    <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31.2.1/dist/ag-grid-community.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@35.3.1/dist/ag-grid-community.min.js"></script>
     
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -106,23 +108,40 @@
                 "biosamples": "sample_name", "sra": "file_path"
             };
 
+            // AG Grid V35+ fully supports native multiRow clicking and shift-clicking natively 
+            // under this new `rowSelection` config object format
             const gridOptions = {
-                rowModelType: 'infinite', // Shift to infinite model for server-side pagination
                 pagination: true,
                 paginationPageSize: 100,
                 paginationPageSizeSelector: [100, 500, 1000, 5000],
-                cacheBlockSize: 100,
                 columnDefs: [],
-                rowSelection: 'multiple',
-                rowMultiSelectWithClick: true,
+                
+                // --- V35 Update: New selection handling config ---
+                rowSelection: {
+                    mode: 'multiRow',
+                    headerCheckbox: true,
+                    checkboxes: true,
+                    enableClickSelection: true
+                },
+                
+                // Matches the strict formatting rules for the checkbox column you previously had inline
+                selectionColumnDef: {
+                    width: 50,
+                    minWidth: 50,
+                    maxWidth: 50,
+                    pinned: 'left',
+                    resizable: false,
+                    suppressSizeToFit: true
+                },
+                
                 defaultColDef: {
                     sortable: true,
+                    filter: true, // Enables native client-side column filtering
                     resizable: true,
                     minWidth: 120,
                     tooltipValueGetter: (params) => params.value 
                 },
                 getRowId: params => {
-                    // Protect against loading-row stubs before data fully arrives
                     if (!params.data) return undefined;
                     return params.data[ID_MAP[currentTable]];
                 }
@@ -131,89 +150,58 @@
             const gridDiv = document.querySelector('#myGrid');
             gridApi = agGrid.createGrid(gridDiv, gridOptions);
 
-            // The datasource acts as the engine for all sorting, searching, and paging
-            function setServerDataSource() {
-                const dataSource = {
-                    getRows: async (params) => {
-                        gridApi.showLoadingOverlay();
+            // Fetch ALL data at once to use the standard Client-Side Row Model engine
+            async function loadClientData() {
+                gridApi.showLoadingOverlay();
 
-                        // Map startRow to our 1-based page index system
-                        const page = Math.floor(params.startRow / gridApi.paginationGetPageSize()) + 1;
-                        const size = params.endRow - params.startRow;
-
-                        const sortObj = {};
-                        if (params.sortModel && params.sortModel.length > 0) {
-                            params.sortModel.forEach(s => { sortObj[s.colId] = s.sort; });
-                        }
-
-                        const payload = {
-                            table:  currentTable,
-                            page:   page,
-                            size:   size,
-                            filter: searchInput.value.trim(),
-                            sort:   sortObj
-                        };
-
-                        try {
-                            const response = await fetch('/api/browse', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(payload)
-                            });
-                            
-                            const result = await response.json();
-                            
-                            if (result.error) {
-                                gridApi.hideOverlay();
-                                showErrorModal(result.error);
-                                params.failCallback();
-                                return;
-                            }
-
-                            // Generate columns dynamically if not yet set
-                            if (result.data.length > 0 && gridApi.getColumnDefs().length === 0) {
-                                const keys = Object.keys(result.data[0]); 
-                                const colDefs = [{
-                                    checkboxSelection: true, 
-                                    pinned: 'left', 
-                                    sortable: false, 
-                                    flex: 0,
-                                    width: 50, 
-                                    minWidth: 50, 
-                                    maxWidth: 50,
-                                    resizable: false,
-                                    suppressSizeToFit: true 
-                                }];
-                                
-                                keys.forEach(k => colDefs.push({ field: k, headerName: k }));
-                                gridApi.setGridOption('columnDefs', colDefs);
-                            
-                                // NEW: Auto-size all columns once they are injected
-                                // A tiny timeout ensures the DOM has rendered the headers before calculating widths
-                                setTimeout(() => {
-                                    // Get all the column IDs that were just created
-                                    const allColumnIds = gridApi.getColumns().map(col => col.getColId());
-                                    
-                                    // Tell AG Grid to calculate and apply the perfect width for each one
-                                    gridApi.autoSizeColumns(allColumnIds);
-                                }, 50);
-                            }
-
-                            gridApi.hideOverlay();
-                            updateActionBar();
-                            
-                            // Native AG Grid hand-off for total_rows!
-                            params.successCallback(result.data, result.total_rows);
-
-                        } catch (err) {
-                            gridApi.hideOverlay();
-                            showErrorModal(`Network Error: ${err.message}`);
-                            params.failCallback();
-                        }
-                    }
+                // Removing server-side pagination, sorting, and filtering commands from the payload
+                const payload = {
+                    table: currentTable
                 };
 
-                gridApi.setGridOption('datasource', dataSource);
+                try {
+                    const response = await fetch('/api/browse', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.error) {
+                        gridApi.hideOverlay();
+                        showErrorModal(result.error);
+                        return;
+                    }
+
+                    // Dynamically map standard text columns if they aren't initialized yet
+                    // The v35 selection config automatically injects your checkbox column so we map 1:1
+                    const currentCols = gridApi.getColumnDefs() || [];
+                    if (result.data.length > 0 && currentCols.length === 0) {
+                        const keys = Object.keys(result.data[0]); 
+                        const colDefs = keys.map(k => ({ field: k, headerName: k }));
+                        
+                        gridApi.setGridOption('columnDefs', colDefs);
+                    
+                        // Auto-size standard columns once they are generated
+                        setTimeout(() => {
+                            const allColumnIds = gridApi.getColumns().map(col => col.getColId());
+                            gridApi.autoSizeColumns(allColumnIds);
+                        }, 50);
+                    } else if (result.data.length === 0 && currentCols.length === 0) {
+                        gridApi.setGridOption('columnDefs', []);
+                    }
+
+                    // Provide 100% of the array directly to the grid
+                    gridApi.setGridOption('rowData', result.data);
+
+                    gridApi.hideOverlay();
+                    updateActionBar();
+
+                } catch (err) {
+                    gridApi.hideOverlay();
+                    showErrorModal(`Network Error: ${err.message}`);
+                }
             }
 
             function updateActionBar() {
@@ -251,7 +239,7 @@
                                 showErrorModal(data.error || `Server Error: ${response.status}`);
                             } else {
                                 gridApi.deselectAll();
-                                setServerDataSource(); // Refresh the grid
+                                loadClientData(); // Completely refresh the data
                             }
                         } catch (err) {
                             showErrorModal(`Network Error: ${err.message}`);
@@ -263,18 +251,13 @@
 
             // --- Event Listeners ---
 
-            // Debounced Global Search Listener
-            let typingTimer;
-            searchInput.addEventListener('input', () => {
-                clearTimeout(typingTimer);
-                typingTimer = setTimeout(() => {
-                    // Re-assigning the datasource automatically jumps the grid back to page 1
-                    setServerDataSource(); 
-                }, 500); 
+            // V35 dynamically hooks into the quick-filter state 
+            searchInput.addEventListener('input', (e) => {
+                gridApi.setGridOption('quickFilterText', e.target.value);
             });
 
             document.getElementById('refresh-btn').addEventListener('click', () => {
-                setServerDataSource();
+                loadClientData();
             });
 
             tabButtons.forEach(btn => {
@@ -284,15 +267,18 @@
                     
                     currentTable = e.target.getAttribute('data-table');
                     
+                    // Reset grid parameters while switching sets
                     gridApi.setGridOption('columnDefs', []);
-                    searchInput.value = ''; // Reset the quick filter on tab switch
+                    gridApi.setGridOption('rowData', []);
+                    gridApi.setGridOption('quickFilterText', '');
+                    searchInput.value = ''; 
                     
-                    setServerDataSource();
+                    loadClientData();
                 });
             });
 
             // Initialize Grid
-            setServerDataSource();
+            loadClientData();
         });
     </script>
 </body>

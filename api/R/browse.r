@@ -12,5 +12,11 @@ api_browse <- function (db, table, page, size, sort, filter) {
   if (identical(table, 'biosamples'))
     biosamples_status_check(db)
   
-  db_page(db, 'ApiBrow1', table, page, size, sort, filter)
+  sql <- sprintf("SELECT * FROM `%s` WHERE `user` = @user", table)
+  res <- db_query(db, final_sql, ec("ApiBrws"), simplify = FALSE)
+  
+  res$user   <- NULL
+  res$hvp_id <- NULL
+  
+  return(list(data = res))
 }
