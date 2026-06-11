@@ -187,9 +187,7 @@ footer nav a:hover { color: #f1f5f9; }
     --ag-header-height: 40px;
     --ag-font-size: 13px;
     --ag-wrapper-border-radius: 0px; 
-    --ag-border-color: rgba(255, 255, 255, 0.1); 
-    --ag-header-background-color: var(--surface); 
-    --ag-background-color: var(--surface);
+    --ag-border-color: rgba(255, 255, 255, 0.1);
 }
 
 .ag-theme-quartz-dark .ag-root-wrapper {
