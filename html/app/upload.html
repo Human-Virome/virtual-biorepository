@@ -501,8 +501,12 @@
                 });
             });
             
-            
-            
+            // --- Error Modal Logic ---
+            window.showErrorModal = msg => {
+                document.getElementById('error-message').textContent = msg;
+                document.getElementById('error-modal').classList.add('show');
+            };
+            window.closeErrorModal = () => document.getElementById('error-modal').classList.remove('show');
             
             
             // --- Template Upload, Validation, and Save Logic ---
@@ -556,11 +560,24 @@
                 try {
                     const response = await fetch('/api/validate_file', {
                         method: 'POST',
-                        body: file, // Send the raw file object directly
+                        body: file, 
                         headers: {
                             'Content-Type': file.type || 'application/octet-stream'
                         }
                     });
+
+                    // Handle non-200 responses
+                    if (!response.ok) {
+                        badgeValidating.style.display = 'none';
+                        badgeValError.style.display   = 'flex';
+                        
+                        if (response.status === 401) {
+                            showErrorModal('Your session has expired. Please reload the page to continue.');
+                        } else {
+                            showErrorModal(`Server Error: ${response.status} ${response.statusText}`);
+                        }
+                        return; 
+                    }
             
                     const result = await response.json(); 
             
@@ -586,7 +603,6 @@
                     errorBox.style.display        = 'block';
                 } finally {
                     // Clear the input so the change event fires even if they pick the exact same file again.
-                    // (Our 'currentValidatedFile' variable still holds the actual File object safely in memory).
                     fileInput.value = '';
                 }
             });
@@ -597,7 +613,7 @@
                 if (!currentValidatedFile) return;
             
                 // Update UI for saving state
-                saveBtn.disabled          = true; // Prevent double-clicks
+                saveBtn.disabled          = true; 
                 errorBox.style.display    = 'none';
                 hideAllBadges();
                 badgeSaving.style.display = 'flex';
@@ -605,11 +621,25 @@
                 try {
                     const response = await fetch('/api/commit_file', {
                         method: 'POST',
-                        body: currentValidatedFile, // Send the raw file object directly
+                        body: currentValidatedFile, 
                         headers: {
                             'Content-Type': currentValidatedFile.type || 'application/octet-stream'
                         }
                     });
+
+                    // Handle non-200 responses
+                    if (!response.ok) {
+                        badgeSaving.style.display    = 'none';
+                        badgeSaveError.style.display = 'flex';
+                        saveBtn.disabled = false; // Re-enable for retry
+                        
+                        if (response.status === 401) {
+                            showErrorModal('Your session has expired. Please reload the page to continue.');
+                        } else {
+                            showErrorModal(`Server Error: ${response.status} ${response.statusText}`);
+                        }
+                        return; 
+                    }
             
                     const result = await response.json();
             
@@ -620,7 +650,7 @@
                         errorMessage.textContent = result.error;
                         errorBox.style.display   = 'block';
                         
-                        // Re-enable the save button so they can try again if it was a transient error
+                        // Re-enable the save button so they can try again
                         saveBtn.disabled = false; 
                     } else {
                         // SUCCESS!
@@ -638,7 +668,7 @@
                     errorMessage.textContent     = "A network error occurred while saving.";
                     errorBox.style.display       = 'block';
                     
-                    saveBtn.disabled = false; // Let them try again
+                    saveBtn.disabled = false; 
                 }
             });
         }); // /DOMContentLoaded

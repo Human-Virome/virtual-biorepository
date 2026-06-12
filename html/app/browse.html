@@ -90,21 +90,6 @@
     </main>
 
     <!--#include virtual="/app/footer.html" -->
-
-    <div id="error-modal" class="modal-overlay">
-        <div class="card modal-content">
-            <div class="card-body">
-                <div class="flex-row" style="color: var(--error); margin-bottom: 1rem; gap: 0.5rem;">
-                    <span class="material-symbols-outlined" style="font-size: 2rem;">error</span>
-                    <h3 style="margin: 0; font-size: 1.25rem;">Action Error</h3>
-                </div>
-                <p id="error-message" style="margin-bottom: 1.5rem; color: var(--text-muted);"></p>
-                <div style="text-align: right;">
-                    <button class="btn btn-secondary" onclick="closeErrorModal()">Dismiss</button>
-                </div>
-            </div>
-        </div>
-    </div>
   
     <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@35.3.1/dist/ag-grid-community.min.js"></script>
     
@@ -182,12 +167,20 @@
             gridApi = agGrid.createGrid(gridDiv, gridOptions);
     
             async function loadClientData() {
-              
+          
                 gridApi.setGridOption('loading', true);
                 updateRowSelection();
             
                 try {
                     const response = await fetch(`/api/browse/${currentTable}`);
+                    
+                    // NEW: Handle 401 Unauthorized
+                    if (response.status === 401) {
+                        gridApi.setGridOption('loading', false);
+                        showErrorModal('Your session has expired. Please reload the page to continue.');
+                        return;
+                    }
+    
                     const result   = await response.json();
                     
                     if (result.error) {
@@ -288,7 +281,6 @@
                       
                       if (currentTable === 'biosamples') {
                           const acc = rowNode.data.biosample_accession;
-                          // UPDATED: Now returns true (selectable) if the value is blank
                           return acc === null || acc === undefined || String(acc).trim() === '';
                       }
                       return true; 
@@ -299,7 +291,7 @@
             function updateActionBar() {
               
                 actionBar.innerHTML = ''; 
-                const actions    = ACTION_CONFIG[currentTable] || [];
+                const actions = ACTION_CONFIG[currentTable] || [];
                 
                 actions.forEach(action => {
                     const btn = document.createElement('button');
@@ -333,6 +325,12 @@
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ items: payloadData })
                             });
+                            
+                            // NEW: Handle 401 Unauthorized
+                            if (response.status === 401) {
+                                showErrorModal('Your session has expired. Please reload the page to continue.');
+                                return; // Exit before trying to parse JSON
+                            }
                             
                             const data = await response.json();
                             if (!response.ok || data.error) {
