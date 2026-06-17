@@ -20,10 +20,10 @@ api_biosamples_assign <- function (db, hvp_ids) {
   
   
   # Confirm validity of all the provided `sample_name`s.
-  if (length(missing_sams <- setdiff(hvp_ids, res[['hvp_id']])))
-    stop("`hvp_id`(s) missing from database: ", paste(collapse = ', ', missing_sams))
-  if (length(not_ok <- res[['sample_name']][!is.na(res[['ncbi_status']])]))
-    stop("Samples are already submitted to NCBI: ", paste(collapse = ', ', not_ok))
+  if (length(missing_hvp_ids <- setdiff(hvp_ids, res[['hvp_id']])))
+    stop("`hvp_id`(s) missing from database: ", paste(collapse = ', ', missing_hvp_ids))
+  if (length(already_submitted <- res[['sample_name']][res[['ncbi_status']] != "not submitted"]))
+    stop("Samples are already submitted to NCBI: ", paste(collapse = ', ', already_submitted))
   
   
   # Create the root node
