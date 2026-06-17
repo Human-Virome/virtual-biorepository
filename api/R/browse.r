@@ -2,7 +2,11 @@
 
 browse_db_table <- function (db, table) {
   
-  sql <- sprintf("SELECT * FROM `%s` WHERE `user` = @user", table)
+  sql <- paste0(
+    "SELECT *, ROW_START as `last_modified`",
+    " FROM `", table, "`",
+    " WHERE `user` = @user",
+    " ORDER BY `last_modified` DESC" )
   res <- db_query(db, sql, "BrwsDb1", simplify = FALSE)
   
   res$user <- NULL

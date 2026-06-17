@@ -4,9 +4,9 @@
 # Use package Metagenome.environmental.1.0
 # https://submit.ncbi.nlm.nih.gov/biosample/template/?package-0=Metagenome.environmental.1.0&action=definition
 
-api_biosamples_assign <- function (db, sample_names) {
+api_biosamples_assign <- function (db, hvp_ids) {
   
-  stopifnot(length(sample_names) > 0)
+  stopifnot(length(hvp_ids) > 0)
   
   # release_date <- as.character(strptime(release_date, format="%Y-%m-%d"))
   # if (is.na(release_date) || length(release_date) != 1)
@@ -15,14 +15,14 @@ api_biosamples_assign <- function (db, sample_names) {
   sql <- "SELECT * FROM biosamples WHERE user = @user"
   res <- db_query(db, sql, 'ApiBiAs1', simplify = FALSE)
   
-  res <- res[res$sample_name %in% sample_names,,drop=FALSE]
+  res <- res[res[['hvp_id']] %in% hvp_ids,,drop=FALSE]
   attrs <- setdiff(names(res), c('user', 'ncbi_status', 'biosample_accession', 'sample_name', 'organism'))
   
   
   # Confirm validity of all the provided `sample_name`s.
-  if (length(missing_sams <- setdiff(sample_names, res$sample_name)))
-    stop("`sample_name`(s) missing from database: ", paste(collapse = ', ', missing_sams))
-  if (length(not_ok <- res$sample_name[!is.na(res$ncbi_status)]))
+  if (length(missing_sams <- setdiff(hvp_ids, res[['hvp_id']])))
+    stop("`hvp_id`(s) missing from database: ", paste(collapse = ', ', missing_sams))
+  if (length(not_ok <- res[['sample_name']][!is.na(res[['ncbi_status']])]))
     stop("Samples are already submitted to NCBI: ", paste(collapse = ', ', not_ok))
   
   
@@ -88,11 +88,11 @@ api_biosamples_assign <- function (db, sample_names) {
     password = Sys.getenv("NCBI_SFTP_PASSWORD") )
   
   sftpR::sftp_upload(sftp_conn, local_file, remote_file, .create_dir = TRUE)
-  sftpR::sftp_upload(sftp_conn, empty_file, ready_file,  .create_dir = TRUE)
+  #sftpR::sftp_upload(sftp_conn, empty_file, ready_file,  .create_dir = TRUE)
   
   
-  sql <- 'UPDATE biosamples SET ncbi_status = "pending" WHERE user = @user AND sample_name = ?'
-  db_query(db, sql, 'ApiBiAs2', list(res[['sample_name']]))
+  sql <- 'UPDATE biosamples SET ncbi_status = "pending" WHERE user = @user AND hvp_id = ?'
+  db_query(db, sql, 'ApiBiAs2', list(res[['hvp_id']]))
   
   invisible()
 }
@@ -128,11 +128,14 @@ biosamples_refresh <- function (db) {
         events.age_units                      as _age_units,
         events.height                         as host_height,
         events.height_units                   as _height_units,
+        events.weight                         as host_tot_mass,
+        events.weight_units                   as _weight_units,
         events.bmi                            as host_body_mass_index,
         NULL                                  as pet_farm_animal,
         events.animal_exposure                as _animal_exposure,
         events.exposure_animal_type           as _exposure_animal_type,
         events.occupation                     as host_occupation,
+        events.cigarette_smoking              as smoker,
         events.oral_health                    as oral_health_collected,
         events.dental_exam                    as dental_exam,
         events.mental_health_collected        as mental_health_collected,
@@ -168,6 +171,19 @@ biosamples_refresh <- function (db) {
       test = is.na(biosamples[['host_height']]), 
       yes  = 'not collected', 
       no   = paste(biosamples[['host_height']], biosamples[['_height_units']]) )
+    
+    biosamples[['host_tot_mass']] <- data.table::fifelse(
+      test = is.na(biosamples[['host_tot_mass']]), 
+      yes  = 'not collected', 
+      no   = paste(biosamples[['host_tot_mass']], biosamples[['_weight_units']]) )
+    
+    biosamples[['smoker']] <- data.table::fifelse(
+      test = is.na(biosamples[['smoker']]), 
+      no   = 'not collected', 
+      yes  = data.table::fifelse(
+        test = identical(biosamples[['smoker']], "non-smoker (<100 cigarettes lifetime)"), 
+        no   = 'no', 
+        yes  = 'yes' ))
     
     biosamples[['pet_farm_animal']] <- data.table::fifelse(
       test = is.na(biosamples[['_animal_exposure']]), 

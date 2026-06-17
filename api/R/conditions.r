@@ -7,7 +7,7 @@ condition_check_events <- function (env) {
   age         <- !is.na(env$df[['age']])
   age_units   <- !is.na(env$df[['age_units']])
   age_range   <- !is.na(env$df[['age_range']])
-  has_animals <- unname(sapply(env$df[['animal_exposure']], identical, 'yes'))
+  has_animals <- !unname(sapply(env$df[['animal_exposure']], `%in%`, c(NA, "none")))
   animal_list <- !is.na(env$df[['exposure_animal_type']])
   
   is_missing <- !(age | age_range)
@@ -51,23 +51,13 @@ condition_check_events <- function (env) {
     
   }
   
-  
-  missing_animals <- has_animals & !animal_list
-  if (any(missing_animals)) {
-    bad_rows <- head(which(missing_animals))
-    msg <- "%s:%d: `exposure_animal_type` must be given when `animal_exposure` = yes."
+  animal_mismatch <- !(has_animals == animal_list)
+  if (any(animal_mismatch)) {
+    bad_rows <- head(which(animal_mismatch))
+    msg <- "%s:%d: values for `animal_exposure` and `exposure_animal_type` do not match."
     msg <- sprintf(msg, env$tbl, bad_rows + 1)
     errors <- c(errors, msg)
   }
-  
-  unexpected_animals <- animal_list & !has_animals
-  if (any(unexpected_animals)) {
-    bad_rows <- head(which(unexpected_animals))
-    msg <- "%s:%d: `animal_exposure` must be \"yes\" when `exposure_animal_type` is given (%s)."
-    msg <- sprintf(msg, env$tbl, bad_rows + 1, env$df[['exposure_animal_type']][bad_rows])
-    errors <- c(errors, msg)
-  }
-  
   
   
   if (length(errors))
@@ -134,25 +124,49 @@ condition_check_libraries <- function (env) {
   
   errors <- c()
   
-  is_control                  <- sapply(env$df[['is_control_library']], identical, "yes")
-  library_pos_cont_type       <- !is.na(env$df[['library_pos_cont_type']])
-  library_neg_cont_type       <- !is.na(env$df[['library_neg_cont_type']])
-  paired_or_single            <- !is.na(env$df[['paired_or_single']])
-  sequencing_platform         <- !is.na(env$df[['sequencing_platform']])
-  sequencing_instrument_model <- !is.na(env$df[['sequencing_instrument_model']])
+  is_composite         <- sapply(env$df[['library_type']], identical, "multiplexed_composite_library")
+  is_aliquot           <- sapply(env$df[['is_library_aliquot']], identical, "yes")
+  has_no_parent        <- is.na(env$df[['parent_library_uid']])
+  has_multiple_parents <- grepl(pattern = ";", env$df[['parent_library_uid']], fixed = TRUE)
+  has_one_parent       <- (!has_no_parent) & (!has_multiple_parents)
+  has_seq_lab          <- !is.na(env$df[['sequencing_lab']])
+  is_control           <- sapply(env$df[['is_control_library']], identical, "yes")
+  is_positive_control  <- !is.na(env$df[['library_pos_cont_type']])
+  is_negative_control  <- !is.na(env$df[['library_neg_cont_type']])
+  has_paired_or_single <- !is.na(env$df[['paired_or_single']])
+  has_seq_platform     <- !is.na(env$df[['sequencing_platform']])
+  has_seq_model        <- !is.na(env$df[['sequencing_instrument_model']])
   
-  is_partial_seq <- paired_or_single + sequencing_platform + sequencing_instrument_model
-  is_partial_seq <- (is_partial_seq > 0) & (is_partial_seq < 3)
+  ## what about sample_type == composite
+  # missing_composite_parents <- !is_aliquot & is_composite & !has_multiple_parents
+  # if (any(missing_composite_parents)) {
+  #   bad_rows <- head(which(missing_composite_parents))
+  #   msg <- "%s:%d: `parent_library_uid` must be a semicolon delimited list of library_uids when `library_type` = \"multiplexed_composite_library\"."
+  #   msg <- sprintf(msg, env$tbl, bad_rows + 1)
+  #   errors <- c(errors, msg)
+  # }
   
-  has_control_type      <- library_neg_cont_type | library_pos_cont_type
+  missing_aliquot_parent <- is_aliquot & !has_one_parent
+  if (any(missing_aliquot_parent)) {
+    bad_rows <- head(which(missing_aliquot_parent))
+    msg <- "%s:%d: `parent_library_uid` must be the library_uid the aliquot was taken from when `is_library_aliquot` = \"yes\"."
+    msg <- sprintf(msg, env$tbl, bad_rows + 1)
+    errors <- c(errors, msg)
+  }
+  
+  
+  is_partial_seq <- has_seq_lab + has_paired_or_single + has_seq_platform + has_seq_model
+  is_partial_seq <- (is_partial_seq > 0) & (is_partial_seq < 4)
+  
+  has_control_type      <- is_negative_control | is_positive_control
   spurious_control_type <- !is_control & has_control_type
   missing_control_type  <- is_control & !has_control_type
-  conflict_control_type <- library_neg_cont_type & library_pos_cont_type
+  conflict_control_type <- is_negative_control & is_positive_control
   
   
   if (any(is_partial_seq)) {
     bad_rows <- head(which(is_partial_seq))
-    msg <- "%s:%d: expected all or none of: `paired_or_single`, `sequencing_platform`, `sequencing_instrument_model`."
+    msg <- "%s:%d: expected all or none of: `sequencing_lab`, `paired_or_single`, `sequencing_platform`, `sequencing_instrument_model`."
     msg <- sprintf(msg, env$tbl, bad_rows + 1)
     errors <- c(errors, msg)
   }

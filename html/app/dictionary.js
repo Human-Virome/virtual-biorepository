@@ -227,14 +227,14 @@ const vbrDictionary = {
             "fmt":["integer", "non-negative"]
         },
         "animal_exposure":{
-            "def":"Has the participant had exposure to animals within the last 6 months? Includes pets, livestock, hunting, etc.",
+            "def":"What types of animals has the participant had exposure to within the last 6 months? Includes pets, livestock, hunting, etc.",
             "req":"no",
             "fmt":["cv"],
-            "cv":["yes", "no"]
+            "cv":["domestic", "wildlife", "both", "none"]
         },
         "exposure_animal_type":{
             "def":"NCBI Taxonomy IDs of animals that participant has exposure to. Only the ID (e.g. \"NCBI:txid9615\") is needed; the rest of the text is ignored/discarded.",
-            "req":"Required if animal_exposure is yes.",
+            "req":"Required if animal_exposure is \"domestic\", \"wildlife\", or \"both\".",
             "fmt":["prefix", "multiple"],
             "prefix":["NCBI:txid"],
             "urls":{"NCBI Taxonomy Browser":"https://www.ncbi.nlm.nih.gov/datasets/taxonomy/browser/"},
@@ -1624,8 +1624,8 @@ const vbrDictionary = {
             "ref":{"events":"event_uid"},
             "examples":["vast_eve_85a", "vast_eve_90a;vast_eve_90b"]
         },
-        "lab":{
-            "def":"Lab, group, or facility within a grant-level project where the sample was collected and/or processed. This should be the group responsible for metadata about the sample.",
+        "collection_lab":{
+            "def":"Lab, group, or facility within a grant-level project where the sample was collected. This should be the group responsible for metadata about the sample.",
             "req":"yes",
             "fmt":["cv"],
             "cv":[
@@ -2085,35 +2085,13 @@ const vbrDictionary = {
             "fmt":["uid", "ref"],
             "ref":{"samples":"sample_uid"}
         },
-        "bioproject_id":{
-            "def":"The NCBI bioproject_id associated with this library/processed sample at the sub_bioproject level that is specific to the study this library is part of.",
-            "req":"yes",
-            "fmt":["prefix"],
-            "prefix":["PRJNA"],
-            "urls":{"HVP Umbrella project":"https://www.ncbi.nlm.nih.gov/bioproject/1336838"},
-            "examples":[
-              "Antibody targeting of the virome [PRJNA1336851]",
-              "Single virion analysis of the virome [PRJNA1336854]",
-              "Pregnancy and postpartum [PRJNA1336849]",
-              "Methods for quantitative recovery [PRJNA1336855]",
-              "Antimicrobial and inflammatory perturbations [PRJNA1336853]",
-              "Oral-Gut-Brain Axis [PRJNA1336845]",
-              "Petabase scale to single-cell resolution [PRJNA1336850]",
-              "Oro-Respiratory-Gut Virome Axis [PRJNA1336841]",
-              "Viromes Across Space and Time [PRJNA1336844]",
-              "Vanderbilt VCC (V2C2) [PRJNA1336843]",
-              "Enrichment and Precise Quantification [PRJNA1336856]",
-              "Diverse Human Populations [PRJNA1336842]",
-              "Whole Body Deep Tissue [PRJNA1336852]"
-            ]
-        },
         "library_type":{
             "def":"Indicates the composition of the library or processed sample with respect to whether it is a single individual library or a composite library composed of multiple individual libraries/processed samples.",
             "req":"yes",
             "fmt":["cv"],
             "cv":["individual_library", "multiplexed_composite_library"]
         },
-        "library_aliquot":{
+        "is_library_aliquot":{
             "def":"Is this an aliquot, or subsample, of the original library or processed sample?",
             "req":"yes",
             "fmt":["cv"],
@@ -2121,9 +2099,39 @@ const vbrDictionary = {
         },
         "parent_library_uid":{
             "def":"Identifiers for the libraries from which this library was derived/aliquoted.",
-            "req":"Only applicable to composite libraries or if library_aliquot equals \"yes\".",
+            "req":"Only applicable to composite libraries or if is_library_aliquot = \"yes\".",
             "fmt":["uid", "multiple", "ref"],
             "ref":{"libraries":"library_uid"}
+        },
+        "extraction_lab":{
+            "def":"Lab, group, or facility within a grant-level project where the sample was extracted.",
+            "req":"yes",
+            "fmt":["cv"],
+            "cv":[
+              "anderson", "baldridge", "bhatt", "bittinger", "bushman", "cmmr", 
+              "dantas", "de melo-martin", "dittmer", "emerson", "foxman", "glmc", 
+              "lareau", "li", "mason", "moustafa", "naik", "sabeti", "snyder", 
+              "tcgb", "yracheta", "zhou"]
+        },
+        "library_prep_lab":{
+            "def":"Lab, group, or facility within a grant-level project where the library was prepared.",
+            "req":"yes",
+            "fmt":["cv"],
+            "cv":[
+              "anderson", "baldridge", "bhatt", "bittinger", "bushman", "cmmr", 
+              "dantas", "de melo-martin", "dittmer", "emerson", "foxman", "glmc", 
+              "lareau", "li", "mason", "moustafa", "naik", "sabeti", "snyder", 
+              "tcgb", "yracheta", "zhou"]
+        },
+        "sequencing_lab":{
+            "def":"Lab, group, or facility within a grant-level project where the library was sequenced.",
+            "req":"For sequencing libraries.",
+            "fmt":["cv"],
+            "cv":[
+              "anderson", "baldridge", "bhatt", "bittinger", "bushman", "cmmr", 
+              "dantas", "de melo-martin", "dittmer", "emerson", "foxman", "glmc", 
+              "lareau", "li", "mason", "moustafa", "naik", "sabeti", "snyder", 
+              "tcgb", "yracheta", "zhou"]
         },
         "technique":{
             "def":"OBI ID for the technique performed to create this library/processed sample. Use a term from the OBI ontology \"assay\" branch. If you need a term that is not in OBI, please contact the HVPCC. Only the ID (e.g. \"OBI:0002768\") is needed; the rest of the text is ignored/discarded.",
