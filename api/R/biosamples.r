@@ -74,8 +74,8 @@ api_biosamples_assign <- function (db, hvp_ids) {
   
   local_file  <- tempfile(); on.exit(unlink(local_file), add = TRUE)
   empty_file  <- tempfile(); on.exit(unlink(empty_file), add = TRUE)
-  remote_file <- paste0(basename(local_file), "/submission.xml")
-  ready_file  <- paste0(basename(local_file), "/submit.ready")
+  remote_file <- paste0("submit/Test/", basename(local_file), "/submission.xml")
+  ready_file  <- paste0("submit/Test/", basename(local_file), "/submit.ready")
   
   # Write to a formatted XML file on disk
   xml2::write_xml(Submission, local_file)
@@ -83,7 +83,6 @@ api_biosamples_assign <- function (db, hvp_ids) {
   
   sftp_conn <- sftpR::sftp_connect(
     hostname = "sftp-private.ncbi.nlm.nih.gov",
-    path     = "Test",
     user     = Sys.getenv("NCBI_SFTP_USERNAME"),
     password = Sys.getenv("NCBI_SFTP_PASSWORD") )
   
