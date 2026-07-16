@@ -79,6 +79,9 @@ apply colon seps as optional DB ID addon/suffix
     - when composite sample libraries are mixed together.
 
 
+  - Favor CHEBI over DrugBank? CHEBI has an ontology and is completely free to access.
+
+
 
 # In case of git complaints:
 git push origin main --force

@@ -194,14 +194,27 @@ CREATE TABLE IF NOT EXISTS files (
   FOREIGN KEY (analysis_uid) REFERENCES analyses(analysis_uid)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
+CREATE TABLE IF NOT EXISTS submissions (
+  submission_id                 INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  submission_name               VARCHAR(255),
+  submission_xml                LONGTEXT,
+  report_xml                    LONGTEXT,
+  submission_timestamp          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  report_timestamp              TIMESTAMP,
+  complete                      ENUM('yes','no') NOT NULL DEFAULT 'no',
+  `user`                        VARCHAR(255) NOT NULL,
+  INDEX (`user`)
+) ENGINE=InnoDB WITH SYSTEM VERSIONING;
+
 
 # Use package Metagenome.environmental.1.0
 # https://submit.ncbi.nlm.nih.gov/biosample/template/?package-0=Metagenome.environmental.1.0&action=definition
 CREATE TABLE IF NOT EXISTS biosamples (
   hvp_id                      VARCHAR(50)  NOT NULL UNIQUE,
   sample_name                 VARCHAR(50)  NOT NULL PRIMARY KEY,
-  ncbi_status                 TINYTEXT     DEFAULT ('not submitted'),
+  submission_id               INT,
   biosample_accession         VARCHAR(50)  UNIQUE,
+  submission_error            TEXT,
   host_subject_id             VARCHAR(50)  NOT NULL,
   sampling_event_id           VARCHAR(50)  NOT NULL,
   organism                    TINYTEXT,
@@ -218,7 +231,6 @@ CREATE TABLE IF NOT EXISTS biosamples (
   ethnicity                   TINYTEXT,
   host_sex_at_birth           TINYTEXT,
   medic_hist_perform          TINYTEXT,
-  geo_loc_name                TINYTEXT,
   host_height                 TINYTEXT,
   host_tot_mass               TINYTEXT,
   host_body_mass_index        FLOAT UNSIGNED,
@@ -238,10 +250,12 @@ CREATE TABLE IF NOT EXISTS biosamples (
   wellness_collected          ENUM('yes','no'),
   social_det_collected        ENUM('yes','no'),
   time_last_toothbrush        FLOAT UNSIGNED,
+  geo_loc_name                TINYTEXT NOT NULL DEFAULT ('not provided'),
   lat_lon                     TINYTEXT NOT NULL DEFAULT ('not collected'),
   `user`                      VARCHAR(255) NOT NULL,
   INDEX (`user`),
   FOREIGN KEY (sample_name)       REFERENCES samples(sample_uid),
+  FOREIGN KEY (submission_id)     REFERENCES submissions(submission_id),
   FOREIGN KEY (host_subject_id)   REFERENCES participants(participant_uid),
   FOREIGN KEY (sampling_event_id) REFERENCES events(event_uid)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;

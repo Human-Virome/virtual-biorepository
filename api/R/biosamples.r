@@ -12,22 +12,34 @@ api_biosamples_assign <- function (db, hvp_ids) {
   # if (is.na(release_date) || length(release_date) != 1)
   #   stop("Invalid `release_date`.")
   
-  sql <- "SELECT * FROM biosamples WHERE user = @user"
+  sql <- "
+    SELECT b.*, s.complete 
+    FROM biosamples b
+    LEFT JOIN submissions s USING (submission_id)
+    WHERE b.user = @user"
   res <- db_query(db, sql, 'ApiBiAs1', simplify = FALSE)
   
   res <- res[res[['hvp_id']] %in% hvp_ids,,drop=FALSE]
-  attrs <- setdiff(names(res), c('user', 'ncbi_status', 'biosample_accession', 'sample_name', 'organism'))
+  attrs <- setdiff(names(res), c('user', 'submission_id', 'biosample_accession', 'sample_name', 'organism', 'complete'))
   
   
   # Confirm validity of all the provided `sample_name`s.
   if (length(missing_hvp_ids <- setdiff(hvp_ids, res[['hvp_id']])))
     stop("`hvp_id`(s) missing from database: ", paste(collapse = ', ', missing_hvp_ids))
-  if (length(already_submitted <- res[['sample_name']][res[['ncbi_status']] != "not submitted"]))
-    stop("Samples are already submitted to NCBI: ", paste(collapse = ', ', already_submitted))
+  
+  is_pending_or_success <- !is.na(res[['submission_id']]) & (is.na(res[['complete']]) | res[['complete']] == 'no' | !is.na(res[['biosample_accession']]))
+  if (length(already_submitted <- res[['sample_name']][is_pending_or_success]))
+    stop("Samples are already submitted to NCBI (or pending): ", paste(collapse = ', ', already_submitted))
   
   
   # Create the root node
-  Submission <- xml2::xml_new_root("Submission")
+  Submission <- xml2::xml_new_root(
+    '.value'                        = "Submission",
+    '.version'                      = "1.0",
+    '.encoding'                     = "utf-8",
+    'schema_version'                = "2.0", 
+    'xmlns:xsi'                     = "http://www.w3.org/2001/XMLSchema-instance",
+    'xsi:noNamespaceSchemaLocation' = "https://raw.githubusercontent.com/ncbi/submission-schema/refs/heads/master/common/submission.xsd" )
   
   add <- xml2::xml_add_child
   
@@ -37,17 +49,15 @@ api_biosamples_assign <- function (db, hvp_ids) {
   org <- add(desc, "Organization", role="owner", type="consortium")
   add(org, "Name", "Human Virome Project")
   
-  Action <- add(Submission, "Action")
-  
   for (i in seq_len(nrow(res))) {
     
+    Action     <- add(Submission, "Action")
     AddData    <- add(Action, "AddData", target_db = "BioSample")
-    
     Data       <- add(AddData, "Data", content_type = "XML")
     XmlContent <- add(Data, "XmlContent")
     BioSample  <- add(XmlContent, "BioSample", schema_version = "2.0")
     
-    SampleId   <- add(BioSample, "SampleId")
+    SampleId <- add(BioSample, "SampleId")
     add(SampleId, "SPUID", spuid_namespace = "HVPCC", res[i,'sample_name'])
     
     Descriptor   <- add(BioSample, "Descriptor")
@@ -57,9 +67,6 @@ api_biosamples_assign <- function (db, hvp_ids) {
     Organism <- add(BioSample, "Organism")
     add(Organism, "OrganismName", res[i,'organism'])
     
-    BioProject <- add(BioSample, "BioProject")
-    add(BioProject, "PrimaryId", db = "BioProject", "PRJNA1336838") # Umbrella Project
-    
     add(BioSample, "Package", "Metagenome.environmental.1.0")
     
     Attributes <- add(BioSample, "Attributes")
@@ -67,33 +74,47 @@ api_biosamples_assign <- function (db, hvp_ids) {
       if (!is.na(res[i,f]))
         add(Attributes, "Attribute", attribute_name = f, res[i,f])
     
+    Identifier <- add(AddData, "Identifier")
+    add(Identifier, "SPUID", spuid_namespace = "HVPCC", res[i,'sample_name'])
+    
   }
+  
+  
+  username <- db_query(db, "SELECT @user", 'ApiBiAs2', req1 = TRUE)
+  username <- strsplit(username, '@', fixed = TRUE)[[1]][[1]]
+  username <- gsub("[^a-zA-Z0-9._]+", "_", username)
   
   
   cat(as.character(Submission))
   
-  local_file  <- tempfile(); on.exit(unlink(local_file), add = TRUE)
-  empty_file  <- tempfile(); on.exit(unlink(empty_file), add = TRUE)
-  remote_file <- paste0("submit/Test/", basename(local_file), "/submission.xml")
-  ready_file  <- paste0("submit/Test/", basename(local_file), "/submit.ready")
+  local_xml_file    <- tempfile(); on.exit(unlink(local_xml_file), add = TRUE)
+  local_ready_file  <- tempfile(); on.exit(unlink(local_ready_file), add = TRUE)
+  submission_name   <- paste0(Sys.Date(), "-", stringi::stri_rand_strings(1,6))
+  remote_xml_file   <- paste0("submit/Test/", submission_name, "/submission.xml")
+  remote_ready_file <- paste0("submit/Test/", submission_name, "/submit.ready")
   
   # Write to a formatted XML file on disk
-  xml2::write_xml(Submission, local_file)
-  file.create(empty_file)
+  xml2::write_xml(Submission, local_xml_file)
+  file.create(local_ready_file)
   
   sftp_conn <- sftpR::sftp_connect(
     hostname = "sftp-private.ncbi.nlm.nih.gov",
     user     = Sys.getenv("NCBI_SFTP_USERNAME"),
     password = Sys.getenv("NCBI_SFTP_PASSWORD") )
   
-  sftpR::sftp_upload(sftp_conn, local_file, remote_file, .create_dir = TRUE)
-  #sftpR::sftp_upload(sftp_conn, empty_file, ready_file,  .create_dir = TRUE)
+  sftpR::sftp_upload(sftp_conn, local_xml_file, remote_xml_file, .create_dir = TRUE)
+  sftpR::sftp_upload(sftp_conn, local_ready_file, remote_ready_file,  .create_dir = TRUE)
   
   
-  sql <- 'UPDATE biosamples SET ncbi_status = "pending" WHERE user = @user AND hvp_id = ?'
-  db_query(db, sql, 'ApiBiAs2', list(res[['hvp_id']]))
+  sql <- "INSERT INTO submissions (submission_name, submission_xml, user) VALUES (?, ?, @user)"
+  db_query(db, sql, 'ApiBiAsInsert', list(submission_name, as.character(Submission)))
   
-  invisible()
+  submission_id <- db_query(db, "SELECT LAST_INSERT_ID()", 'ApiBiAsId', req1 = TRUE)
+  
+  sql <- 'UPDATE biosamples SET submission_id = ? WHERE user = @user AND hvp_id = ?'
+  db_query(db, sql, 'ApiBiAs2', list(rep(submission_id, nrow(res)), res[['hvp_id']]))
+  
+  return (list())
 }
 
 
@@ -220,65 +241,66 @@ biosamples_status_check <- function (db) {
   last_checked_at <<- Sys.time()
   
   
-  sql <- paste(
-    "SELECT COUNT(*) FROM `biosamples`",
-    "  WHERE user = @user",
-    "  AND ncbi_status IS NOT NULL",
-    "  AND biosample_accession IS NULL" )
+  # Process all submissions regardless of the active user (poor-man's cron job)
+  sql <- "SELECT submission_name FROM `submissions` WHERE complete = 'no'"
+  pending_submissions <- db_query(db, sql, 'BioStChk1', simplify = FALSE)
   
-  pending <- db_query(db, sql, 'BioStChk1')
-  if (pending == 0) return (invisible())
-  
+  if (nrow(pending_submissions) == 0) return (invisible())
   
   sftp_conn <- sftpR::sftp_connect(
     hostname = "sftp-private.ncbi.nlm.nih.gov", 
     user     = Sys.getenv("NCBI_SFTP_USERNAME"),
     password = Sys.getenv("NCBI_SFTP_PASSWORD") )
   
-  files <- sftpR::sftp_list(sftp_conn, .recursive = TRUE)
-  files <- subset(files, type == 'file' & name == 'report.xml')$url
+  accession_updates <- c()
+  error_updates <- c()
   
-  
-  status_updates     <- c()
-  accession_updates  <- c()
-  delete_remote_dirs <- c()
-  
-  for (remote_file in files) {
+  for (submission_name in pending_submissions$submission_name) {
     local({
       
+      remote_file <- paste0("submit/Test/", submission_name, "/report.xml")
       local_file <- tempfile(fileext = ".xml")
       on.exit(unlink(local_file))
       
-      sftp_download(sftp_conn, remote_file, local_file)
+      # Try downloading the file, it might not exist yet if NCBI hasn't processed it
+      dl_res <- tryCatch({
+        sftpR::sftp_download(sftp_conn, remote_file, local_file)
+        TRUE
+      }, error = function(e) FALSE)
+      
+      if (!dl_res) return()
       
       SubmissionStatus <- xml2::read_xml(local_file)
       Responses        <- xml2::xml_find_all(SubmissionStatus, ".//Response")
       
       file_status <- xml2::xml_attr(SubmissionStatus, 'status')
-      if (identical(file_status, 'processed-ok'))
-        delete_remote_dirs <- c(delete_remote_dirs, basename(remote_file))
+      
+      sql <- "UPDATE submissions SET report_xml = ?, report_timestamp = CURRENT_TIMESTAMP, complete = 'yes' WHERE submission_name = ?"
+      report_xml_content <- as.character(SubmissionStatus)
+      db_query(db, sql, 'BioStChk_Sub', list(report_xml_content, submission_name))
       
       for (i in seq_along(Responses)) {
         
         Response <- Responses[[i]]
         Object   <- xml2::xml_find_first(Response, ".//Object")
         
-        status      <- xml2::xml_attr(Response, 'status')
         accession   <- xml2::xml_attr(Object, 'accession')
         sample_name <- xml2::xml_attr(Object, 'spuid')
         
         if (!is.na(sample_name)) {
-          if (!is.na(status))    status_updates[[sample_name]]    <<- status
-          if (!is.na(accession)) accession_updates[[sample_name]] <<- accession
+          if (isTRUE(!is.na(accession) & startsWith(accession, "SAMN"))) {
+            accession_updates[[sample_name]] <<- accession
+          }
+          else {
+            messages <- xml2::xml_find_all(Response, ".//Message")
+            if (length(messages) > 0) {
+              error_updates[[sample_name]] <<- paste(xml2::xml_text(messages), collapse = "; ")
+            }
+          }
         }
       }
       
     })
-  }
-  
-  if (length(status_updates) > 0) {
-    sql <- "UPDATE biosamples SET ncbi_status = ? WHERE sample_name = ?"
-    db_query(db, sql, 'BioStChk2', list(unname(status_updates), names(status_updates)))
   }
   
   if (length(accession_updates) > 0) {
@@ -286,8 +308,9 @@ biosamples_status_check <- function (db) {
     db_query(db, sql, 'BioStChk3', list(unname(accession_updates), names(accession_updates)))
   }
   
-  for (remote_url in delete_remote_dirs) {
-    sftp_delete(sftp_conn, remote_url, .recursive = TRUE)
+  if (length(error_updates) > 0) {
+    sql <- "UPDATE biosamples SET submission_error = ? WHERE sample_name = ?"
+    db_query(db, sql, 'BioStChk4', list(unname(error_updates), names(error_updates)))
   }
   
   invisible()
