@@ -1,0 +1,5 @@
+participant_uid	event_uid	age	age_units	age_range	state_or_province_of_residence	vital_status	weight	weight_units	height	height_units	animal_exposure	exposure_animal_type	occupation
+vast_hvpqa2026_p001	vast_hvpqa2026_p001_e1	34	years		USA: Texas	alive	68	kilograms	165	centimeters	domestic	NCBI:txid9615;NCBI:txid9685	SNOMED:159138004
+vast_hvpqa2026_p001	vast_hvpqa2026_p001_e2			90+	USA: Texas	alive					none		
+vast_hvpqa2026_p002	vast_hvpqa2026_p002_e1	45	years		USA: California	alive	82	kilograms			none		
+vast_hvpqa2026_p003	vast_hvpqa2026_p003_e1	8	years		Mexico: Jalisco	alive					wildlife	NCBI:txid9986	

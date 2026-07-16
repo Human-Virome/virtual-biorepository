@@ -1,0 +1,7 @@
+library_uid	sample_uid	library_type	is_library_aliquot	parent_library_uid	extraction_lab	library_prep_lab	sequencing_lab	technique	subspecimen_type	library_processing_url	is_control_library	library_neg_cont_type	paired_or_single	sequencing_platform	sequencing_instrument_model
+vast_hvpqa2026_p001_e1_s1_lib1	vast_hvpqa2026_p001_e1_s1	individual_library	no		bhatt	bhatt	bhatt	OBI:0002768	bulk	https://www.protocols.io/			paired	ILLUMINA	Illumina NovaSeq 6000
+vast_hvpqa2026_p001_e1_s1_lib1_aliq1	vast_hvpqa2026_p001_e1_s1	individual_library	yes	vast_hvpqa2026_p001_e1_s1_lib1	bhatt	bhatt		OBI:0002768	bulk	https://www.protocols.io/					
+vast_hvpqa2026_p002_e1_s1_lib1	vast_hvpqa2026_p002_e1_s1	individual_library	no		dantas	dantas	dantas	OBI:0002768	bulk	https://www.protocols.io/			paired	ILLUMINA	Illumina NovaSeq 6000
+vast_hvpqa2026_p003_e1_s1_lib1	vast_hvpqa2026_p003_e1_s1	individual_library	no		dantas	dantas	dantas	OBI:0002768	bulk	https://www.protocols.io/			paired	ILLUMINA	Illumina NovaSeq 6000
+vast_hvpqa2026_comp01_lib1	vast_hvpqa2026_comp01	multiplexed_composite_library	no		bhatt	bhatt	bhatt	OBI:0002117	bulk	https://www.protocols.io/			paired	ILLUMINA	Illumina NovaSeq 6000
+vast_hvpqa2026_negctrl01_lib1	vast_hvpqa2026_negctrl01	individual_library	no		bhatt	bhatt	bhatt	OBI:0002768	bulk	https://www.protocols.io/	yes	extraction	paired	ILLUMINA	Illumina NovaSeq 6000

@@ -9,7 +9,7 @@ ingest_file <- function (db, file, commit) {
     expr = {
       DBI::dbBegin(db)
       
-      is_xls <- !is.null(readxl::excel_format(file))
+      is_xls <- is.finite(readxl::excel_format(file))
       
       if (is_xls) { ingest_excel_file(db, file) }
       else        { ingest_delim_file(db, file) }

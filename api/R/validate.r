@@ -76,6 +76,8 @@ reformat_ids <- function (env) {
     else if ("DB"  %in% prefixes) { regex <- paste0(prefix_group, "[a-zA-Z0-9_:\\-]+") }
     else                          { regex <- paste0(prefix_group, "[0-9]+")            }
     
+    if ("mock" %in% fmt) { regex <- paste0("(mock|", regex ,")") }
+
     # 2. Identify empty records
     is_empty <- is.na(x)
     

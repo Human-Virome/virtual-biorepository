@@ -1,0 +1,4 @@
+participant_uid	cohort_uid	host_taxon	race	ethnicity	sex_at_birth	country_of_birth	blood_type	family_medical_history
+vast_hvpqa2026_p001	vast_hvpqa2026_cohort1	NCBI:txid9606	White	Not Hispanic or Latino	female	United States of America	O+	yes
+vast_hvpqa2026_p002	vast_hvpqa2026_cohort1	NCBI:txid9606	Black or African American	Not Hispanic or Latino	male	United States of America	A+	yes
+vast_hvpqa2026_p003	vast_hvpqa2026_cohort1	NCBI:txid9606						

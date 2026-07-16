@@ -1,0 +1,3 @@
+analysis_uid	analysis_description	pipeline_name	pipeline_description	pipeline_version	sop_url	community_workspace	pipeline_container_url
+vast_hvpqa2026_ana_assembly1	Viral metagenome assembly for HVP QA test batch	viral-assembly-pipeline	Quality-trims raw reads, removes host reads, then assembles virus-enriched reads into contigs using metaSPAdes followed by viral contig classification	v1.0.0	https://github.com/	CyVerse	https://hub.docker.com/
+vast_hvpqa2026_ana_taxprofile1	Taxonomic profiling of scrubbed sequence reads	tax-profiler	Runs Kraken2 classification against a curated viral reference database followed by Bracken abundance re-estimation	v2.1.0	https://github.com/	Terra	
