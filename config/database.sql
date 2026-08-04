@@ -412,7 +412,7 @@ INSERT INTO `participants`
     ('hvpp00COMP', 'composite', 'open', 'DUO:0000004', 'composite', 'composite', 'composite', 'composite', 'composite', 'composite', 'Daniel.Smith@bcm.edu');
 
 INSERT INTO `events`
-  (hvp_id, event_uid, participant_uid, year_month, state_or_province_of_residence, `user`)
+  (hvp_id, event_uid, participant_uid, `year_month`, state_or_province_of_residence, `user`)
   VALUES
     ('hvpe00MOCK', 'mock',      'mock',      '2026-08', 'mock',      'Daniel.Smith@bcm.edu'),
     ('hvpe00COMP', 'composite', 'composite', '2026-08', 'composite', 'Daniel.Smith@bcm.edu');
