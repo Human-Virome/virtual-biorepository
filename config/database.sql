@@ -400,7 +400,7 @@ CREATE TABLE IF NOT EXISTS sra (
   INDEX (`user`),
   FOREIGN KEY (profile_uid)  REFERENCES profiles(profile_uid),
   FOREIGN KEY (sample_name)  REFERENCES samples(sample_uid),
-  FOREIGN KEY (library_name) REFERENCES profiles(library_id),
+  FOREIGN KEY (library_name) REFERENCES profiles(library_prep_uid),
   FOREIGN KEY (BioSample)    REFERENCES biosamples(biosample_accession)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
