@@ -139,7 +139,7 @@ validate_assert <- function (env, field) {
   asserts   <- DICT[[env$tbl]][[field]][['assert']]
   has_field <- !is.na(env$df[[field]])
 
-  for (check in names(asserts))) {
+  for (check in names(asserts)) {
 
     target     <- asserts[[check]]
     has_target <- !is.na(env$df[[target]])

@@ -427,21 +427,23 @@
                         const li = document.createElement('li');
                         li.style.marginBottom = '0.25rem';
                         
-                        let desc = fmtMap[f] || "Format specified in definition.";
-                        
-                        // Inject inline styled tags for 'ontology' format rule
-                        if (f === 'ontology' && fieldData.prefix && fieldData.prefix.length > 0) {
-                            const prefixHtml = fieldData.prefix.map(p => `<span class="prefix-tag">${p}</span>`).join(' ');
-                            
-                            // Check if there is more than one prefix to determine singular/plural wording
-                            const isPlural = fieldData.prefix.length > 1;
-                            const prefixText = isPlural ? "one of the specified ontology prefixes:" : " the ontology prefix";
-                            
-                            desc = `Must include ${prefixText} ${prefixHtml}`;
+                        let desc = fmtMap[f];
+                        if (desc) {
+
+                          // Inject inline styled tags for 'ontology' format rule
+                          if (f === 'ontology' && fieldData.prefix && fieldData.prefix.length > 0) {
+                              const prefixHtml = fieldData.prefix.map(p => `<span class="prefix-tag">${p}</span>`).join(' ');
+                              
+                              // Check if there is more than one prefix to determine singular/plural wording
+                              const isPlural = fieldData.prefix.length > 1;
+                              const prefixText = isPlural ? "one of the specified ontology prefixes:" : " the ontology prefix";
+                              
+                              desc = `Must include ${prefixText} ${prefixHtml}`;
+                          }
+                          
+                          li.innerHTML = `<strong>${f}</strong>: ${desc}`;
+                          elFmtList.appendChild(li);
                         }
-                        
-                        li.innerHTML = `<strong>${f}</strong>: ${desc}`;
-                        elFmtList.appendChild(li);
                     });
 
                 } else {
