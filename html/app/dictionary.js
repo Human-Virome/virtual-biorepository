@@ -1,47 +1,224 @@
 const vbrDictionary = {
+    "protocols":{
+        "protocol_uid":{
+            "def":"HVP-unique protocol identifier.",
+            "fmt":["required", "uid", "primary"],
+            "examples":["VAST-16S-V4-v1.0"]
+        },
+        "author":{
+            "def":"The lab or company that developed the protocol.",
+            "fmt":["required", "text"],
+            "examples":["Qiagen", "CMMR"]
+        },
+        "title":{
+            "def":"The title of the protocol.",
+            "fmt":["required", "text"],
+            "examples":["Powersoil", "16S V4 Illumina Library Prep"]
+        },
+        "version":{
+            "def":"The version of the protocol.",
+            "fmt":["required", "text"],
+            "examples":["1.0"]
+        },
+        "applications":{
+            "def":"The sample processing stage(s) for which this protocol is intended. \"Preprocess\" includes separation of a single sample into distinct subtypes, for example a stool sample could be preprossed to isolate the acellular portion (with its own sample_id identifier). \"Assay\" emcompasses all molecular profiling methods such as DNA sequencing and mass spectrometry-based omics. \"Postprocess\" is for computational steps that cleanup the raw assay output such as basecalling BCL files, demultiplexing FASTQ files, and scrubbing host DNA. \"Analysis\" is for computational pipelines such as taxonomic assignment or assembly.",
+            "fmt":["required", "cv", "multiple"],
+            "cv":["collection", "preprocess", "extraction", "library_prep", "assay", "postprocess", "analysis"]
+        },
+        "access":{
+            "def":"The license under which the protocol is released. Set as \"restricted\" if it cannot be shared publicly. Otherwise, provide the open access license if one has been chosen, or \"open\" otherwise.",
+            "fmt":["required", "text"],
+            "suggestions":[
+                "restricted", "open", "CC0", "CC BY", "CC BY-SA", "CC BY-NC", 
+                "CC BY-ND", "CC BY-NC-SA", "CC BY-NC-ND", "MIT", "Apache-2.0", 
+                "BSD-2-Clause", "BSD-3-Clause", "GPL-2.0", "GPL-3.0", "LGPL-2.1", 
+                "LGPL-3.0", "AGPL-3.0", "MPL-2.0"]
+        },
+        "summary":{
+            "def":"A short description of the protocol's purpose.",
+            "fmt":["text"],
+            "examples":[
+              "Extracting DNA from stool samples using the Qiagen DNeasy PowerSoil Pro Kit.", 
+              "Creating a multiplex 16S V4 library using the Nextera XT DNA Library Preparation Kit."]
+        },
+        "url":{
+            "def":"A stable, permanent url or doi where documentation on the details of the protocol and how it was performed can be found. The description must be detailed enough that others can reproduce the process. Suggested locations for this information include, but are not limited to, Zenodo, GitHub, Read the Docs, and protocols.io.",
+            "fmt":["url"],
+            "examples":["https://doi.org/10.1093/nar/gkab996", "https://zenodo.org/record/1234567"]
+        },
+        "collection_additive":{
+            "def":"Additive/preservative in which sample is stored or initially stored.",
+            "fmt":["cv"],
+            "cv":[
+              "RNA Later", "Qiagen Allprotect", "Glycerol", "Ethanol", "Oral Cocktail ", "PBS/Saline", 
+              "VTM ", "Zymo DNA/RNA Shield", "None/Neat", "PIC", "DNA Shield"]
+        },
+        "preprocess_growth":{
+            "def":"Type of growth media used, if applicable.",
+            "fmt":["cv"],
+            "cv":["organoid", "cell_line", "in_vitro"]
+        },
+        "preprocess_spike_in":{
+            "def":"The spike-in added to the sample.",
+            "fmt":["text"]
+        },
+        "preprocess_substance":{
+            "def":"Term to describe the type of subsample that was derived from a primary sample. Leave blank if the sample type did not change (e.g., if only a spike-in was added).",
+            "fmt":["cv"],
+            "cv":[
+              "viral_particles", "acellular_fraction", "cellular_fraction", "whole_neat_blood", 
+              "whole_blood", "blood_fraction_plasma", "blood_fraction_buffy_coat", 
+              "blood_fraction_erythrocytes", "tissue"]
+        },
+        "preprocess_isolation":{
+            "def":"A term to describe the nature of the sample to differentiate between processes focusing on single cells or nuclei and processes that operate on many cells in a mixture.",
+            "fmt":["cv"],
+            "cv":["single cells", "single nuclei", "bulk"]
+        },
+        "library_taxonomy":{
+            "def":"Taxonomy present in the created library. You can use any term from the NCBI taxonomy database but we anticipate frequent use of NCBI:txid1070528 - human viral metagenome. Only the ID (e.g. \"NCBI:txid1070528\") is needed; the rest of the text is ignored/discarded.",
+            "fmt":["condition", "ontology"],
+            "condition":{
+              "description":"`library_taxonomy` is required when `applications` include \"library_prep\".",
+              "when_true":{"applications":"\\blibrary_prep\\b"}},
+            "ontology":["NCBI:txid"],
+            "urls":{
+              "NCBI Taxonomy Browser":"https://www.ncbi.nlm.nih.gov/datasets/taxonomy/browser/"
+            },
+            "examples":["NCBI:txid1070528"],
+            "suggestions":["Human viral metagenome [NCBI:txid1070528]"]
+        },
+        "library_purpose":{
+            "def":"The created library's intended type of assay.",
+            "fmt":["condition", "cv"],
+            "condition":{
+              "description":"`library_purpose` is required when `applications` include \"library_prep\".",
+              "when_true":{"applications":"\\blibrary_prep\\b"}},
+            "cv":["sequencing", "proteomics", "metabolomics"]
+        },
+        "sequencing_strategy":{
+            "def":"The overall experimental sequencing assay or targeted strategy.",
+            "fmt":["condition", "cv"],
+            "condition":{
+              "description":"`sequencing_strategy` is required when `library_purpose` is \"sequencing\".",
+              "when_true":{"library_purpose":"^sequencing$"}},
+            "cv":[
+                "AMPLICON", "WGS", "RNA-Seq", "Bisulfite-Seq", "WGA", "WXS", 
+                "miRNA-Seq", "WCS", "CLONE", "POOLCLONE", "CLONEEND", 
+                "FINISHING", "ChIP-Seq", "MNase-Seq", "DNase-Hypersensitivity", 
+                "Tn-Seq", "EST", "FL-cDNA", "CTS", "MRE-Seq", "MeDIP-Seq", 
+                "MBD-Seq", "Synthetic-Long-Read", "ATAC-seq", "ChIA-PET", 
+                "FAIRE-seq", "Hi-C", "ncRNA-Seq", "RAD-Seq", "RIP-Seq", 
+                "SELEX", "ssRNA-seq", "Targeted-Capture", 
+                "Tethered Chromatin Conformation Capture", "DIP-Seq", "GBS", 
+                "Inverse rRNA", "NOMe-Seq", "Ribo-seq", "VALIDATION", "OTHER" ]
+        },
+        "sequencing_source":{
+            "def":"The core biological origin or type of isolated nucleic acid.",
+            "fmt":["condition", "cv"],
+            "condition":{
+              "description":"`sequencing_source` is required when `library_purpose` is \"sequencing\".",
+              "when_true":{"library_purpose":"^sequencing$"}},
+            "cv":[
+                "GENOMIC", "TRANSCRIPTOMIC", "METAGENOMIC", 
+                "METATRANSCRIPTOMIC", "SYNTHETIC", "VIRAL RNA", 
+                "GENOMIC SINGLE CELL", "TRANSCRIPTOMIC SINGLE CELL", "OTHER" ]
+        },
+        "sequencing_selection":{
+            "def":"Method used to isolate or enrich target molecules during library preparation.",
+            "fmt":["condition", "cv"],
+            "condition":{
+              "description":"`sequencing_selection` is required when `library_purpose` is \"sequencing\".",
+              "when_true":{"library_purpose":"^sequencing$"}},
+            "cv":[
+                "RANDOM", "PCR", "RANDOM PCR", "RT-PCR", "HMPR", "MF", "CF-S", 
+                "CF-M", "CF-H", "CF-T", "MDA", "MSLL", "cDNA", "ChIP", 
+                "MNase", "DNAse", "Hybrid Selection", "Reduced Representation", 
+                "Restriction Digest", "5-methylcytidine antibody", 
+                "MBD2 protein methyl-CpG binding domain", "CAGE", "RACE", 
+                "size fractionation", "Padlock probes capture method", "other", 
+                "unspecified", "cDNA_oligo_dT", "cDNA_randomPriming", 
+                "Inverse rRNA", "Oligo-dT", "PolyA", "repeat fractionation" ]
+        },
+        "sequencing_layout":{
+            "def":"Physical configuration of sequence reads.",
+            "fmt":["condition", "cv"],
+            "condition":{
+              "description":"`sequencing_layout` is required when `library_purpose` is \"sequencing\".",
+              "when_true":{"library_purpose":"^sequencing$"}},
+            "cv":["paired", "single"]
+        },
+        "transit_temp_celsius":{
+            "def":"Temperature between sample collection and processing or archive in degrees Celsius.",
+            "fmt":["number"],
+            "range":[-100, 100]
+        },
+        "storage_temp_celsius":{
+            "def":"Temperature that the sample is archived at in degrees Celsius.",
+            "fmt":["number"],
+            "range":[-100, 100]
+        }
+    },
     "participants":{
         "participant_uid":{
-            "def":"This is a unique identifier for the participant within a given HVP data generator group (at the grant level), built from the data generator's internal participant id prefixed with the project abbreviation, separated with an underscore. NOTE: the data generator's internal id MUST be unique across that data generator.",
-            "req":"yes",
-            "fmt":["uid", "primary"],
-            "examples":["vast_h3754"]
+            "def":"HVP-unique participant identifier. See below for UID format.",
+            "fmt":["required", "uid", "primary"],
+            "examples":["vast_subj_294", "wu_wylie_p827"]
         },
-        "cohort_uid":{
-            "def":"Identifier for the cohort to which this participant belongs. Institutional Certification forms must be on file with the HVPCC prior to submission of controlled data. Cohort identifiers must be unique within a data generation group.",
-            "req":"yes",
+        "cohort_uids":{
+            "def":"The HVP-unique cohort identifiers for all the cohorts that this participant belongs to. Both new and existing IDs may be used.",
             "fmt":["uid", "multiple"],
-            "examples":["vast_study_xyz"]
+            "examples":["penn_study_hsd;broad_park_cohort_23", "cmmr_study1"]
         },
-        "host_taxon":{
-            "def":"The NCBI taxonomy ID of the sampled organism, likely NCBI:txid9606 (Human).",
-            "req":"yes",
-            "fmt":["prefix"],
-            "prefix":["NCBI:txid"],
-            "urls":{"NCBI Taxonomy Browser":"https://www.ncbi.nlm.nih.gov/datasets/taxonomy/browser/"},
-            "examples":["NCBI:txid9606", "Homo sapiens [NCBI:txid9606]", "Mus musculus [NCBI:txid10090]"]
+        "access":{
+            "def":"The consented access level of participant data.",
+            "fmt":["required", "cv"],
+            "cv":["open", "open_embargo", "restricted", "restricted_embargo"]
+        },
+        "data_use_condition":{
+            "def":"Term from the Data Use Ontology (DUO) to describe how the participant's data is allowed to be used. The term here must match with the value expected for the cohort associated with this data. Only the ID (e.g. \"DUO:0000004\") is needed; the rest of the text is ignored/discarded.",
+            "fmt":["required", "ontology"],
+            "ontology":["DUO:"],
+            "urls":{"Data Use Ontology":"https://www.ebi.ac.uk/ols4/ontologies/duo"},
+            "suggestions":[
+                "no restricition [DUO:0000004]",
+                "general research use [DUO:0000042]",
+                "health or medical or biomedical research [DUO:0000006]",
+                "disease specific research [DUO:0000007]",
+                "population origins or ancestry research only [DUO:0000011]"
+            ]
+        },
+        "data_use_specific_limit":{
+            "def":"The Disease Ontology ID for the specific disease associated with the data_use_condition. Only the ID (e.g. \"DOID:0060041\") is needed; the rest of the text is ignored/discarded.",
+            "fmt":["condition", "ontology"],
+            "condition":{
+              "description":"`data_use_specific_limit` is required when `data_use_condition` = \"DUO:0000007\" (disease specific research).",
+              "when_true":{"data_use_condition":"DUO:0000007"}},
+            "ontology":["DOID:"],
+            "urls":{"Disease Ontology":"https://www.ebi.ac.uk/ols4/ontologies/doid"},
+            "suggestions":[
+              "Breast cancer [DOID:1612]",
+              "Type 1 diabetes mellitus [DOID:9744]",
+              "Autism spectrum disorder [DOID:0060041]"]
         },
         "race":{
             "def":"Race of the participant.",
-            "req":"no",
-            "fmt":["cv"],
+            "fmt":["required", "cv"],
             "cv":["Asian", "Black or African American", "American Indian/Alaska Native", "Native Hawaiian or Other Pacific Islander", "Middle Eastern or North African", "White", "Multi-racial"]
         },
         "ethnicity":{
             "def":"Ethnicity of the participant.",
-            "req":"no",
-            "fmt":["cv"],
+            "fmt":["required", "cv"],
             "cv":["Hispanic or Latino", "Not Hispanic or Latino"]
         },
         "sex_at_birth":{
             "def":"Participant's sex assigned at birth.",
-            "req":"no",
-            "fmt":["cv"],
+            "fmt":["required", "cv"],
             "cv":["male", "female", "intersex"]
         },
         "country_of_birth":{
             "def":"Country where participant was born.",
-            "req":"no",
-            "fmt":["cv"],
+            "fmt":["required", "cv"],
             "cv":[
               "United States of America", "Canada", "Mexico", "Afghanistan", "Albania", "Algeria", 
               "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", 
@@ -76,8 +253,7 @@ const vbrDictionary = {
         },
         "country_of_childhood_residence":{
             "def":"Country where participant resided during childhood",
-            "req":"no",
-            "fmt":["cv"],
+            "fmt":["required", "cv"],
             "cv":[
               "United States of America", "Canada", "Mexico", "Afghanistan", "Albania", "Algeria", 
               "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", 
@@ -112,64 +288,82 @@ const vbrDictionary = {
         },
         "gestational_age_at_birth":{
             "def":"Age of pregnancy (in weeks) when participant was born.",
-            "req":"no",
-            "fmt":["number", "non-negative"]
+            "fmt":["number"],
+            "range":[20,45]
         },
         "mode_of_birth_delivery":{
             "def":"Method through which participant was delivered.",
-            "req":"no",
             "fmt":["cv"],
             "cv":["Vaginal", "Cesarean"]
         },
         "blood_type":{
             "def":"Participant's blood type based on the ABO and Rh systems.",
-            "req":"no",
             "fmt":["cv"],
             "cv":["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
         },
         "family_medical_history":{
             "def":"Whether full medical history was collected",
-            "req":"no",
             "fmt":["cv"],
             "cv":["yes", "no"]
+        },
+        "animal_model":{
+            "def":"For non-human hosts, the NCBI taxonomy ID of the sampled organism. Only the ID (e.g. \"NCBI:txid10090\") is needed; the rest of the text is ignored/discarded.",
+            "fmt":["ontology"],
+            "ontology":["NCBI:txid"],
+            "urls":{"NCBI Taxonomy Browser":"https://www.ncbi.nlm.nih.gov/datasets/taxonomy/browser/"},
+            "examples":["NCBI:txid9606"],
+            "suggestions":["Mus musculus [NCBI:txid10090]"]
         }
     },
     "events":{
         "participant_uid":{
-            "def":"A previously defined participant identifier for which this event information was gathered.",
-            "req":"yes",
-            "fmt":["uid", "ref"],
+            "def":"A previously defined participant_uid for which this event information was gathered.",
+            "fmt":["required", "uid", "ref", "hvp"],
             "ref":{"participants":"participant_uid"},
-            "examples":["vast_h3754"]
+            "examples":["vast_subj_294", "wu_wylie_p827"]
         },
         "event_uid":{
-            "def":"This is a unique identifier for the event within a given HVP data generator group (at the grant level), built from the data generator's internal event id prefixed with the project abbreviation, separated with an underscore. NOTE: the data generator's internal id MUST be unique across that data generator.",
-            "req":"yes",
-            "fmt":["uid", "primary"],
-            "examples":["vast_h3754_t1"]
+            "def":"HVP-unique event identifier. See below for UID format.",
+            "fmt":["required", "uid", "primary"],
+            "examples":["vast_subj_294_t1", "vast_subj_294_t2", "suny_e101"]
+        },
+        "date":{
+            "def":"Date the event took place, either as YYYY-MM-DD or YYYY-MM only.",
+            "fmt":["required", "date"],
+            "examples":["2022-01-01", "2022-01"]
+        },
+        "day_of_week":{
+            "def":"Day of the week that the event took place. Automatically computed when date is given as YYYY-MM-DD.",
+            "fmt":["cv"],
+            "cv":["Monday", "Tuesday", "Wedsday", "Thursday", "Friday", "Saturday", "Sunday"]
         },
         "age":{
-            "def":"Participant's age at time of sample collection. Use \"age_range\" instead when age is 90+ years.",
-            "req":"Either \"age\" or \"age_range\" must be provided (not both).",
-            "fmt":["number", "non-negative"]
+            "def":"Participant's age at time of sample collection. Use `age_range` instead when age is 90+ years.",
+            "fmt":["condition", "number"],
+            "condition":{
+              "description":"Either `age` or `age_range` must be provided (not both)."},
+            "range":[0,180]
         },
         "age_units":{
             "def":"The units in which age is reported.",
-            "req":"Required if \"age\" is filled in.",
-            "fmt":["cv"],
+            "fmt":["condition", "cv"],
+            "condition":{
+              "description":"`age_units` is required when `age` is provided.",
+              "when_set":"age"},
             "cv":["days", "weeks", "months", "years"]
         },
         "age_range":{
-            "def":"The range in which the participant's age falls.",
-            "req":"Required if you are unable to fill in the actual age either due to consent restrictions or when age is 90+ years. Either \"age\" or \"age_range\" must be provided (not both).",
-            "fmt":["cv"],
+            "def":"The range in which the participant's age falls. Use when are unable to fill in the actual age either due to consent restrictions or when age is 90+ years.",
+            "fmt":["condition", "assert", "cv"],
+            "condition":{
+              "description":"Either `age` or `age_range` must be provided (not both)."},
+            "assert":{"XOR":"age"},
             "cv":[
               "0 to <2", "2 to <4", "4 to <18", "18 to <30", "30 to <40", "40 to <50", 
               "50 to <60", "60 to <70", "70 to <80", "80 to <90", "90+"]
         },
         "state_or_province_of_residence":{
             "def":"Participant's country and state/province of residence at time of sample collection.",
-            "req":"no",
             "fmt":["cv"],
             "cv":[
               "USA: Alabama", "USA: Alaska", "USA: Arizona", "USA: Arkansas", "USA: California", "USA: Colorado",
@@ -193,52 +387,61 @@ const vbrDictionary = {
               "Mexico: San Luis Potosi", "Mexico: Sinaloa", "Mexico: Sonora", "Mexico: Tabasco", "Mexico: Tamaulipas",
               "Mexico: Tlaxcala", "Mexico: Veracruz de Ignacio de la Llave", "Mexico: Yucatan", "Mexico: Zacatecas"]
         },
+        "current_geography":{
+            "def":"Geographic setting of participant at time of sampling",
+            "fmt":["cv"],
+            "cv":["urban", "suburban", "semi-rural", "rural"]
+        },
         "vital_status":{
             "def":"Vital status of participant at time of sampling.",
-            "req":"no",
             "fmt":["cv"],
             "cv":["alive", "deceased"]
         },
         "weight":{
             "def":"Participant's weight at time of sample collection.",
-            "req":"no",
-            "fmt":["number", "non-negative"]
+            "fmt":["number"],
+            "range":[0,500]
         },
         "weight_units":{
             "def":"The units in which the weight is reported.",
-            "req":"Required if \"weight\" is given.",
-            "fmt":["cv"],
+            "fmt":["condition", "cv"],
+            "condition":{
+              "description":"`weight_units` is required when `weight` is provided.",
+              "when_set":"weight"},
             "cv":["pounds", "kilograms", "ounces"]
         },
         "height":{
             "def":"Participant's height at time of sample collection.",
-            "req":"no",
-            "fmt":["number", "non-negative"]
+            "fmt":["number"],
+            "range":[0,300]
         },
         "height_units":{
             "def":"The units in which the height is measured.",
-            "req":"Required if \"height\" is given.",
-            "fmt":["cv"],
+            "fmt":["condition", "cv"],
+            "condition":{
+              "description":"`height_units` is required when `height` is provided.",
+              "when_set":"height"},
             "cv":["meters", "centimeters", "feet", "inches"]
         },
         "number_of_household_members":{
             "def":"Number of people (not including participant) who live in participant's household at time of sampling.",
-            "req":"no",
-            "fmt":["integer", "non-negative"]
+            "fmt":["number", "integer"],
+            "range":[0,100]
         },
         "animal_exposure":{
             "def":"What types of animals has the participant had exposure to within the last 6 months? Includes pets, livestock, hunting, etc.",
-            "req":"no",
             "fmt":["cv"],
             "cv":["domestic", "wildlife", "both", "none"]
         },
         "exposure_animal_type":{
             "def":"NCBI Taxonomy IDs of animals that participant has exposure to. Only the ID (e.g. \"NCBI:txid9615\") is needed; the rest of the text is ignored/discarded.",
-            "req":"Required if animal_exposure is \"domestic\", \"wildlife\", or \"both\".",
-            "fmt":["prefix", "multiple"],
-            "prefix":["NCBI:txid"],
+            "fmt":["condition", "ontology", "multiple"],
+            "condition":{
+               "description":"`exposure_animal_type` is required when `animal_exposure` is \"domestic\", \"wildlife\", or \"both\".",
+               "when_true":{"animal_exposure":"^(domestic|wildlife|both)$"}},
+            "ontology":["NCBI:txid"],
             "urls":{"NCBI Taxonomy Browser":"https://www.ncbi.nlm.nih.gov/datasets/taxonomy/browser/"},
-            "examples":[
+            "suggestions":[
                 "CARNIVORES [NCBI:txid33554]",
                 "  Dog [NCBI:txid9615]",
                 "  Cat (Domestic) [NCBI:txid9685]",
@@ -281,7 +484,6 @@ const vbrDictionary = {
         },
         "family_income":{
             "def":"Family income range of the participant at the time of sampling.",
-            "req":"no",
             "fmt":["cv"],
             "cv":[
               "under $25,000", "$25,000 to $49,999", "$50,000 to $74,999", "$75,000 to $99,999", 
@@ -289,11 +491,10 @@ const vbrDictionary = {
         },
         "occupation":{
             "def":"SNOMED ID of the most frequent job performed by participant at the time of sampling. Only the ID (e.g. \"SNOMED:159138004\") is needed; the rest of the text is ignored/discarded.",
-            "req":"no",
             "urls":{"SNOMED Ontology \"Occupation (occupation)\" branch":"https://www.ebi.ac.uk/ols4/ontologies/snomed/classes/http%253A%252F%252Fsnomed.info%252Fid%252F14679004?lang=en"},
-            "fmt":["prefix"],
-            "prefix":["SNOMED:"],
-            "examples": [
+            "fmt":["ontology"],
+            "ontology":["SNOMED:"],
+            "suggestions": [
                 "MANAGEMENT & EXECUTIVE [SNOMED:159326004]",
                 "  Chief Executive Officer (CEO) / President [SNOMED:1011301000168101]",
                 "  General / Operations Manager [SNOMED:1637009]",
@@ -519,29 +720,25 @@ const vbrDictionary = {
         },
         "breastfed_status":{
             "def":"For adults, this captures whether or not participant was breastfed during infancy; for infants, this captures current status with regard to breastfeeding for participant.",
-            "req":"no",
             "fmt":["cv"],
             "cv":["yes", "yes-exclusively", "yes-partially", "no"]
         },
         "oral_health":{
             "def":"Whether oral health history was collected",
-            "req":"no",
             "fmt":["cv"],
             "cv":["yes", "no"]
         },
         "dental_exam":{
             "def":"Whether dental exam was performed on participant",
-            "req":"no",
             "fmt":["cv"],
             "cv":["yes", "no"]
         },
         "systemic_comorbidities":{
             "def":"Disease Ontology IDs of the participant's comorbidities (at the time of sampling), can be described at a general or specific level depending on how center gathered that information. Multiple IDs can be delimited with a semicolon.",
-            "req":"no",
-            "fmt":["prefix", "multiple"],
-            "prefix":["DOID:"],
+            "fmt":["ontology", "multiple", "non-blank"],
+            "ontology":["DOID:"],
             "urls":{"Disease Ontology":"https://www.ebi.ac.uk/ols4/ontologies/doid"},
-            "examples":[
+            "suggestions":[
                 "BREAST DISEASE [DOID:3463]",
                 "  Breast cancer [DOID:1612]",
                 "  Fibroadenoma [DOID:4333]",
@@ -704,11 +901,10 @@ const vbrDictionary = {
         },
         "mental_health_history":{
             "def":"Disease Ontology IDs for mental health conditions that participant has experienced in the past, but is not currently experiencing. Only the ID (e.g. \"DOID:0060041\") is needed; the rest of the text is ignored/discarded. Multiple IDs can be delimited with a semicolon.",
-            "req":"no",
-            "fmt":["prefix", "multiple"],
-            "prefix":["DOID:"],
+            "fmt":["ontology", "multiple", "non-blank"],
+            "ontology":["DOID:"],
             "urls":{"Disease Ontology \"mental health\" branch":"https://www.ebi.ac.uk/ols4/ontologies/doid/classes/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FDOID_150"},
-            "examples":[
+            "suggestions":[
                 "NEURODEVELOPMENTAL DISORDER [DOID:0060040]",
                 "  Attention deficit hyperactivity disorder [DOID:1094]",
                 "  Autism spectrum disorder [DOID:0060041]",
@@ -838,11 +1034,10 @@ const vbrDictionary = {
         },
         "mental_health_at_sampling":{
             "def":"Disease Ontology IDs for mental health conditions that participant is experiencing at time of sample collection. Only the ID (e.g. \"DOID:0060041\") is needed; the rest of the text is ignored/discarded. Multiple IDs can be delimited with a semicolon.",
-            "req":"no",
-            "fmt":["prefix", "multiple"],
-            "prefix":["DOID:"],
+            "fmt":["ontology", "multiple", "non-blank"],
+            "ontology":["DOID:"],
             "urls":{"Disease Ontology \"mental health\" branch":"https://www.ebi.ac.uk/ols4/ontologies/doid/classes/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FDOID_150"},
-            "examples":[
+            "suggestions":[
                 "NEURODEVELOPMENTAL DISORDER [DOID:0060040]",
                 "  Attention deficit hyperactivity disorder [DOID:1094]",
                 "  Autism spectrum disorder [DOID:0060041]",
@@ -972,14 +1167,13 @@ const vbrDictionary = {
         },
         "disabilities":{
             "def":"Disease Ontology or Symptom Ontology IDs for participant's disabilities at time of sample collection. Only the ID (e.g. \"DOID:8947\") is needed; the rest of the text is ignored/discarded. Multiple IDs can be delimited with a semicolon.",
-            "req":"no",
-            "fmt":["prefix", "multiple"],
-            "prefix":["DOID:","SYMP:"],
+            "fmt":["ontology", "multiple", "non-blank"],
+            "ontology":["DOID:","SYMP:"],
             "urls":{
               "Disease Ontology":"https://www.ebi.ac.uk/ols4/ontologies/doid",
               "Symptom Ontology":"https://www.ebi.ac.uk/ols4/ontologies/symp"
             },
-            "examples":[
+            "suggestions":[
                 "VISION DISABILITY [SYMP:0000008]",
                 "  Blindness [SYMP:0000008]",
                 "  Low vision [SYMP:0000012]",
@@ -1044,13 +1238,11 @@ const vbrDictionary = {
         },
         "prescription_medications":{
             "def":"DrugBank IDs for prescription medications the participant was taking regularly as prescribed at time of sample collection. Only the ID (e.g. \"DB00318\") and optional suffixes are imported; the rest of the text is ignored/discarded. If DrugBank does not have the term you need, please use \"DBX_freetext\" and contact the HVPCC.",
-            "req":"no",
-            "fmt":["prefix", "multiple", "mode"],
-            "prefix":["DB"],
+            "fmt":["ontology", "multiple", "suffix", "mode", "non-blank"],
+            "ontology":["DB"],
             "urls":{"DrugBank Collection":"https://go.drugbank.com/drugs"},
-            "examples":[
-                "DB00318",
-                "DBX_amazinase:oral",
+            "examples":["DB00318", "DBX_amazinase:oral"],
+            "suggestions":[
                 "DB00404:oral;DB00972:intranasal",
                 "Adalimumab / Humira [DB00051:injected]",
                 "Albuterol / Ventolin [DB01001:inhalation]",
@@ -1267,13 +1459,11 @@ const vbrDictionary = {
         },
         "antibiotics_or_antivirals":{
             "def":"DrugBank IDs for any antibiotics or antivirals taken within 3 months of sampling. Only the ID (e.g. \"DB01060\") and optional suffixes are imported; the rest of the text is ignored/discarded. If DrugBank does not have the term you need, please use \"DBX_freetext\" and contact the HVPCC.",
-            "req":"no",
-            "fmt":["prefix", "multiple", "mode"],
-            "prefix":["DB"],
+            "fmt":["ontology", "multiple", "suffix", "mode", "non-blank"],
+            "ontology":["DB"],
             "urls":{"DrugBank Collection":"https://go.drugbank.com/drugs"},
-            "examples":[
-                "DB00207",
-                "DB01060:oral;DB00878:topical",
+            "examples":["DB00207", "DB01060:oral;DB00878:topical"],
+            "suggestions":[
                 "DBX_clincaltrialXYZ:injected",
                 "Acyclovir / Zovirax [DB00787:oral]",
                 "Amoxicillin / Amoxil [DB01060:oral]",
@@ -1316,13 +1506,11 @@ const vbrDictionary = {
         },
         "otc_medications":{
             "def":"DrugBank IDs for over-the-counter medication participant was taking or had taken at time of sample collection. Only the ID (e.g. \"DB00316\") is needed; the rest of the text is ignored/discarded. If DrugBank does not have the term you need, please use \"DBX_freetext\" and contact the HVPCC.",
-            "req":"no",
-            "fmt":["prefix", "multiple"],
-            "prefix":["DB"],
+            "fmt":["ontology", "multiple", "non-blank"],
+            "ontology":["DB"],
             "urls":{"DrugBank Collection":"https://go.drugbank.com/drugs"},
-            "examples":[
-                "DB00316",
-                "DBX_simethicone",
+            "examples":["DB00316", "DBX_simethicone"],
+            "suggestions":[
                 "DB00201;DBX_probiotic",
                 "Acetaminophen / Tylenol [DB00316]",
                 "Aspirin / Acetylsalicylic Acid [DB00945]",
@@ -1363,13 +1551,11 @@ const vbrDictionary = {
         },
         "supplements_or_vitamins_or_herbal":{
             "def":"DrugBank IDs for supplements, vitamins, herbal items, etc. that participant was taking or had taken at time of sample collection. Only the ID (e.g. \"DB15823\") is needed; the rest of the text is ignored/discarded. If DrugBank does not have the term you need, please use \"DBX_freetext\" and contact the HVPCC.",
-            "req":"no",
-            "fmt":["prefix", "multiple"],
-            "prefix":["DB"],
+            "fmt":["ontology", "multiple", "non-blank"],
+            "ontology":["DB"],
             "urls":{"DrugBank Collection":"https://go.drugbank.com/drugs"},
-            "examples":[
-                "DB00126",
-                "DB01373;DBX_multivitamin",
+            "examples":["DB00126","DB01373;DBX_multivitamin"],
+            "suggestions":[
                 "Ascorbic Acid / Vitamin C [DB00126]",
                 "Beta carotene [DB06755]",
                 "Calcitriol / Rocaltrol [DB00136]",
@@ -1393,13 +1579,11 @@ const vbrDictionary = {
         },
         "lifetime_vaccinations":{
             "def":"CVX IDs for all vaccinations the participant has received. Only the ID (e.g. \"CVX:20\") is needed; the rest of the text is ignored/discarded. Multiple IDs can be delimited with a semicolon.",
-            "req":"no",
-            "fmt":["prefix", "multiple"],
-            "prefix":["CVX:"],
+            "fmt":["ontology", "multiple", "non-blank"],
+            "ontology":["CVX:"],
             "urls":{"IIS: HL7 Standard Code Set CVX - Vaccines Administered":"https://www2a.cdc.gov/vaccines/iis/iisstandards/vaccines.asp?rpt=cvx"},
-            "examples":[
-                "CVX:03",
-                "CVX:21;CVX:314",
+            "examples":["CVX:03", "CVX:21;CVX:314"],
+            "suggestions":[
                 "DTaP vaccine (Pediatric) [CVX:20]",
                 "DTaP vaccine (Unspecified formulation) [CVX:107]",
                 "Tdap vaccine (Adult Adsorbed) [CVX:115]",
@@ -1437,12 +1621,10 @@ const vbrDictionary = {
         },
         "seasonal_vaccinations":{
             "def":"CVX IDs for all seasonal vaccinations the participant received within the past year, such as those for COVID-19 and influenza. Only the ID (e.g. \"CVX:312\") is needed; the rest of the text is ignored/discarded. Multiple IDs can be delimited with a semicolon.",
-            "req":"no",
-            "fmt":["prefix", "multiple"],
+            "fmt":["ontology", "multiple", "non-blank"],
             "urls":{"IIS: HL7 Standard Code Set CVX - Vaccines Administered":"https://www2a.cdc.gov/vaccines/iis/iisstandards/vaccines.asp?rpt=cvx"},
-            "examples":[
-                "CVX:150",
-                "CVX:88;CVX:213",
+            "examples":["CVX:150", "CVX:88;CVX:213"],
+            "suggestions":[
                 "Influenza, split virus, quadrivalent (Preservative free) [CVX:150]",
                 "Influenza, split virus, quadrivalent (Contains preservative) [CVX:158]",
                 "Influenza virus vaccine (Unspecified formulation) [CVX:88]",
@@ -1454,69 +1636,63 @@ const vbrDictionary = {
         },
         "alcohol_consumption":{
             "def":"A description of the level of alchohol consumption in which the participant engages. This field can also capture former use.",
-            "req":"no",
             "fmt":["cv"],
             "cv":[
-              "never", "occasionally (1-3 times per month or less)", "weekly", "daily", 
-              "former alcohol consumer, at least one month without", 
-              "former alcohol consumer, at least one year without", 
-              "current alcohol consumer (use when more specific information on frequency is not availalbe)"]
+                "never", "occasionally (1-3 times per month or less)", "weekly", "daily", 
+                "former alcohol consumer, at least one month without", 
+                "former alcohol consumer, at least one year without", 
+                "current alcohol consumer (use when more specific information on frequency is not availalbe)"]
         },
         "cigarette_smoking":{
             "def":"A description of the level of participant cigarette use. This field can also capture former use. Note that a smoker is defined as someone who has had more than 100 cigarettes in their lifetime. Anyone who has had less than 100 is considered a non-smoker.",
-            "req":"no",
             "fmt":["cv"],
             "cv":[
-              "non-smoker (<100 cigarettes lifetime)", 
-              "former cigarette smoker, at least one month without", 
-              "former cigarette smoker, at least one year without", 
-              "current cigarette smoker"]
+                "non-smoker (<100 cigarettes lifetime)", 
+                "former cigarette smoker, at least one month without", 
+                "former cigarette smoker, at least one year without", 
+                "current cigarette smoker"]
         },
         "former_pack_years":{
             "def":"Measurement of amount of cigarette smoking that is calaculated as packs-per-day times the number of years",
-            "req":"no",
-            "fmt":["number", "non-negative"]
+            "fmt":["number"],
+            "range":[0,200]
         },
         "current_pack_years":{
             "def":"Measurement of amount of cigarette smoking that is calaculated as packs-per-day times the number of years",
-            "req":"no",
-            "fmt":["number", "non-negative"]
+            "fmt":["number"],
+            "range":[0,200]
         },
         "other_tobacco_exposure":{
             "def":"A description of the level of particiopant tobacco use other than smoking cigarettes such as chewing, cigars, etc. This field can also capture former use.",
-            "req":"no",
             "fmt":["cv"],
             "cv":[
-              "never", "occasionally (1-3 times per month or less)", "weekly", "daily", 
-              "former other tobacco use, at least one month without", 
-              "former other tobacco use, at least one year without", 
-              "currently other tobacco use (use when more specific information on frequency is not availalbe)"]
+                "never", "occasionally (1-3 times per month or less)", "weekly", "daily", 
+                "former other tobacco use, at least one month without", 
+                "former other tobacco use, at least one year without", 
+                "currently other tobacco use (use when more specific information on frequency is not availalbe)"]
         },
         "vaping_behavior":{
             "def":"A description of the level of vaping in which the participant engages. This field can also capture former use.",
-            "req":"no",
             "fmt":["cv"],
             "cv":[
-              "never", "occasionally (1-3 times per month or less)", "weekly", "daily", 
-              "former vaping, at least one month without", 
-              "former vaping, at least one year without", 
-              "currently vaping (use when more specific information on frequency is not availalbe)"]
+                "never", "occasionally (1-3 times per month or less)", "weekly", "daily", 
+                "former vaping, at least one month without", 
+                "former vaping, at least one year without", 
+                "currently vaping (use when more specific information on frequency is not availalbe)"]
         },
         "cannabis":{
             "def":"A description of the level of cannabis exposure the participant has experiened, This field can also capture former use.",
-            "req":"no",
             "fmt":["cv"],
             "cv":[
-              "never", "occasionally (1-3 times per month or less)", "weekly", "daily", 
-              "former cannabis user, at least one month without", 
-              "former cannabis user, at least one year without", 
-              "current cannabis user (use when more specific information on frequency is not availalbe)"]
+                "never", "occasionally (1-3 times per month or less)", "weekly", "daily", 
+                "former cannabis user, at least one month without", 
+                "former cannabis user, at least one year without", 
+                "current cannabis user (use when more specific information on frequency is not availalbe)"]
         },
         "recreational_or_illicit_drugs":{
             "def":"DrugBank IDs for recreational/illicit drugs (excluding cannabis). Only the ID (e.g. \"DB01452\") and optional suffixes are imported; the rest of the text is ignored/discarded. If the substance is not known/available/provided, use \"DBX_unknown\". If there is no DrugBank ID for the substance, use \"DBX_freetext\" and also inform the HVPCC.",
-            "req":"no",
-            "fmt":["prefix", "multiple", "mode", "freq"],
-            "prefix":["DB"],
+            "fmt":["ontology", "multiple", "suffix", "mode", "freq", "non-blank"],
+            "ontology":["DB"],
             "urls":{"DrugBank Collection":"https://go.drugbank.com/drugs"},
             "examples":[
                 "DB01577",
@@ -1536,151 +1712,117 @@ const vbrDictionary = {
                 "Xylazine / Tranq [DB11477:injected]"
             ]
         },
-        "current_geography":{
-            "def":"Geographic setting of participant at time of sampling",
-            "req":"no",
-            "fmt":["cv"],
-            "cv":["urban", "suburban", "semi-rural", "rural"]
-        },
         "diet":{
             "def":"Is information on diet available?",
-            "req":"no",
             "fmt":["cv"],
             "cv":["yes", "no"]
         },
         "diet_comment":{
             "def":"Free text to put whatever additional info related to diet that you wish.",
-            "req":"no",
             "fmt":["text"]
         },
         "physical_activity":{
             "def":"Is information on physical activity available?",
-            "req":"no",
             "fmt":["cv"],
             "cv":["yes_self_reported", "yes_wearables", "no"]
         },
         "physical_activity_comment":{
             "def":"Free text to put whatever additional info related to physical activity that you wish.",
-            "req":"no",
             "fmt":["text"]
         },
         "wellness_information_available":{
             "def":"Is information on wellness measures available? Examples may include stress exposure, mindfulness or gratitude practices, prayer, self-care, professional fulfillment, burnout assessments, etc.",
-            "req":"no",
             "fmt":["cv"],
             "cv":["yes", "no"]
         },
         "wellness_info_comment":{
             "def":"Free text to put whatever additional info related to wellness information that you wish.",
-            "req":"no",
             "fmt":["text"]
         },
         "social_determinants_of_health":{
             "def":"Is information on social determinants of health available? Examples include financial issues, emotional, degree, employment, etc.",
-            "req":"no",
             "fmt":["cv"],
             "cv":["yes", "no"]
         },
         "soc_det_health_comment":{
             "def":"Free text to put whatever additional info related to social determinants of health that you wish.",
-            "req":"no",
             "fmt":["text"]
         },
         "acute_health_status_at_sampling":{
             "def":"Whether participant is or has been acutely ill with an infection within the past month before sampling. Examples of acute illness include the common cold, the flu, and COVID.",
-            "req":"no",
             "fmt":["cv"],
             "cv":["yes", "no"]
         },
         "acute_health_status_at_sampling_comment":{
             "def":"Free text to put whatever additional info related to acute illness at sampling (such as what the illness is) that you wish.",
-            "req":"no",
             "fmt":["text"]
         },
         "time_last_toothbrush":{
             "def":"Specification of the time in hours since last toothbrushing.",
-            "req":"no",
-            "fmt":["number"]
+            "fmt":["number"],
+            "range":[0,10000]
         }
     },
     "samples":{
         "sample_uid":{
-            "def":"This is a unique identifier for the sample within a given HVP data generator group (at the grant level), built from the data generator's internal sample id prefixed with the project abbreviation, separated with an underscore. NOTE: the data generator's internal id MUST be unique across that data generator.",
-            "req":"yes",
-            "fmt":["uid", "primary"],
-            "examples":["vast_sam_3754"]
-        },
-        "participant_uid":{
-            "def":"Identifier of the participant(s) from which the sample came. Participant id must be unique within a project. This participant id should have associated metadata from the Participant Metadata dictionary. For composite samples, indicate identifers of all participants from which the composite sample was built, separate values with a semicolon. If this is a mock or synthetic sample, put \"mock\" in this field.",
-            "req":"yes",
-            "fmt":["uid", "multiple", "mock", "ref"],
-            "ref":{"participants":"participant_uid"},
-            "examples":["vast_par_85", "vast_par_72;vast_par_88"]
+            "def":"HVP-unique sample identifier. See below for UID format.",
+            "fmt":["required", "uid", "primary"],
+            "examples":["boston_s_001", "v2c2_sam093", "mskcc_53722"]
         },
         "event_uid":{
-            "def":"A previously defined event identifier at which this sample was collected. Use \"mock\" for mock or synthetic samples",
-            "req":"yes",
-            "fmt":["uid", "mock", "ref"],
+            "def":"A previously defined event_uid at which this sample was collected. Set to \"composite\" for composite samples derived from multiple events. Set to \"mock\" for quality control mock samples. Note that because the event_uid is already linked to a participant_uid, you do not need to provide the participant_uid as a separate field here.",
+            "fmt":["required", "uid", "ref"],
             "ref":{"events":"event_uid"},
-            "examples":["vast_eve_85a", "vast_eve_90a;vast_eve_90b"]
+            "examples":["vast_subj_294_t1", "vast_subj_294_t2", "suny_e101", "composite", "mock"]
         },
-        "collection_lab":{
-            "def":"Lab, group, or facility within a grant-level project where the sample was collected. This should be the group responsible for metadata about the sample.",
-            "req":"yes",
-            "fmt":["cv"],
-            "cv":[
-              "anderson", "baldridge", "bhatt", "bittinger", "bushman", "cmmr", 
-              "dantas", "de melo-martin", "dittmer", "emerson", "foxman", "glmc", 
-              "lareau", "li", "mason", "moustafa", "naik", "sabeti", "snyder", 
-              "tcgb", "yracheta", "zhou"]
+        "collection_protocol_uid":{
+            "def":"A previously defined protocol_uid used to collect this sample.",
+            "fmt":["required", "uid", "ref", "protocol"],
+            "ref":{"protocols":"protocol_uid"},
+            "protocol":"collection",
+            "examples":["cmmr_stool_collection_v1.0", "broad_park_proto8722"]
         },
-        "sample_type":{
-            "def":"Indicates the composition of the sample - describes if the sample comes from one participant or is a mixture of material from more than one participant. This field can also include terms for various in vitro or cell culture systems. Contact the HVPCC if you need additional vocabulary terms for this field.",
-            "req":"yes",
-            "fmt":["cv"],
-            "cv":[
-              "individual_participant", "individual_participant_with_spikein", 
-              "composite_of_individuals", "composite_of_individuals_with_spikein", 
-              "organoid", "organoid_with_spikein", "composite_of_organoids", 
-              "composite_of_organoids_with_spikein"]
-        },
-        "sample_subtype":{
-            "def":"Term to describe the type of subsample that was derived from a primary sample. For example: if stool is collected as a primary sample, the acellular portion of the stool could be a subsample of the primary sample with its own sample_id identifier. In cases such as blood fractions (e.g. plasma) derived from whole blood, there are available terms here, but there may also be Uberon and Cell Ontology terms that can be used in one or both of the fields anatomical_site and body_product.",
-            "req":"no",
-            "fmt":["cv"],
-            "cv":[
-              "viral_particles", "acellular_fraction", "cellular_fraction", "whole_neat_blood", 
-              "whole_blood", "blood_fraction_plasma", "blood_fraction_buffy_coat", 
-              "blood_fraction_erythrocytes", "tissue"]
-        },
-        "parent_sample_uid":{
-            "def":"This field holds parent sample identifiers from two scenarios: the identifiers of the individual samples from which a composite sample was built, separate values with a semicolon; OR the sample identifier of the primary sample or subsample which is the parent to a subsample.",
-            "req":"Required for composite samples and subsamples.",
-            "fmt":["uid", "multiple", "ref"],
-            "ref":{"samples":"sample_uid"}
-        },
-        "sampling_protocol":{
-            "def":"A stable, permanent url where documentation on the details of the sampling protocol and how it was performed can be found. The description must be detailed enough that others can reproduce the process. Suggested locations for this information include, but are not limited to, Zenodo, GitHub, Read the Docs, and protocols.io.",
-            "req":"yes",
-            "fmt":["url"]
-        },
-        "sample_taxonomy":{
-            "def":"Sample taxonomy. You can use any term from the NCBI taxonomy database but we anticipate frequent use of NCBI:txid1070528 - human viral metagenome. Only the ID (e.g. \"NCBI:txid1070528\") is needed; the rest of the text is ignored/discarded.",
-            "req":"yes",
-            "fmt":["prefix"],
-            "prefix":["NCBI:txid"],
-            "urls":{"NCBI Taxonomy Browser":"https://www.ncbi.nlm.nih.gov/datasets/taxonomy/browser/"},
-            "examples":["NCBI:txid1070528", "Human viral metagenome [NCBI:txid1070528]"]
+        "collection_method":{
+            "def":"NCIT ID for the method used to collect the sample. Use any terms from the \"biospecimen collection method\" or \"diagnostic procedure\" branches in NCIT. If you have difficulty finding a term in NCIT that corresponds to your method, contact the HVPCC. Only the ID (e.g. \"NCIT:C113747\") is needed; the rest of the text is ignored/discarded.",
+            "fmt":["required", "ontology"],
+            "ontology":["NCIT:C"],
+            "urls":{
+                "NCIT Biospecimen Collection Method Terms":"https://www.ebi.ac.uk/ols4/ontologies/ncit/classes/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FNCIT_C70700",
+                "NCIT Diagnostic Procedure Terms":"https://www.ebi.ac.uk/ols4/ontologies/ncit/classes/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FNCIT_C18020"
+            },
+            "suggestions":[
+                "SWAB & BRUSH METHODS",
+                "  buccal swab [NCIT:C113747]",
+                "  nasal swab [NCIT:C132119]",
+                "  skin swab [NCIT:C207895]",
+                "  esophageal endoscopic brush cytology [NCIT:C192845]",
+                "FLUID & WASTE COLLECTION (NON-INVASIVE)",
+                "  saliva collection [NCIT:C200883]",
+                "  stool collection [NCIT:C200884]",
+                "  urine collection [NCIT:C200885]",
+                "WASH, LAVAGE & PUNCTURE (INVASIVE FLUID)",
+                "  nasal wash and collection [NCIT:C132126]",
+                "  bronchoalveolar lavage [NCIT:C51913]",
+                "  lumbar puncture [NCIT:C15327]",
+                "BLOOD COLLECTION",
+                "  phlebotomy [NCIT:C28221]",
+                "  finger stick [NCIT:C85551]",
+                "TISSUE EXTRACTION & BIOPSY",
+                "  biopsy procedure [NCIT:C15189]",
+                "  punch biopsy [NCIT:C28743]",
+                "  scrape [NCIT:C94576]",
+                "  tissue dissection [NCIT:C61409]"
+            ]
         },
         "anatomical_site":{
             "def":"Uberon Ontology ID or Cell Ontology ID for the anatomical structure from which sample was obtained. Use the most specific term that applies to your data from the Uberon ontology \"anatomical structure\" branch. Only the ID (e.g. \"UBERON:0002372\") is needed; the rest of the text is ignored/discarded.",
-            "req":"At least one of either anatomical_site or body_product must be filled in.",
-            "fmt":["prefix"],
-            "prefix":["UBERON:", "CL:"],
+            "fmt":["condition", "ontology"],
+            "condition":{
+              "description":"Either `anatomical_site` or `body_product` must be provided when `event_uid` is not \"mock\"."},
+            "ontology":["UBERON:", "CL:"],
             "urls":{"Uberon Ontology \"anatomical structure\" branch":"https://www.ebi.ac.uk/ols4/ontologies/uberon/classes/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FUBERON_0000061?lang=en"},
-            "examples":[
-                "UBERON:0000165",
-                "CL:0000082",
+            "examples":["UBERON:0000165", "CL:0000082"],
+            "suggestions":[
                 "RESPIRATORY TRACT [UBERON:0000065]",
                 "  ___ upper respiratory tract ___",
                 "  nose [UBERON:0000004]",
@@ -1863,12 +2005,17 @@ const vbrDictionary = {
         },
         "body_product":{
             "def":"Uberon ontology ID for the substance collected from the participant, e.g. stool, mucus, urine. Use any term from the Uberon ontology \"organism substance\" branch. Only the ID (e.g. \"UBERON:0001988\") is needed; the rest of the text is ignored/discarded.",
-            "req":"At least one of either anatomical_site or body_product must be filled in.",
-            "fmt":["prefix"],
-            "prefix":["UBERON:"],
-            "urls":{"Uberon Ontology \"organism substance\" branch":"https://www.ebi.ac.uk/ols4/ontologies/uberon/classes/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FUBERON_0000463"},
-            "examples":[
-                "UBERON:0001988",
+            "fmt":["condition", "ontology"],
+            "condition":{
+              "description":"Either `anatomical_site` or `body_product` must be provided when `event_uid` is not \"mock\".",
+              "when_false":{"event_uid":"mock"},
+              "when_unset":"anatomical_site" },
+            "ontology":["UBERON:"],
+            "urls":{
+              "Uberon Ontology \"organism substance\" branch":"https://www.ebi.ac.uk/ols4/ontologies/uberon/classes/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FUBERON_0000463"
+            },
+            "examples":["UBERON:0001988"],
+            "suggestions":[
                 "EXCRETIONS & WASTE",
                 "  feces [UBERON:0001988]",
                 "  urine [UBERON:0001088]",
@@ -1914,46 +2061,14 @@ const vbrDictionary = {
                 "  tissue [UBERON:0000479]"
             ]
         },
-        "collection_method":{
-            "def":"NCIT ID for the process used to collect the sample. Use any terms from the \"biospecimen collection method\" or \"diagnostic procedure\" branches in NCIT. If you have difficulty finding a term in NCIT that corresponds to your method, contact the HVPCC. Only the ID (e.g. \"NCIT:C113747\") is needed; the rest of the text is ignored/discarded.",
-            "req":"no",
-            "fmt":["prefix"],
-            "prefix":["NCIT:C"],
+        "collection_device":{
+            "def":"Device used for collecting the sample. Use any term from the SNOMED ontology \"Device (physical object)\" branch. Only the ID (e.g. \"SNOMED:706067003\") is needed; the rest of the text is ignored/discarded.",
+            "fmt":["ontology"],
+            "ontology":["SNOMED:"],
             "urls":{
-                "NCIT Biospecimen Collection Method Terms":"https://www.ebi.ac.uk/ols4/ontologies/ncit/classes/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FNCIT_C70700",
-                "NCIT Diagnostic Procedure Terms":"https://www.ebi.ac.uk/ols4/ontologies/ncit/classes/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FNCIT_C18020"
+              "SNOMED Ontology \"Device (physical object)\" branch":"https://www.ebi.ac.uk/ols4/ontologies/snomed/classes/http%253A%252F%252Fsnomed.info%252Fid%252F49062001"
             },
-            "examples":[
-                "SWAB & BRUSH METHODS",
-                "  buccal swab [NCIT:C113747]",
-                "  nasal swab [NCIT:C132119]",
-                "  skin swab [NCIT:C207895]",
-                "  esophageal endoscopic brush cytology [NCIT:C192845]",
-                "FLUID & WASTE COLLECTION (NON-INVASIVE)",
-                "  saliva collection [NCIT:C200883]",
-                "  stool collection [NCIT:C200884]",
-                "  urine collection [NCIT:C200885]",
-                "WASH, LAVAGE & PUNCTURE (INVASIVE FLUID)",
-                "  nasal wash and collection [NCIT:C132126]",
-                "  bronchoalveolar lavage [NCIT:C51913]",
-                "  lumbar puncture [NCIT:C15327]",
-                "BLOOD COLLECTION",
-                "  phlebotomy [NCIT:C28221]",
-                "  finger stick [NCIT:C85551]",
-                "TISSUE EXTRACTION & BIOPSY",
-                "  biopsy procedure [NCIT:C15189]",
-                "  punch biopsy [NCIT:C28743]",
-                "  scrape [NCIT:C94576]",
-                "  tissue dissection [NCIT:C61409]"
-            ]
-        },
-        "sample_collection_device":{
-            "def":"Method or device employed for collecting sample. You can use any term from the SNOMED ontology \"Device (physical object)\" branch. Only the ID (e.g. \"SNOMED:706067003\") is needed; the rest of the text is ignored/discarded.",
-            "req":"no",
-            "fmt":["prefix"],
-            "prefix":["SNOMED:"],
-            "urls":{"SNOMED Ontology \"Device (physical object)\" branch":"https://www.ebi.ac.uk/ols4/ontologies/snomed/classes/http%253A%252F%252Fsnomed.info%252Fid%252F49062001"},
-            "examples":[
+            "suggestions":[
                 "SURFACE & MUCOSAL SAMPLING DEVICES",
                 "  Swab [SNOMED:408098004]",
                 "  Brush, device [SNOMED:994005]",
@@ -1983,61 +2098,18 @@ const vbrDictionary = {
                 "  Bag/balloon/bottle, device [SNOMED:105790004]"
             ]
         },
-        "collection_month_year":{
-            "def":"Month and year sample was collected using format YYYY-MM e.g. 2025-07",
-            "req":"yes",
-            "fmt":["YYYY-MM"]
-        },
-        "collection_date":{
-            "def":"Date sample was collected using format YYYY-MM-DD e.g. 1990-10-30",
-            "req":"no",
-            "fmt":["YYYY-MM-DD"]
-        },
-        "collection_day_of_week":{
-            "def":"Day of the week the sample was collected.",
-            "req":"no",
+        "self_collection":{
+            "def":"Was the sample collected by the participant?",
             "fmt":["cv"],
-            "cv":["Monday", "Tuesday", "Wedsday", "Thursday", "Friday", "Saturday", "Sunday"]
+            "cv":["yes", "no"]
         },
-        "sample_storage":{
-            "def":"Method or condition of sample storage. If you need a term that is not here, please contact the HVPCC.",
-            "req":"no",
-            "fmt":["cv"],
-            "cv":["Liquid Nitrogen", "Room Temperature", "-80C", "4C", "FFPE"]
-        },
-        "sample_additive":{
-            "def":"Additive/preservative in which sample is stored or initially stored. If you need a term that is not here, please contact the HVPCC.",
-            "req":"no",
-            "fmt":["cv"],
-            "cv":[
-              "RNA Later", "Qiagen Allprotect", "Glycerol", "Ethanol", "Oral Cocktail ", "PBS/Saline", 
-              "VTM ", "Zymo DNA/RNA Shield", "None/Neat", "PIC", "DNA Shield"]
-        },
-        "control_sample_uid":{
-            "def":"Sample identifier of linked control. This can be a semicolon separated list, if there are multiple controls associated with the sample. This field is to be populated for experimental samples, not for control sample. This field is to link to an experimental sample to any control samples that were generated in association with the experimental sample.",
-            "req":"no",
-            "fmt":["uid", "multiple", "ref"],
-            "ref":{"samples":"sample_uid"},
-            "examples":["vast_sam_neg17", "vast_sam_neg8;vast_sam_pos10"]
-        },
-        "sample_processing":{
-            "def":"Processing applied to the sample during or after isolation.",
-            "req":"no",
-            "fmt":["text"]
-        },
-        "sample_transit_temp":{
-            "def":"Temparature between sample collection and processing or archive in degrees Celsius.",
-            "req":"no",
-            "fmt":["number"]
-        },
-        "sample_transit_duration":{
+        "transit_hours":{
             "def":"Time (in hours) between sample collection and either processing or archiving.",
-            "req":"no",
-            "fmt":["number", "non-negative"]
+            "fmt":["number"],
+            "range":[0, 100]
         },
         "stool_type":{
-            "def":"Consistency of stool, using the Bristol stool chart",
-            "req":"no",
+            "def":"Consistency of stool, using the Bristol stool chart.",
             "fmt":["cv"],
             "cv":[
               "Type 1 - Separate hard lumps, like nuts", "Type 2 - Sausage-shaped but lumpy", 
@@ -2045,347 +2117,348 @@ const vbrDictionary = {
               "Type 5 - Soft blobs with clear edges", "Type 6 - Mushy, ragged edges", 
               "Type 7 - Watery, no solid pieces"]
         },
-        "self_collection":{
-            "def":"Whether sample was collected by participant",
-            "req":"no",
-            "fmt":["cv"],
-            "cv":["yes", "no"]
-        },
         "is_control_sample":{
-            "def":"whether this sample is a control (negative or positive) ",
-            "req":"yes",
-            "fmt":["cv"],
-            "cv":["yes", "no"]
-        },
-        "negative_control_type":{
-            "def":"The substance or equipment used as a negative control in an investigation, e.g. distilled water empty collection device. Required only for negative control samples. If you need a term that is not here, please contact the HVPCC.",
-            "req":"If is_control_sample values is \"yes\", then this field OR positive_control_type is required.",
+            "def":"If this sample is a positive or negative control, specify the type. If this is an experimental sample (not a control sample), then leave this field blank.",
             "fmt":["cv"],
             "cv":[
-              "distilled water", "phosphate buffer", "empty collection device", "DNA-free PCR mix", 
-              "sterile swab", "sterile syringe", "synthetic community"]
+              "positive - synthetic community",
+              "positive - spike-in sample",
+              "negative - distilled water",
+              "negative - phosphate buffer",
+              "negative - empty collection device",
+              "negative - DNA-free PCR mix",
+              "negative - sterile swab",
+              "negative - sterile syringe",
+              "negative - synthetic community"]
         },
-        "postive_control_type":{
-            "def":"The substance or equipment used as a positive control in an investigation, e.g. synthetic community. Required only for positive control samples. If you need a term that is not here, please contact the HVPCC.",
-            "req":"If is_control_sample values is \"yes\", then this field OR negative_control_type are required.",
-            "fmt":["cv"],
-            "cv":["synthetic community", "spike-in sample"]
+        "control_sample_uids":{
+            "def":"If this is an experimental sample, list any linked control sample_uids here.",
+            "fmt":["assert", "uid", "ref", "multiple"],
+            "assert":{"NAND":"is_control_sample"},
+            "ref":{"samples":"sample_uid"},
+            "examples":["cmmr_sterile_swab;cmmr_tgd_stool"]
+        },
+        "composite_parent_uids":{
+            "def":"If this is a composite sample, list all the sample_uids used for its construction.",
+            "fmt":["uid", "ref", "multiple"],
+            "ref":{"samples":"sample_uid"},
+            "examples":["cmmr_air_01;cmmr_air_02;cmmr_air_03"]
         }
     },
-    "libraries":{
-        "library_uid":{
-            "def":"Unique identifier for a sequencing library. Maybe also identify a processed sample for other technologies (e.g. mass spectrometry).",
-            "req":"yes",
-            "fmt":["uid", "primary"],
-            "examples":["vast_lib_3754"]
+    "profiles":{
+        "profile_uid":{
+            "def":"HVP-unique profile identifier. See below for UID format. Profiles are typically used to describe DNA sequencing or mass spectrometry of samples.",
+            "fmt":["required", "uid", "primary"],
+            "examples":["cmmr_sam889_pool8391", "ucsf_sam183_miseq1", "ucdavis_neg_ctrl_extraction"]
         },
         "sample_uid":{
-            "def":"Sample identifier from which the library or processed sample was derived.",
-            "req":"yes",
-            "fmt":["uid", "ref"],
-            "ref":{"samples":"sample_uid"}
+            "def":"A previously defined sample_uid. If multiple samples were sequenced together in a multiplexed pool, each sample should have a separate profile entry.",
+            "fmt":["required", "uid", "ref"],
+            "ref":{"samples":"sample_uid"},
+            "examples":["cmmr_sam123", "ucsf_sam1083", "boston_s_001"]
         },
-        "library_type":{
-            "def":"Indicates the composition of the library or processed sample with respect to whether it is a single individual library or a composite library composed of multiple individual libraries/processed samples.",
-            "req":"yes",
+        "ncbi_bioproject_id":{
+            "def":"For DNA sequencing runs, the NCBI BioProject accession that the fastq files' SRA records should be linked to.",
+            "fmt":["ontology", "bioproject"],
+            "ontology":["PRJNA"],
+            "urls":{"HVP Umbrella project":"https://www.ncbi.nlm.nih.gov/bioproject/1336838"},
+            "suggestions":[
+              "Antibody targeting of the virome [PRJNA1336851]",
+              "...virus discovery and characterization in the HVP consortium [PRJNA1473985]",
+              "Concentration and single virion analysis of the virome [PRJNA1336854]",
+              "...approaches to study integrated phages and their host [PRJNA1473990]",
+              "...virome-host interactions during pregnancy and postpartum [PRJNA1336849]",
+              "...DNA and RNA viral sequences from human biosamples [PRJNA1336855]",
+              "...uncharacterized eukaryotic viruses in the human virome [PRJNA1473989]",
+              "Functional characterization of viral-bacterial-human... [PRJNA1336853]",
+              "Hiding in plain sight: integrating AI with targeted... [PRJNA1473991]",
+              "Human Virome Characterization Center for the Oral-Gut-Brain Axis [PRJNA1336845]",
+              "Leveraging primary cell and organoid culture to identify... [PRJNA1473992]",
+              "The Human DNA virome: from petabase scale to single-cell resolution [PRJNA1336850]",
+              "The Oro-Respiratory-Gut Virome Axis Over Space and Time [PRJNA1336841]",
+              "VAST Center: Viromes Across Space(s) and Time [PRJNA1336844]",
+              "Vanderbilt-coordinated human Virome Collaborative Center (V2C2) [PRJNA1336843]",
+              "...Rigorous Virome Analysis of Challenging Human Samples [PRJNA1336856]",
+              "Virome Investigation in Diverse Human Populations [PRJNA1336842]",
+              "Whole Body Deep Tissue Characterization of the Human Virome [PRJNA1336852]"]
+        },
+        "sample_storage_days":{
+            "def":"How long (in days) has the sample been in storage at time of final sample processing and/or library prep.",
+            "fmt":["number"],
+            "range":[0,10000]
+        },
+        "preprocess_protocol_uid":{
+            "def":"A previously defined protocol_uid. Examples of pre-process protocols include creating a subsample of a particular blood component (e.g. buffy coat) or altering the sample composition by isolating single cells/nuclei or adding a spike-in. These protocols are performed between and separate from sample collection and extraction.",
+            "fmt":["uid", "ref", "protocol"],
+            "ref":{"protocols":"protocol_uid"},
+            "protocol":"preprocess",
+            "examples":["uncch_Blood-Separation-v1.0", "yu_gilbert_stool_viral_frac_v1.2"]
+        },
+        "preprocess_lab":{
+            "def":"The lab that performed the pre-processing protocol on the sample.",
             "fmt":["cv"],
-            "cv":["individual_library", "multiplexed_composite_library"]
+            "cv":[
+              "anderson", "baldridge", "bhatt", "bittinger", "bushman", "cmmr", 
+              "dantas", "de melo-martin", "dittmer", "emerson", "foxman", "glmc", 
+              "lareau", "li", "mason", "moustafa", "naik", "sabeti", "snyder", 
+              "tcgb", "yracheta", "zhou"]
         },
-        "is_library_aliquot":{
-            "def":"Is this an aliquot, or subsample, of the original library or processed sample?",
-            "req":"yes",
-            "fmt":["cv"],
-            "cv":["yes", "no"]
+        "preprocess_uid":{
+            "def":"HVP-unique identifier for the sample after pre-processing. See below for UID format.",
+            "fmt":["uid"],
+            "examples":["cmmr_sam123_buffy_coat","cmmr_sam123_plasma"]
         },
-        "parent_library_uid":{
-            "def":"Identifiers for the libraries from which this library was derived/aliquoted.",
-            "req":"Only applicable to composite libraries or if is_library_aliquot = \"yes\".",
-            "fmt":["uid", "multiple", "ref"],
-            "ref":{"libraries":"library_uid"}
+        "extraction_protocol_uid":{
+            "def":"A previously defined protocol_uid. Extraction protocols isolate the target molecule from the sample. For example, DNA extraction protocols isolate DNA from the sample.",
+            "fmt":["uid", "ref", "protocol"],
+            "ref":{"protocols":"protocol_uid"},
+            "protocol":"extraction",
+            "examples":["cmmr_Powersoil-v1.8", "cmmr_PowerMicrobiome-v1.2", "broad_park_AllPrep-v1.0"]
         },
         "extraction_lab":{
-            "def":"Lab, group, or facility within a grant-level project where the sample was extracted.",
-            "req":"yes",
+            "def":"The lab that performed the extraction protocol on the sample.",
             "fmt":["cv"],
             "cv":[
               "anderson", "baldridge", "bhatt", "bittinger", "bushman", "cmmr", 
               "dantas", "de melo-martin", "dittmer", "emerson", "foxman", "glmc", 
               "lareau", "li", "mason", "moustafa", "naik", "sabeti", "snyder", 
               "tcgb", "yracheta", "zhou"]
+        },
+        "extraction_uid":{
+            "def":"HVP-unique identifier for the sample after extraction. See below for UID format.",
+            "fmt":["uid"],
+            "examples":["cmmr_sam123_DNA","cmmr_sam123_RNA"]
+        },
+        "library_prep_protocol_uid":{
+            "def":"A previously defined protocol_uid. Library preparation protocols prepare the extracted molecule for sequencing or other molecular assay.",
+            "fmt":["required", "uid", "ref", "protocol"],
+            "ref":{"protocols":"protocol_uid"},
+            "protocol":"library_prep",
+            "examples":["cmmr_16S-V4-v1.2", "pnnl_MPLEx-v2.7"]
         },
         "library_prep_lab":{
-            "def":"Lab, group, or facility within a grant-level project where the library was prepared.",
-            "req":"yes",
-            "fmt":["cv"],
+            "def":"The lab that performed the library preparation protocol on the sample.",
+            "fmt":["required", "cv"],
             "cv":[
               "anderson", "baldridge", "bhatt", "bittinger", "bushman", "cmmr", 
               "dantas", "de melo-martin", "dittmer", "emerson", "foxman", "glmc", 
               "lareau", "li", "mason", "moustafa", "naik", "sabeti", "snyder", 
               "tcgb", "yracheta", "zhou"]
         },
-        "sequencing_lab":{
-            "def":"Lab, group, or facility within a grant-level project where the library was sequenced.",
-            "req":"For sequencing libraries.",
-            "fmt":["cv"],
+        "library_prep_uid":{
+            "def":"HVP-unique identifier for the prepared library. See below for UID format. If possible, use the library_prep_uid field for the library containing just a single sample (i.e., sample_uid). Otherwise, put the multiplexed/pooled library ID here.",
+            "fmt":["required", "uid"],
+            "examples":["cmmr_sam123_lib02","ucsf_rna1083"]
+        },
+        "multiplex_pool_uid":{
+            "def":"HVP-unique identifier for the multiplexed/pooled library. See below for UID format. For libraries that were not pooled for sequencing, re-use the library_prep_uid here.",
+            "fmt":["required", "uid"],
+            "examples":["cmmr_pool8391", "ucsf_rna1083"]
+        },
+        "aliquot_uid":{
+            "def":"HVP-unique library aliquot identifier. See below for UID format. For libraries that were not aliquoted prior to assaying, re-use the multiplex_pool_uid here. This UID tracks which samples were sequenced together on the same flowcell lane.",
+            "fmt":["required", "uid"],
+            "examples":["cmmr_pool8391a","cmmr_pool8391b", "ucsf_rna1083"]
+        },
+        "assay_protocol_uid":{
+            "def":"A previously defined protocol_uid. Assay protocols take a wet-lab sample and generate a digital raw data product. For example, protocols for performing sequencing or mass spectrometry.",
+            "fmt":["required", "uid", "ref", "protocol"],
+            "ref":{"protocols":"protocol_uid"},
+            "protocol":"assay",
+            "examples":["cmmr_16S-V4-MiSeq-v2.2", "cmmr_16S-V4-HiSeq-v2.2"]
+        },
+        "assay_lab":{
+            "def":"The lab that performed the assay protocol on the sample (i.e. operated the DNA sequencer or mass spectrometer).",
+            "fmt":["required", "cv"],
             "cv":[
               "anderson", "baldridge", "bhatt", "bittinger", "bushman", "cmmr", 
               "dantas", "de melo-martin", "dittmer", "emerson", "foxman", "glmc", 
               "lareau", "li", "mason", "moustafa", "naik", "sabeti", "snyder", 
               "tcgb", "yracheta", "zhou"]
         },
-        "technique":{
-            "def":"OBI ID for the technique performed to create this library/processed sample. Use a term from the OBI ontology \"assay\" branch. If you need a term that is not in OBI, please contact the HVPCC. Only the ID (e.g. \"OBI:0002768\") is needed; the rest of the text is ignored/discarded.",
-            "req":"yes",
-            "fmt":["prefix"],
-            "prefix":["OBI:"],
-            "urls":{"OBI Ontology \"assay\" branch":"https://www.ebi.ac.uk/ols4/ontologies/obi/classes/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FOBI_0000070"},
-            "examples":[
-                "whole virome sequencing assay [OBI:0002768]",
-                "bisulfite sequencing assay [OBI:0000748]",
-                "whole genome sequencing assay [OBI:0002117]",
-                "microbiome protein expression profiling assay [OBI:0002765]"
-            ]
-        },
-        "subspecimen_type":{
-            "def":"A term to describe the nature of the sample to differentiate between processes focusing on single cells or nuclei and processes that operate on many cells in a mixture.",
-            "req":"no",
-            "fmt":["cv"],
-            "cv":["single cells", "single nuclei", "bulk"]
-        },
-        "library_processing_url":{
-            "def":"A stable, permanent url where documentation on the details of the library preparation or sample processing protocol can be found. The description must be detailed enough that others can reproduce the process. Suggested locations for this information include, but are not limited to, Zenodo, GitHub, Read the Docs, and protocols.io.",
-            "req":"no",
-            "fmt":["url"]
-        },
-        "samp_store_dur":{
-            "def":"How long (in days) has the sample been in storage at time of final sample processing and/or library prep.",
-            "req":"no",
-            "fmt":["number", "non-negative"]
-        },
-        "control_library_uid":{
-            "def":"Library identifier of linked control. This can be a semicolon separated list, if there are multiple controls associated with the library/processed sample. This field is to be populated for experimental libraries/processed samples, not for control libraries/processed samples. This field is to link to an experimental libary/processed sample to any control libraries/processed samples that were generated in association with the experimental library/processed sample.",
-            "req":"no",
-            "fmt":["uid", "multiple", "ref"],
-            "ref":{"libraries":"library_uid"},
-            "examples":["vast_lib_neg1", "vast_lib_neg5;vast_lib_pos22"]
-        },
-        "is_control_library":{
-            "def":"Whether this library is a negative or positive control.",
-            "req":"no",
-            "fmt":["cv"],
-            "cv":["yes", "no"]
-        },
-        "library_pos_cont_type":{
-            "def":"The element or step in the sample processing and/or library generation process for which the control library or processed sample has been generated. Contact the HVPCC to add terms to this vocabulary.",
-            "req":"If is_control_library value is yes, then either this field OR library_neg_cont_type must be filled in.",
-            "fmt":["cv"],
-            "cv":["extraction", "extraction_kit", "hybridization", "library prep", "sequencing", "capture"]
-        },
-        "library_neg_cont_type":{
-            "def":"The element or step in the sample processing and/or library generation process for which the control library or processed sample has been generated. Contact the HVPCC to add terms to this vocabulary.",
-            "req":"If is_control_library value is yes, then either this field OR library_pos_cont_type must be filled in.",
-            "fmt":["cv"],
-            "cv":["extraction", "extraction_kit", "hybridization", "library prep", "sequencing", "capture"]
-        },
-        "paired_or_single":{
-            "def":"Was the sequencing run using paired-end technology or single-end technology.",
-            "req":"Required for sequence data.",
-            "fmt":["cv"],
-            "cv":["paired", "single"]
-        },
-        "sequencing_platform":{
-            "def":"The sequencing technology platform used.",
-            "req":"Required for sequence data.",
-            "fmt":["cv"],
+        "assay_platform":{
+            "def":"The instrument model used for the assay.",
+            "fmt":["required", "cv"],
             "cv":[
-              "ILLUMINA", "_LS454", "ABI_SOLID", "BGISEQ", "CAPILLARY", 
-              "COMPLETE_GENOMICS", "DNBSEQ", "ELEMENT", "GENAPSYS", "GENEMIND", 
-              "HELICOS", "ION_TORRENT", "OXFORD_NANOPORE", "PACBIO_SMRT", 
-              "TAPESTRI", "ULTIMA", "VELA_DIAGNOSTICS" ]
-        },
-        "sequencing_instrument_model":{
-            "def":"Specific sequencer model that was used.",
-            "req":"Required for sequence data.",
-            "fmt":["cv"],
-            "cv":[
-              "HiSeq X Five", "HiSeq X Ten", "Illumina Genome Analyzer", 
+              "454 GS", "454 GS 20", "454 GS FLX", "454 GS FLX", "454 GS FLX Titanium", 
+              "454 GS Junior", "HiSeq X Five", "HiSeq X Ten", "Illumina Genome Analyzer", 
               "Illumina Genome Analyzer II", "Illumina Genome Analyzer IIx", 
               "Illumina HiScanSQ", "Illumina HiSeq 1000", "Illumina HiSeq 1500", 
               "Illumina HiSeq 2000", "Illumina HiSeq 2500", "Illumina HiSeq 3000", 
               "Illumina HiSeq 4000", "Illumina HiSeq X", "Illumina MiSeq", 
               "Illumina MiSeq i100", "Illumina MiniSeq", "Illumina NovaSeq 6000", 
               "Illumina NovaSeq X", "Illumina NovaSeq X Plus", "Illumina iSeq 100", 
-              "NextSeq 1000", "NextSeq 2000", "NextSeq 500", "NextSeq 550", "454 GS", 
-              "454 GS 20", "454 GS FLX", "454 GS FLX+", "454 GS FLX Titanium", 
-              "454 GS Junior", "Helicos HeliScope", "AB 5500 Genetic Analyzer", 
-              "AB 5500xl Genetic Analyzer", "AB 5500x-Wl Genetic Analyzer", 
-              "AB SOLiD 3 Plus System", "AB SOLiD 4 System", "AB SOLiD 4hq System", 
-              "AB SOLiD PI System", "AB SOLiD System", "AB SOLiD System 2.0", 
-              "AB SOLiD System 3.0", "Complete Genomics", "PacBio RS", "PacBio RS II", 
-              "Revio", "Sequel", "Sequel II", "Sequel IIe", "Onso", "Ion Torrent PGM", 
-              "Ion Torrent Proton", "Ion Torrent S5 XL", "Ion Torrent S5", 
+              "NextSeq 1000", "NextSeq 2000", "NextSeq 500", "NextSeq 550", 
+              "Helicos HeliScope", "AB 5500 Genetic Analyzer", "AB 5500xl Genetic Analyzer", 
+              "AB 5500x-Wl Genetic Analyzer", "AB SOLiD 3 Plus System", "AB SOLiD 4 System", 
+              "AB SOLiD 4hq System", "AB SOLiD PI System", "AB SOLiD System", 
+              "AB SOLiD System 2.0", "AB SOLiD System 3.0", "Complete Genomics", "PacBio RS", 
+              "PacBio RS II", "Revio", "Sequel", "Sequel II", "Sequel IIe", "Onso", 
+              "Ion Torrent PGM", "Ion Torrent Proton", "Ion Torrent S5 XL", "Ion Torrent S5", 
               "Ion Torrent Genexus", "Ion GeneStudio S5", "Ion GeneStudio S5 Plus", 
-              "Ion GeneStudio S5 Prime", "AB 310 Genetic Analyzer", 
-              "AB 3130 Genetic Analyzer", "AB 3130xL Genetic Analyzer", 
-              "AB 3500 Genetic Analyzer", "AB 3500xL Genetic Analyzer", 
-              "AB 3730 Genetic Analyzer", "AB 3730xL Genetic Analyzer", "GridION", 
-              "MinION", "PromethION", "BGISEQ-50", "BGISEQ-500", "MGISEQ-2000RS", 
-              "DNBSEQ-G400", "DNBSEQ-G50", "DNBSEQ-T7", "DNBSEQ-G400 FAST", 
-              "Element AVITI", "GS111", "FASTASeq 300", "GenoCare 1600", "GenoLab M", 
-              "Tapestri", "UG 100", "Sentosa SQ301" ]
+              "Ion GeneStudio S5 Prime", "AB 310 Genetic Analyzer", "AB 3130 Genetic Analyzer", 
+              "AB 3130xL Genetic Analyzer", "AB 3500 Genetic Analyzer", 
+              "AB 3500xL Genetic Analyzer", "AB 3730 Genetic Analyzer", 
+              "AB 3730xL Genetic Analyzer", "GridION", "MinION", "PromethION", "BGISEQ-50", 
+              "BGISEQ-500", "MGISEQ-2000RS", "DNBSEQ-G400", "DNBSEQ-G50", "DNBSEQ-T7", 
+              "DNBSEQ-G400 FAST", "Element AVITI", "GS111", "FASTASeq 300", "GenoCare 1600", 
+              "GenoLab M", "Tapestri", "UG 100", "Sentosa SQ301"]
+        },
+        "assay_uid":{
+            "def":"HVP-unique identifier for the sample data after assaying. See below for UID format.",
+            "fmt":["uid"],
+            "examples":["cmmr_bcldir_718222","ucsf_hiseq-1083-L5"]
+        },
+        "postprocess_protocol_uid":{
+            "def":"A previously defined protocol_uid. Post-process protocols are performed after the assay protocol. For example, basecalling, demultiplexing, and removing human reads in order to generate fastq files suitable for upload to NCBI SRA and downstream HVP analyses.",
+            "fmt":["uid", "ref", "protocol"],
+            "ref":{"protocols":"protocol_uid"},
+            "protocol":"postprocess",
+            "examples":["uncch_BCL-to-Fastq-v1.0", "yu_gilbert_BCL-Cleanup_v1.2"]
+        },
+        "postprocess_lab":{
+            "def":"The lab that performed the post-processing protocol on the sample.",
+            "fmt":["cv"],
+            "cv":[
+              "anderson", "baldridge", "bhatt", "bittinger", "bushman", "cmmr", 
+              "dantas", "de melo-martin", "dittmer", "emerson", "foxman", "glmc", 
+              "lareau", "li", "mason", "moustafa", "naik", "sabeti", "snyder", 
+              "tcgb", "yracheta", "zhou"]
+        },
+        "postprocess_uid":{
+            "def":"HVP-unique identifier for the sample data after post-processing. See below for UID format.",
+            "fmt":["uid"],
+            "examples":["cmmr_scrubbed_718222","ucsf_hiseq-1083-L5-fastq"]
+        },
+        "is_control_profile":{
+            "def":"Unrelated to whether this profile is derived from a control sample. Use this field to indicate which (if any) methods were applied post-collection to create a positive or negative control profile. Leave this field blank for experimental profiles.",
+            "fmt":["cv"],
+            "cv":[
+                "positive - extraction", 
+                "positive - extraction kit", 
+                "positive - hybridization", 
+                "positive - library prep", 
+                "positive - sequencing", 
+                "positive - capture",
+                "negative - extraction", 
+                "negative - extraction kit", 
+                "negative - hybridization", 
+                "negative - library prep", 
+                "negative - sequencing", 
+                "negative - capture"]
+        },
+        "control_profile_uids":{
+            "def":"If this is an experimental profile, list any linked control profile_uids here.",
+            "fmt":["assert", "uid", "ref", "multiple"],
+            "assert":{"NAND":"is_control_profile"},
+            "ref":{"profiles":"profile_uid"},
+            "examples":["cmmr_distilled_water_16Sv4;cmmr_mock_16Sv4"]
         }
     },
     "analyses":{
         "analysis_uid":{
-            "def":"This is a unique identifier for a specific run of an analysis within a given HVP data generator group (at the grant level), built from the data generator's internal analysis id prefixed with the project abbreviation, separated with an underscore. NOTE: the data generator's internal id MUST be unique across that data generator.",
-            "req":"yes",
-            "fmt":["uid", "primary"],
-            "examples":["vast_ana_1234"]
+            "def":"HVP-unique analysis identifier.",
+            "fmt":["required", "uid", "primary"],
+            "examples":["cmmr_EsViritu_study_xyz"]
         },
-        "analysis_description":{
-            "def":"Brief free text description of the analysis.",
-            "req":"yes",
-            "fmt":["text"]
+        "analysis_protocol_uid":{
+            "def":"A previously defined protocol_uid.",
+            "fmt":["required", "uid", "ref", "protocol"],
+            "ref":{"protocols":"protocol_uid"},
+            "protocol":"analysis",
+            "examples":["cmmr_EsViritu_v1.3.3"]
         },
-        "pipeline_name":{
-            "def":"Name of pipeline used for the analysis. This could be an internal pipeline or one available to the community. If the pipeline was used from github then the name of the pipeline placed here should match the name used on github.",
-            "req":"yes",
-            "fmt":["text"]
+        "workspace":{
+            "def":"The community workspace or compute infrastructure where the analysis was run.",
+            "fmt":["text"],
+            "examples":["Terra", "CyVerse"]
         },
-        "pipeline_description":{
-            "def":"Brief description of the pipeline used for the analysis process including overall goal, starting inputs, final outputs,and tools that are included.",
-            "req":"yes",
-            "fmt":["text"]
+        "arguments":{
+            "def":"The command-line arguments passed to the analysis.",
+            "fmt":["text"],
+            "examples":["--metadata=false --threads=16"]
         },
-        "pipeline_version":{
-            "def":"Version of pipeline used for the analysis. If the pipeline is versioned in a location like github, it should be the official version number. If not, this could be a combination of the pipeline name and date it was run.",
-            "req":"yes",
-            "fmt":["text"]
+        "settings":{
+            "def":"The settings used for the analysis. Use JSON formatted key-value pairs to describe the settings.",
+            "fmt":["json"],
+            "examples":["{\"metadata\":false, \"threads\":16}"]
+        }
+    },
+    "analysis_inputs":{
+        "analysis_uid":{
+            "def":"A previously defined analysis_uid from the analyses table. If multiple profiles/analyses were used as input to an analysis, each profile/analysis should have a separate entry in the analysis_inputs table.",
+            "fmt":["required", "uid", "primary"],
+            "examples":["cmmr_EsViritu_study_xyz"]
         },
-        "sop_url":{
-            "def":"A stable, permanent url where documentation on the details of the analysis and how it was performed can be found. The description must be detailed enough that others can reproduce the process. Suggested locations for this information include, but are not limited to, Zenodo, GitHub, Read the Docs, and protocols.io. The SOP should contain: 1) expected input/output and formats, 2) major dependencies, 3) compute resource requirements, 4) critical parameters & arguments, 5) config files (if relevant), and 6) link to code if possible.",
-            "req":"yes",
-            "fmt":["url"]
+        "input_profile_uid":{
+            "def":"A profile_uid that generated data used as input for this analysis.",
+            "fmt":["condition", "uid", "ref"],
+            "condition":{
+              "description":"Either `input_profile_uid` or `input_analysis_uid` must be provided (but not both)."},
+            "ref":{"profiles":"profile_uid"},
+            "examples":["cmmr_sam889_pool8391"]
         },
-        "community_workspace":{
-            "def":"The community workspace or compute infrastructure (such as Terra or CyVerse) that was used for the analysis.",
-            "req":"no",
-            "fmt":["text"]
-        },
-        "pipeline_container_url":{
-            "def":"If a containerized version of the pipeline was used, the url of where that container can be found.",
-            "req":"no",
-            "fmt":["url"]
+        "input_analysis_uid":{
+            "def":"An analysis_uid that generated data used as input for this analysis.",
+            "fmt":["condition", "assert", "uid", "ref"],
+            "condition":{
+              "description":"Either `input_profile_uid` or `input_analysis_uid` must be provided (but not both)."},
+            "assert":{"XOR":"input_profile_uid"},
+            "ref":{"analyses":"analysis_uid"},
+            "examples":["uncch_HBV_Analysis"]
         }
     },
     "files":{
-        "file_uniq_name":{
-            "def":"This is a unique name for the file within a given HVP data generator group (at the grant level), built from the data generator's internal file id/name prefixed with the project abbreviation, separated with an underscore. Can only contain the characters a-zA-Z0-9_.- and must have a file extension. Directory paths are not allowed.",
-            "req":"yes",
-            "fmt":["uid", "primary"],
-            "examples":["vast_fil_3754.fastq.gz"]
+        "profile_uid":{
+            "def":"A previously defined profile_uid.",
+            "fmt":["condition", "uid", "ref"],
+            "condition":{
+              "description":"Required for files generated by an entry in the profiles table."},
+            "ref":{"profiles":"profile_uid"},
+            "examples":["cmmr_sam889_pool8391"]
+        },
+        "analysis_uid":{
+            "def":"A previously defined analysis_uid.",
+            "fmt":["condition", "assert", "uid", "ref"],
+            "condition":{
+              "description":"Required for files generated by an entry in the analyses table."},
+            "assert":{"XOR":"profile_uid"},
+            "ref":{"analyses":"analysis_uid"},
+            "examples":["uncch_HBV_Analysis"]
+        },
+        "filename":{
+            "def":"The local/internal name of the file as it exists on the data generator. For files being submitted to NCBI SRA, the filename must (1) only contain letters, numbers, hyphens, periods, and underscores, (2) end in .bam, .cram, .fastq.gz, or .fastq.bz2, and (3) not contain any participant metadata.",
+            "fmt":["required", "file"],
+            "examples":["pool8391_sam889.fastq.gz"]
         },
         "data_type":{
-            "def":"Term that indicates the type of data contained in the file. \"counts\" should only be used for summary information from a single sample. If fastq files are demultiplexed, please use \"demultiplexed_fastq\". Let the HVPCC know if you need additional terms that are not provided here.",
-            "req":"yes",
-            "fmt":["cv"],
+            "def":"Term that indicates the type of data contained in the file. \"counts\" should only be used for summary information from a single sample.",
+            "fmt":["required", "cv"],
             "cv":[
               "scrubbed_sequence_reads", "unscrubbed_sequence_reads", "alignment", "counts", 
               "assembly", "seq_run_metrics", "analysis_metrics"]
         },
         "file_format":{
             "def":"Term to describe the format of file. Use any term from the \"format\" branch of the EDAM Ontology. Only the ID (e.g. \"EDAM:format_2572\") is needed; the rest of the text is ignored/discarded.",
-            "req":"yes",
-            "fmt":["prefix"],
-            "prefix":["EDAM:format_"],
+            "fmt":["required", "ontology"],
+            "ontology":["EDAM:format_"],
             "urls":{"EDAM Ontology \"format\" branch":"https://www.ebi.ac.uk/ols4/ontologies/edam/classes/http%253A%252F%252Fedamontology.org%252Fformat_1915"},
-            "examples":[
+            "suggestions":[
               "FASTQ [EDAM:format_1930]",
-              "FASTA [EDAM:format_1929]",
               "BAM [EDAM:format_2572]",
-              "SFF [EDAM:format_3284]",
-              "SRF [EDAM:format_3017]",
               "CRAM [EDAM:format_3462]",
               "TSV [EDAM:format_3475]",
               "CSV [EDAM:format_3752]",
-              "RPKM [EDAM:format_3980]"]
+              "RPKM [EDAM:format_3980]",
+              "HTML [EDAM:format_2331]"]
         },
         "md5_checksum":{
             "def":"An MD5 checksum must be provided for every file.",
-            "req":"yes",
-            "fmt":["md5"],
+            "fmt":["required", "md5"],
             "examples":[
               "0cc175b9c0f1b6a831c399e269772661", 
               "92eb5ffee6ae2fec3ad71c777531578f", 
               "4a8a08f09d37b73795649038408b5f33"]
-        },
-        "library_uid":{
-            "def":"The library_uid from which the file was generated.",
-            "req":"Required for primary data (e.g. sequence reads), but not for files containing analysis results or other secondary files (such as assemblies).",
-            "fmt":["uid", "ref"],
-            "ref":{"libraries":"library_uid"},
-            "examples":["vast_lib_3754"]
-        },
-        "bioproject_id":{
-            "def":"The NCBI BioProject accession associated with this data at the sub-project level that is specific to the study this file is part of.",
-            "req":"Required for sequence data.",
-            "fmt":["prefix"],
-            "prefix":["PRJNA"],
-            "urls":{"HVP Umbrella project":"https://www.ncbi.nlm.nih.gov/bioproject/1336838"},
-            "examples":[
-              "Antibody targeting of the virome [PRJNA1336851]",
-              "Single virion analysis of the virome [PRJNA1336854]",
-              "Pregnancy and postpartum [PRJNA1336849]",
-              "Methods for quantitative recovery [PRJNA1336855]",
-              "Antimicrobial and inflammatory perturbations [PRJNA1336853]",
-              "Oral-Gut-Brain Axis [PRJNA1336845]",
-              "Petabase scale to single-cell resolution [PRJNA1336850]",
-              "Oro-Respiratory-Gut Virome Axis [PRJNA1336841]",
-              "Viromes Across Space and Time [PRJNA1336844]",
-              "Vanderbilt VCC (V2C2) [PRJNA1336843]",
-              "Enrichment and Precise Quantification [PRJNA1336856]",
-              "Diverse Human Populations [PRJNA1336842]",
-              "Whole Body Deep Tissue [PRJNA1336852]"]
-        },
-        "analysis_uid":{
-            "def":"Identifer of the analysis (from the analysis table) that a file is the result of.",
-            "req":"Required for secondary/derived files.",
-            "fmt":["uid", "ref"],
-            "ref":{"analyses":"analysis_uid"}
-        },
-        "file_derived_from":{
-            "def":"The \"file_uniq_name\"s that were used as input to generate the results. This is for cases where you are submitting a file containing results of a process such as assembly, taxonomic profiling, annotation, alignment, etc.",
-            "req":"Required for secondary/derived files.",
-            "fmt":["uid", "multiple"],
-            "ref":{"files":"file_uniq_name"}
-        },
-        "access":{
-            "def":"The consented access level of data.",
-            "req":"yes",
-            "fmt":["cv"],
-            "cv":["open", "open_embargo", "restricted", "restricted_embargo"]
-        },
-        "data_use_condition":{
-            "def":"Term from the Data Use Ontology (DUO) to describe how the data is allowed to be used. The term here must match with the value expected for the cohort associated with this data. Only the ID (e.g. \"DUO:0000004\") is needed; the rest of the text is ignored/discarded.",
-            "req":"yes",
-            "fmt":["prefix"],
-            "prefix":["DUO:"],
-            "urls":{"Data Use Ontology":"https://www.ebi.ac.uk/ols4/ontologies/duo"},
-            "examples":[
-                "no restricition [DUO:0000004]",
-                "general research use [DUO:0000042]",
-                "health or medical or biomedical research [DUO:0000006]",
-                "disease specific research [DUO:0000007]",
-                "population origins or ancestry research only [DUO:0000011]"
-            ]
-        },
-        "data_use_specific_limit":{
-            "def":"The Disease Ontology ID for the specific disease associated with the data_use_condition. Only the ID (e.g. \"DOID:0060041\") is needed; the rest of the text is ignored/discarded.",
-            "req":"Required when data_use_condition = DUO:0000007 (disease specific research).",
-            "fmt":["prefix"],
-            "prefix":["DOID:"],
-            "urls":{"Disease Ontology":"https://www.ebi.ac.uk/ols4/ontologies/doid"},
-            "examples":["Breast cancer [DOID:1612]", "Type 1 diabetes mellitus [DOID:9744]", "Autism spectrum disorder [DOID:0060041]"]
         }
     }
 };

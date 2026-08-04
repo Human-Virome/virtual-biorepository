@@ -1,5 +1,17 @@
+events_before_insert <- function (env) {
 
-derive_cols_events <- function (env) {
+  errors <- c()
+
+  env$df[['year_month']]     <- substr(env$df[['date']], 1, 7)
+  env$df[['year_month_day']] <- ifelse(
+    test = nchar(env$df[['date']]) == 10,
+    yes  = env$df[['date']],
+    no   = NA_character_ )
+
+  env$df[['day_of_week']] <- ifelse(
+    test = nchar(env$df[['date']]) == 10,
+    yes  = weekdays(as.Date(env$df[['date']])),
+    no   = env$df[['day_of_week']] )
   
   env$df[['converted_age_years']] <- with(
     data = env$df, 
@@ -65,11 +77,14 @@ derive_cols_events <- function (env) {
     data.table::fifelse(is_na | is_no, "no", "yes")
   })
   
-  invisible()
-}
+  if (length(i <- head(which(env$df[['converted_age_years']] >= 90)))) {
+    msg    <- "%s:%d: You must use `age_range` for ages >= 90 years."
+    errors <- c(errors, sprintf(msg, env$tbl, i + 1))
+  }
 
 
-derive_cols_libraries <- function (env) {
-  
-  invisible() 
+  if (length(errors))
+    stop(paste(errors, collapse = "\n"))
+  invisible()  
 }
+

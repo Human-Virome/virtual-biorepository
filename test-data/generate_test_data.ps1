@@ -41,7 +41,6 @@ $rows = @(
     ,@("vast_hvpqa2026_p002_e1_s1","vast_hvpqa2026_p002","vast_hvpqa2026_p002_e1","dantas","individual_participant","","","https://www.protocols.io/","NCBI:txid1070528","","UBERON:0001988","2025-02","2025-02-10","-80C","RNA Later","no","")
     ,@("vast_hvpqa2026_p003_e1_s1","vast_hvpqa2026_p003","vast_hvpqa2026_p003_e1","dantas","individual_participant","","","https://www.protocols.io/","NCBI:txid1070528","","UBERON:0001988","2025-03","2025-03-05","-80C","","no","")
     ,@("vast_hvpqa2026_p001_e1_s1_sub1","vast_hvpqa2026_p001","vast_hvpqa2026_p001_e1","bhatt","individual_participant","acellular_fraction","vast_hvpqa2026_p001_e1_s1","https://www.protocols.io/","NCBI:txid1070528","","UBERON:0001988","2025-01","2025-01-16","-80C","","no","")
-    ,@("vast_hvpqa2026_comp01","vast_hvpqa2026_p001;vast_hvpqa2026_p002;vast_hvpqa2026_p003","vast_hvpqa2026_p001_e1","bhatt","composite_of_individuals","","vast_hvpqa2026_p001_e1_s1;vast_hvpqa2026_p002_e1_s1;vast_hvpqa2026_p003_e1_s1","https://www.protocols.io/","NCBI:txid1070528","","UBERON:0001988","2025-04","2025-04-01","-80C","","no","")
     ,@("vast_hvpqa2026_negctrl01","vast_hvpqa2026_p001","vast_hvpqa2026_p001_e1","bhatt","individual_participant","","","https://www.protocols.io/","NCBI:txid1070528","","UBERON:0001988","2025-01","2025-01-15","-80C","","yes","empty collection device")
 )
 Write-Tsv (Join-Path $dir "3_samples.tsv") $headers $rows
@@ -67,7 +66,7 @@ $rows = @(
 Write-Tsv (Join-Path $dir "5_analyses.tsv") $headers $rows
 
 # ---------------- files ----------------
-$headers = @("file_uniq_name","data_type","file_format","md5_checksum","library_uid","analysis_uid","file_derived_from","bioproject_id","access","data_use_condition","data_use_specific_limit")
+$headers = @("file_uid","data_type","file_format","md5_checksum","library_uid","analysis_uid","parent_file_uid","bioproject_id","access","data_use_condition","data_use_specific_limit")
 $rows = @(
     ,@("vast_hvpqa2026_p001_e1_s1_lib1_R1.fastq.gz","unscrubbed_sequence_reads","EDAM:format_1930","3d46ec9e7b1d1a7935097318d2e1903e","vast_hvpqa2026_p001_e1_s1_lib1","","","PRJNA1336844","restricted","DUO:0000042","")
     ,@("vast_hvpqa2026_p001_e1_s1_lib1_R2.fastq.gz","unscrubbed_sequence_reads","EDAM:format_1930","d5329362c805a0c219266d131616106f","vast_hvpqa2026_p001_e1_s1_lib1","","","PRJNA1336844","restricted","DUO:0000042","")

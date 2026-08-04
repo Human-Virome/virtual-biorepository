@@ -118,7 +118,7 @@ api_biosamples_assign <- function (db, hvp_ids) {
 }
 
 
-biosamples_refresh <- function (db) {
+biosamples_refresh <- function (env) {
   
   sql <- "
       SELECT
@@ -178,7 +178,7 @@ biosamples_refresh <- function (db) {
       WHERE biosamples.sample_name IS NULL 
         AND samples.user = @user"
   
-  biosamples <- db_query(db, sql, 'ApiBio1', simplify = FALSE)
+  biosamples <- db_query(env$db, sql, 'ApiBio1', simplify = FALSE)
   
   if (nrow(biosamples) > 0) {
     
@@ -224,7 +224,7 @@ biosamples_refresh <- function (db) {
     tmp        <- startsWith(names(biosamples), "_")
     biosamples <- biosamples[, !tmp, drop = FALSE]
     
-    db_append(db, 'biosamples', biosamples, 'BioRefr1')
+    db_insert(env$db, 'biosamples', biosamples, 'BioRefr1')
   }
   
   invisible()

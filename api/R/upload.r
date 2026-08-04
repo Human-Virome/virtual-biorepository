@@ -9,7 +9,7 @@ ingest_file <- function (db, file, commit) {
     expr = {
       DBI::dbBegin(db)
       
-      is_xls <- is.finite(readxl::excel_format(file))
+      is_xls <- isTRUE(nzchar(readxl::excel_format(file)))
       
       if (is_xls) { ingest_excel_file(db, file) }
       else        { ingest_delim_file(db, file) }
@@ -32,7 +32,7 @@ ingest_file <- function (db, file, commit) {
 ingest_excel_file <- function (db, file) {
   
   received_sheets <- setdiff(readxl::excel_sheets(file), 'cv')
-  expected_sheets <- c('participants', 'events', 'samples', 'libraries', 'analyses', 'files')
+  expected_sheets <- names(DICT)
   
   valid_sheets   <- intersect(expected_sheets, received_sheets)
   invalid_sheets <- setdiff(received_sheets, expected_sheets)
@@ -83,12 +83,19 @@ ingest_delim_file <- function (db, file) {
     stop('No data records were found in the uploaded file.')
   
   env$tbl <- {
-    if      (hasName(env$df, 'host_taxon'))               { 'participants' }
-    else if (any(hasName(env$df, c('age', 'age_range')))) { 'events'       }
-    else if (hasName(env$df, 'sample_type'))              { 'samples'      }
-    else if (hasName(env$df, 'library_type'))             { 'libraries'    }
-    else if (hasName(env$df, 'analysis_description'))     { 'analyses'     }
-    else if (hasName(env$df, 'file_format'))              { 'files'        }
+    if      (hasName(env$df, 'host_taxon'))                                      { 'participants'        }
+    else if (any(hasName(env$df, c('age', 'age_range'))))                        { 'events'              }
+    else if (hasName(env$df, 'collection_protocol_uid'))                         { 'samples'             }
+    else if (hasName(env$df, 'assay_protocol_uid'))                              { 'profiles'            }
+    else if (hasName(env$df, 'analysis_protocol_uid'))                           { 'analyses'            }
+    else if (any(hasName(env$df, c('input_profile_uid', 'input_analysis_uid')))) { 'analysis_inputs'     }
+    else if (hasName(env$df, 'filename'))                                        { 'files'               }
+    else if (hasName(env$df, 'application'))                                     { 'protocols'           }
+    else if (all(hasName(env$df, c('cohort_uid','participant_uid'))))            { 'cohort_participants' }
+    else if (all(names(env$df) %in% c('cohort_uid', 'title')))                   { 'cohorts'             }
+    else if (hasName(env$df, 'experimental_sample'))                             { 'sample_controls'     }
+    else if (hasName(env$df, 'experimental_profile'))                            { 'profile_controls'    }
+    else if (hasName(env$df, 'composite_sample'))                                { 'composite_samples'   }
     else { stop('Required headers are missing.') }
   }
   
@@ -104,37 +111,23 @@ ingest_table <- function (env) {
   n_rows <- nrow(env$df)
   if (n_rows == 0) return (invisible())
   
-  validate_req_columns(env)
-  reformat_ids(env)
-  validate_suffixes(env)
-  validate_cv(env)
-  validate_numbers(env)
-  validate_dates(env)
-  validate_urls(env)
-  validate_md5(env)
-  validate_keys(env)
-  validate_refs(env)
-  validate_file_names(env)
-  validate_bioproject_ids(env)
+  validate_table(env)
   
   switch(
     EXPR = env$tbl,
-    'events'    = condition_check_events(env),
-    'samples'   = condition_check_samples(env),
-    'libraries' = condition_check_libraries(env),
-    'files'     = condition_check_files(env) )
+    'participants' = participants_before_insert(env),
+    'events'       = events_before_insert(env),
+    'samples'      = samples_before_insert(env),
+    'profiles'     = profiles_before_insert(env) )
+  
+  db_insert(env$db, env$tbl, env$df, 'InTbl1')
   
   switch(
     EXPR = env$tbl,
-    'events'    = derive_cols_events(env),
-    'libraries' = derive_cols_libraries(env) )
-  
-  db_append(env$db, env$tbl, env$df, 'InTbl1')
-  
-  switch(
-    EXPR = env$tbl,
-    'samples' = biosamples_refresh(env$db),
-    'files'   = sra_refresh(env$db) )
+    'participants' = participants_after_insert(env),
+    'samples'      = samples_after_insert(env),
+    'profiles'     = profiles_after_insert(env),
+    'files'        = files_after_insert(env) )
   
   invisible()
 }

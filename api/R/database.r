@@ -80,36 +80,50 @@ db_query <- function (db, sql, err_code, params = NULL, simplify = TRUE, req1 = 
 
 
 # Append data frame's rows to mariadb table
-db_append <- function (db, tbl, df, err_code) {
+db_insert <- function (db, tbl, df, err_code, ignore = FALSE) {
   
   prefix <- switch(
     EXPR = tbl,
-    'participants' = "hvp:p-",
-    'events'       = "hvp:e-",
-    'samples'      = "hvp:s-",
-    'libraries'    = "hvp:l-",
-    'analyses'     = "hvp:a-",
-    'files'        = "hvp:f-",
-    'biosamples'   = "hvp:b-",
-    'sra'          = "hvp:r-",
-    stop('bad table name') )
-  
+    'protocols'           = "hvpo",
+    'participants'        = "hvpp",
+    'cohorts'             = "hvpc",
+    'cohort_participants' = "hvph",
+    'events'              = "hvpe",
+    'samples'             = "hvps",
+    'sample_controls'     = "hvpn",
+    'composite_samples'   = "hvpm",
+    'profiles'            = "hvpl",
+    'profile_controls'    = "hvpt",
+    'analyses'            = "hvpa",
+    'analysis_inputs'     = "hvpi",
+    'files'               = "hvpf",
+    'submissions'         = "hvpu",
+    'biosamples'          = "hvpb",
+    'sra'                 = "hvpr",
+    stop('invalid table name: ', tbl) )
+
   # Generate 5 extra IDs in case of collisions.
   n <- nrow(df)
-  new_ids <- stringi::stri_rand_strings(n + 5, 8)
+  new_ids <- stringi::stri_rand_strings(n + 5, 6)
   new_ids <- paste0(prefix, new_ids)
   
   # Avoid colliding with existing IDs.
-  current <- db_query(db, sprintf('SELECT hvp_id FROM `%s`', tbl), 'CrHvId')
+  current <- db_query(db, sprintf('SELECT `hvp_id` FROM `%s`', tbl), 'CrHvId')
   new_ids <- setdiff(new_ids, current)[seq_len(n)]
   stopifnot(!anyNA(new_ids)) # Too many collisions (highly unlikely).
   
   df[['hvp_id']] <- new_ids
   df[['user']]   <- NULL
+
+  if (!is.null(env$sql_ignored_fields)) {
+    df <- df[, setdiff(names(df), env$sql_ignored_fields), drop=FALSE]
+    env$sql_ignored_fields <- NULL
+  }
   
   colnames     <- paste0("`", names(df), "`", collapse = ", ")
   placeholders <- paste0(rep("?", ncol(df)),  collapse = ", ")
   fmt <- "INSERT INTO `%s` (%s, `user`) VALUES (%s, @user)"
+  if (isTRUE(ignore)) fmt <- sub('INSERT', 'INSERT IGNORE', fmt)
   sql <- sprintf(fmt, tbl, colnames, placeholders)
   
   db_query(db, sql, err_code, params = unname(as.list(df)))
@@ -187,3 +201,4 @@ db_page <- function (db, err_code, table, page, size, sort, filter, where = NULL
     total_rows = jsonlite::unbox(total_rows), 
     data       = result_df ))
 }
+

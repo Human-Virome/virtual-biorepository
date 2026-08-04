@@ -1,6 +1,7 @@
 
 # Global functions
-unbox <- jsonlite::unbox
+unbox   <- jsonlite::unbox
+hasName <- utils::hasName
 
 UID_PREFIXES <- c(
   "boston_", "broad_park_", "caltech_", "lbnl_", "mskcc_", "penn_", "pnnl_", 
@@ -21,6 +22,8 @@ FREQ_REGEX <- paste0("\\:(", paste0(FREQ_SUFFIXES, collapse = "|"), ")")
 DICT <- local({
   
   fp <- '../html/app/dictionary.js'
+  if (!file.exists(fp)) fp <- 'html/app/dictionary.js'
+  
   js <- readChar(con = fp, nchars = file.size(fp))
   js <- sub('const vbrDictionary = ', '', js)
   js <- sub('};', '}', js)
