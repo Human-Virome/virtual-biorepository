@@ -52,7 +52,7 @@ validate_table <- function (env) {
         'md5'        = validate_md5(env, field),
         'json'       = validate_json(env, field),
         'url'        = validate_url(env, field),
-        'file'       = validate_file(env, field),
+        'file'       = validate_filename(env, field),
         'bioproject' = validate_bioproject(env, field),
         NULL
       ))
