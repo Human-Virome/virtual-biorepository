@@ -584,18 +584,19 @@ validate_url  <- function (env, field) {
   }
   
   urls <- unique(x[is_a_url])
-  if (length(urls) == 0) next
-  
-  reqs <- crul::Async$new(urls = urls)
-  unreachable <- which(!sapply(reqs$get(), function(res) {
-    res$success() && res$status_code >= 200 && res$status_code < 400
-  }))
-  
-  if (length(unreachable) > 0) {
-    bad_rows <- head(which(is_a_url & (x %in% urls[unreachable])))
-    msg <- "%s:%d: `%s` is not reachable: %s"
-    msg <- sprintf(msg, env$tbl, bad_rows + 1, field, x[bad_rows])
-    errors <- c(errors, msg)
+  if (length(urls) > 0) {
+    
+    reqs <- crul::Async$new(urls = urls)
+    unreachable <- which(!sapply(reqs$get(), function(res) {
+      res$success() && res$status_code >= 200 && res$status_code < 400
+    }))
+    
+    if (length(unreachable) > 0) {
+      bad_rows <- head(which(is_a_url & (x %in% urls[unreachable])))
+      msg <- "%s:%d: `%s` is not reachable: %s"
+      msg <- sprintf(msg, env$tbl, bad_rows + 1, field, x[bad_rows])
+      errors <- c(errors, msg)
+    }
   }
   
   return(errors)  
