@@ -3,7 +3,7 @@ const vbrDictionary = {
         "protocol_uid":{
             "def":"HVP-unique protocol identifier.",
             "fmt":["required", "uid", "primary"],
-            "examples":["VAST-16S-V4-v1.0"]
+            "examples":["vast_16S-V4-v1.0"]
         },
         "author":{
             "def":"The lab or company that developed the protocol.",

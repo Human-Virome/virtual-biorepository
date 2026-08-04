@@ -40,8 +40,8 @@ validate_table <- function (env) {
         'required'   = validate_required(env, field),
         'condition'  = validate_condition(env, field),
         'assert'     = validate_assert(env, field),
-        'uid'        = validate_identifier(env, field),
-        'ontology'   = validate_identifier(env, field),
+        'uid'        = validate_uid(env, field),
+        'ontology'   = validate_ontology(env, field),
         'cv'         = validate_cv(env, field),
         'primary'    = validate_primary(env, field),
         'ref'        = validate_ref(env, field),
@@ -71,12 +71,13 @@ validate_required <- function (env, field) {
   
   errors <- c()
 
-  is_na <- is.na(env$df[[field]])
-  if (!any(is_na)) {
-    bad_rows <- head(which(is_na))
-    msg      <- "%s:%d: `%s` is required."
-    msg      <- sprintf(msg, env$tbl, bad_rows + 1, field)
-    errors   <- c(errors, msg)
+  x <- env$df[[field]]
+  x <- trimws(gsub(";", "", x, fixed = TRUE))
+  
+  if (length(i <- head(which(is.na(x) | !nzchar(x))))) {
+    msg    <- "%s:%s:%d: `%s` is required."
+    msg    <- sprintf(msg, env$tbl, field, bad_rows + 1, field)
+    errors <- c(errors, msg)
   }
 
   return(errors)  
@@ -120,10 +121,10 @@ validate_condition <- function (env, field) {
   }
 
   if (any(failing)) {
-    bad_rows <- head(which(failing))
-    msg      <- "%s:%d: %s"
-    msg      <- sprintf(msg, env$tbl, bad_rows + 1, conditions[['description']])
-    errors   <- c(errors, msg)
+    i <- head(which(failing))
+    msg    <- "%s:%s:%d: %s"
+    msg    <- sprintf(msg, env$tbl, field, i + 1, conditions[['description']])
+    errors <- c(errors, msg)
   }
 
 
@@ -166,29 +167,62 @@ validate_assert <- function (env, field) {
 }
 
 
+validate_uid <- function (env, field) {
+  
+  errors <- c()
+  x      <- env$df[[field]]
+  multi  <- "multiple" %in% unlist(DICT[[env$tbl]][[field]][['fmt']])
+
+  uid_sets <- strsplit(x, ';')
+  all_uids <- trimws(unlist(uid_sets))
+  uid_rows <- rep(seq_along(x), sapply(uid_sets, length))
+
+  is_na    <- is.na(all_uids) | !nzchar(all_uids)
+  all_uids <- all_uids[!is_na]
+  uid_rows <- uid_rows[!is_na]
+
+  if (!isTRUE(multi)) {
+    if (length(i <- head(which(sapply(uid_sets, length))))) {
+      msg    <- "%s:%s:%d: multiple UIDs are not allowed: \"%s\""
+      msg    <- sprintf(msg, env$tbl, field, i + 1, x[i])
+      errors <- c(errors, msg)
+    }
+  }
+
+  special <- c()
+  if (field == 'participant_uid' && env$tbl != 'participants') { special <- c('composite$', 'mock$') }
+  if (field == 'event_uid'       && env$tbl != 'events')       { special <- c('composite$', 'mock$') }
+  pattern <- paste0("^(", paste0(c(special, UID_PREFIXES), collapse = "|"), ")")
+
+  if (length(i <- head(which(!grepl(pattern, all_uids))))) {
+      msg    <- "%s:%s:%d: UID must begin with a center prefix: \"%s\""
+      msg    <- sprintf(msg, env$tbl, field, uid_rows[i] + 1, all_uids[i])
+      errors <- c(errors, msg)
+  }
+
+  env$df[[field]] <- unname(sapply(uid_sets, function (x) {
+    x <- trimws(x)
+    if (is.na(x) || nchar(x) == 0) return (NA_character_)
+    paste(x, collapse = ";")
+  }))
+
+  return(errors)  
+}
+
 
 # Converts
 # From: "Dog [NCBI:txid9615]; Cat (Domestic) [NCBI:txid9685]"
 # To:   "NCBI:txid9615;NCBI:txid9685"
-validate_identifier <- function (env, field) {
+validate_ontology <- function (env, field) {
   
-  errors <- c()
-  
-  dict  <- DICT[[env$tbl]][[field]]
-  fmt   <- unlist(dict[['fmt']])
-  req   <- "required" %in% fmt
-  multi <- "multiple" %in% fmt
+  errors   <- c()
+  x        <- env$df[[field]]
+  dict     <- DICT[[env$tbl]][[field]]
+  prefixes <- unlist(dict[['ontology']])
+  multi    <- "multiple" %in% unlist(dict[['fmt']])
 
-  if ("ontology" %in% fmt) { prefixes <- unlist(dict[['ontology']]) }
-  else                     { prefixes <- UID_PREFIXES               } 
-  
-  x <- env$df[[field]]
-  
-  # 1. Prefix and Regex Handling
-  prefix_group  <- paste0("(", paste0(prefixes, collapse = "|"), ")")
-  if      ("uid" %in% fmt)      { regex <- paste0(prefix_group, "[^;\\s]+")          }
-  else if ("DB"  %in% prefixes) { regex <- paste0(prefix_group, "[a-zA-Z0-9_:\\-]+") }
-  else                          { regex <- paste0(prefix_group, "[0-9]+")            }
+  regex <- paste0("\\b(", paste0(prefixes, "[0-9]+", collapse = "|"), ")")
+  regex <- sub("DB[0-9]", "DB[a-zA-Z0-9_:\\-]", regex, fixed = TRUE)
 
   # 2. Identify missing records
   is_na    <- is.na(x)
@@ -258,17 +292,15 @@ validate_identifier <- function (env, field) {
   
   # 4. Error Reporting 
   # (Note: +1 assumes 1-based indexing for spreadsheet/header rows)
-  if (any(is_missing)) {
-    bad_rows <- head(which(is_missing))
-    msg <- "%s:%d: missing or invalid `%s` identifier: \"%s\""
-    msg <- sprintf(msg, env$tbl, bad_rows + 1, field, x[bad_rows])
+  if (length(i <- head(which(is_missing)))) {
+    msg    <- "%s:%s:%d: missing or invalid ontology ID: \"%s\""
+    msg    <- sprintf(msg, env$tbl, field, i + 1, x[i])
     errors <- c(errors, msg)
   }
   
-  if (any(is_too_many)) {
-    bad_rows <- head(which(is_too_many))
-    msg <- "%s:%d: multiple `%s` identifiers: \"%s\""
-    msg <- sprintf(msg, env$tbl, bad_rows + 1, field, x[bad_rows])
+  if (length(i <- head(which(is_too_many)))) {
+    msg    <- "%s:%s:%d: multiple ontology IDs are not allowed: \"%s\""
+    msg    <- sprintf(msg, env$tbl, field, i + 1, x[i])
     errors <- c(errors, msg)
   }
   
@@ -288,21 +320,18 @@ validate_primary <- function (env, field) {
   
   x <- env$df[[field]]
   
-  current   <- db_query(env$db, sprintf('SELECT `%s` FROM `%s`', field, env$tbl), 'ValKey')
-  conflicts <- which(x %in% current)
-  duplicate <- which(duplicated(x) & !is.na(x))
+  sql     <- sprintf('SELECT `%s` FROM `%s`', field, env$tbl)
+  current <- db_query(env$db, sql, 'ValPri')
   
-  if (length(conflicts) > 0) {
-    bad_rows <- head(conflicts)
-    msg <- "%s:%d: `%s` already exists in database: %s"
-    msg <- sprintf(msg, env$tbl, bad_rows + 1, field, x[bad_rows])
+  if (length(i <- head(which(x %in% current)))) {
+    msg    <- "%s:%s:%d: UID already exists in database: \"%s\""
+    msg    <- sprintf(msg, env$tbl, field, i + 1, x[i])
     errors <- c(errors, msg)
   }
   
-  if (length(duplicate) > 0) {
-    bad_rows <- head(duplicate)
-    msg <- "%s:%d: `%s` appears more than once: %s"
-    msg <- sprintf(msg, env$tbl, bad_rows + 1, field, x[bad_rows])
+  if (length(i <- head(which(duplicated(x) & !is.na(x))))) {
+    msg    <- "%s:%s:%d: UID is defined more than once: \"%s\""
+    msg    <- sprintf(msg, env$tbl, field, i + 1, x[i])
     errors <- c(errors, msg)
   }
   
@@ -317,24 +346,29 @@ validate_ref <- function (env, field) {
   
   x <- env$df[[field]]
   
-  ref_table <- names(DICT[[env$tbl]][[field]][['ref']])[[1]]
-  ref_field <- DICT[[env$tbl]][[field]][['ref']][[ref_table]]
-  current   <- db_query(env$db, sprintf('SELECT `%s` FROM `%s`', ref_field, ref_table), 'ValRef')
+  dict      <- DICT[[env$tbl]][[field]]
+  ref_table <- names(dict[['ref']])
+  ref_field <- unname(dict[['ref']])
+  multi     <- "multiple" %in% unlist(dict[['fmt']])
+
+  ref_sets <- strsplit(x, ';')
+  all_refs <- trimws(unlist(uid_sets))
+  ref_rows <- rep(seq_along(x), sapply(uid_sets, length))
+
+  is_na    <- is.na(all_refs) | !nzchar(all_refs)
+  all_refs <- all_refs[!is_na]
+  ref_rows <- ref_rows[!is_na]
+
+  sql     <- sprintf('SELECT `%s` FROM `%s`', ref_field, ref_table)
+  current <- db_query(env$db, sql, 'ValRef')
   
   if (identical(ref_table, env$tbl))
     current <- c(current, env$df[[ref_field]])
   
-  for (i in which(!is.na(x))) {
-    
-    ids <- strsplit(x[[i]], ';', fixed = TRUE)[[1]]
-    is_missing <- which(!(ids %in% current))
-    
-    if (length(is_missing) > 0) {
-      bad_ids <- head(is_missing)
-      msg <- "%s:%d: `%s` does not exist: \"%s\""
-      msg <- sprintf(msg, env$tbl, i, field, ids[bad_ids])
-      errors <- c(errors, msg)
-    }
+  if (length(i <- head(which(!(all_refs %in% current))))) {
+    msg <- "%s:%s:%d: \"%s\" is not defined by the %s table."
+    msg <- sprintf(msg, env$tbl, field, ref_rows[i] + 1, all_refs[i], ref_table)
+    errors <- c(errors, msg)
   }
   
   return(errors)  
