@@ -404,16 +404,15 @@ CREATE TABLE IF NOT EXISTS sra (
   FOREIGN KEY (BioSample)    REFERENCES biosamples(biosample_accession)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
-
-
+      
 INSERT INTO `participants`
-  (hvp_id, participant_uid, access, data_use_condition, user)
+  (hvp_id, participant_uid, access, data_use_condition, race, ethnicity, sex_at_birth, country_of_birth, country_of_childhood_residence, host_taxon, `user`)
   VALUES
-    ('hvpp00MOCK', 'mock',      'open', 'DUO:0000004', 'Daniel.Smith@bcm.edu'),
-    ('hvpp00COMP', 'composite', 'open', 'DUO:0000004', 'Daniel.Smith@bcm.edu');
+    ('hvpp00MOCK', 'mock',      'open', 'DUO:0000004', 'mock',      'mock',      'mock',      'mock',      'mock',      'mock',      'Daniel.Smith@bcm.edu'),
+    ('hvpp00COMP', 'composite', 'open', 'DUO:0000004', 'composite', 'composite', 'composite', 'composite', 'composite', 'composite', 'Daniel.Smith@bcm.edu');
 
 INSERT INTO `events`
-  (hvp_id, event_uid, participant_uid, year_month, user)
+  (hvp_id, event_uid, participant_uid, year_month, state_or_province_of_residence, `user`)
   VALUES
-    ('hvpe00MOCK', 'mock',      'mock',      '2026-08', 'Daniel.Smith@bcm.edu'),
-    ('hvpe00COMP', 'composite', 'composite', '2026-08', 'Daniel.Smith@bcm.edu');
+    ('hvpe00MOCK', 'mock',      'mock',      '2026-08', 'mock',      'Daniel.Smith@bcm.edu'),
+    ('hvpe00COMP', 'composite', 'composite', '2026-08', 'composite', 'Daniel.Smith@bcm.edu');
