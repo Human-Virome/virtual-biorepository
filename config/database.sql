@@ -12,7 +12,7 @@ use vbr;
 # no_hvp_id
 CREATE TABLE IF NOT EXISTS tokens (
   sha256      CHAR(64)     PRIMARY KEY,
-  user        VARCHAR(255) NOT NULL,
+  `user`      VARCHAR(255) NOT NULL,
   created     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   last_access TIMESTAMP
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
@@ -42,8 +42,8 @@ CREATE TABLE IF NOT EXISTS protocols (
   transit_temp_celsius FLOAT,
   storage_temp_celsius FLOAT,
   hvp_id               CHAR(10)     PRIMARY KEY,
-  user                 VARCHAR(255) NOT NULL,
-  INDEX (user)
+  `user`               VARCHAR(255) NOT NULL,
+  INDEX (`user`)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 # hvppXXXXXX
@@ -63,16 +63,16 @@ CREATE TABLE IF NOT EXISTS participants (
   family_medical_history         ENUM('yes','no'),
   host_taxon                     VARCHAR(255) NOT NULL,
   hvp_id                         CHAR(10)     PRIMARY KEY,
-  user                           VARCHAR(255) NOT NULL,
-  INDEX (user)
+  `user`                         VARCHAR(255) NOT NULL,
+  INDEX (`user`)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 # hvpcXXXXXX
 CREATE TABLE IF NOT EXISTS cohorts (
   cohort_uid VARCHAR(255) NOT NULL UNIQUE,
   hvp_id     CHAR(10)     PRIMARY KEY,
-  user       VARCHAR(255) NOT NULL,
-  INDEX (user)
+  `user`     VARCHAR(255) NOT NULL,
+  INDEX (`user`)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 # hvphXXXXXX
@@ -80,10 +80,10 @@ CREATE TABLE IF NOT EXISTS cohort_participants (
   cohort_uid      VARCHAR(255) NOT NULL,
   participant_uid VARCHAR(255) NOT NULL,
   hvp_id          CHAR(10)     PRIMARY KEY,
-  user            VARCHAR(255) NOT NULL,
+  `user`          VARCHAR(255) NOT NULL,
   UNIQUE (cohort_uid, participant_uid),
   INDEX (participant_uid),
-  INDEX (user),
+  INDEX (`user`),
   FOREIGN KEY (cohort_uid)      REFERENCES cohorts(cohort_uid),
   FOREIGN KEY (participant_uid) REFERENCES participants(participant_uid)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS cohort_participants (
 CREATE TABLE IF NOT EXISTS events (
   event_uid                               VARCHAR(255) NOT NULL UNIQUE,
   participant_uid                         VARCHAR(255) NOT NULL,
-  year_month                              VARCHAR(255) NOT NULL,
+  `year_month`                            VARCHAR(255) NOT NULL,
   year_month_day                          VARCHAR(255),
   day_of_week                             VARCHAR(255),
   age                                     FLOAT,
@@ -153,8 +153,8 @@ CREATE TABLE IF NOT EXISTS events (
   acute_health_status_at_sampling_comment TEXT,
   time_last_toothbrush                    FLOAT,
   hvp_id                                  CHAR(10)     PRIMARY KEY,
-  user                                    VARCHAR(255) NOT NULL,
-  INDEX (user),
+  `user`                                  VARCHAR(255) NOT NULL,
+  INDEX (`user`),
   FOREIGN KEY (participant_uid) REFERENCES participants(participant_uid)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
@@ -172,9 +172,9 @@ CREATE TABLE IF NOT EXISTS samples (
   stool_type              VARCHAR(255),
   is_control_sample       VARCHAR(255),
   hvp_id                  CHAR(10)     PRIMARY KEY,
-  user                    VARCHAR(255) NOT NULL,
+  `user`                  VARCHAR(255) NOT NULL,
   INDEX (event_uid),
-  INDEX (user),
+  INDEX (`user`),
   FOREIGN KEY (event_uid)               REFERENCES events(event_uid),
   FOREIGN KEY (collection_protocol_uid) REFERENCES protocols(protocol_uid)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
@@ -184,9 +184,9 @@ CREATE TABLE IF NOT EXISTS sample_controls (
   experimental_sample_uid VARCHAR(255) NOT NULL,
   control_sample_uid      VARCHAR(255) NOT NULL,
   hvp_id                  CHAR(10)     PRIMARY KEY,
-  user                    VARCHAR(255) NOT NULL,
+  `user`                  VARCHAR(255) NOT NULL,
   UNIQUE (experimental_sample, control_sample),
-  INDEX (user),
+  INDEX (`user`),
   FOREIGN KEY (experimental_sample_uid) REFERENCES samples(sample_uid),
   FOREIGN KEY (control_sample_uid)      REFERENCES samples(sample_uid)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
@@ -196,10 +196,10 @@ CREATE TABLE IF NOT EXISTS composite_samples (
   composite_sample_uid VARCHAR(255) NOT NULL,
   component_sample_uid VARCHAR(255) NOT NULL,
   hvp_id               CHAR(10)     PRIMARY KEY,
-  user                 VARCHAR(255) NOT NULL,
+  `user`               VARCHAR(255) NOT NULL,
   PRIMARY KEY (composite_sample_uid, component_sample_uid),
   INDEX (component_sample_uid),
-  INDEX (user),
+  INDEX (`user`),
   FOREIGN KEY (composite_sample_uid) REFERENCES samples(sample_uid),
   FOREIGN KEY (component_sample_uid) REFERENCES samples(sample_uid)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
@@ -230,7 +230,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   postprocess_uid           VARCHAR(255),
   is_control_profile        VARCHAR(255),
   hvp_id                    CHAR(10)     PRIMARY KEY,
-  user                      VARCHAR(255) NOT NULL,
+  `user`                    VARCHAR(255) NOT NULL,
   INDEX (sample_uid),
   INDEX (ncbi_bioproject_id),
   INDEX (preprocess_protocol_uid),
@@ -243,7 +243,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   INDEX (assay_uid),
   INDEX (postprocess_protocol_uid),
   INDEX (postprocess_uid),
-  INDEX (user),
+  INDEX (`user`),
   FOREIGN KEY (sample_uid)                REFERENCES samples(sample_uid),
   FOREIGN KEY (preprocess_protocol_uid)   REFERENCES protocols(protocol_uid),
   FOREIGN KEY (extraction_protocol_uid)   REFERENCES protocols(protocol_uid),
@@ -257,9 +257,9 @@ CREATE TABLE IF NOT EXISTS profile_controls (
   experimental_profile_uid VARCHAR(255) NOT NULL,
   control_profile_uid      VARCHAR(255) NOT NULL,
   hvp_id                   CHAR(10)     PRIMARY KEY,
-  user                     VARCHAR(255) NOT NULL,
+  `user`                   VARCHAR(255) NOT NULL,
   UNIQUE (experimental_profile_uid, control_profile_uid),
-  INDEX (user),
+  INDEX (`user`),
   FOREIGN KEY (experimental_profile_uid) REFERENCES profiles(profile_uid),
   FOREIGN KEY (control_profile_uid)      REFERENCES profiles(profile_uid)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
@@ -272,8 +272,8 @@ CREATE TABLE IF NOT EXISTS analyses (
   arguments             TEXT,
   settings              JSON,
   hvp_id                CHAR(10)     PRIMARY KEY,
-  user                  VARCHAR(255) NOT NULL,
-  INDEX (user),
+  `user`                VARCHAR(255) NOT NULL,
+  INDEX (`user`),
   FOREIGN KEY (analysis_protocol_uid) REFERENCES protocols(protocol_uid)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
@@ -283,7 +283,7 @@ CREATE TABLE IF NOT EXISTS analysis_inputs (
   input_profile_uid  VARCHAR(255),
   input_analysis_uid VARCHAR(255),
   hvp_id             CHAR(10)     PRIMARY KEY,
-  user               VARCHAR(255) NOT NULL,
+  `user`             VARCHAR(255) NOT NULL,
   INDEX       (analysis_uid),
   UNIQUE      (input_profile_uid,  analysis_uid),
   UNIQUE      (input_analysis_uid, analysis_uid),
@@ -302,10 +302,10 @@ CREATE TABLE IF NOT EXISTS files (
   file_format  VARCHAR(255) NOT NULL,
   md5_checksum CHAR(32)     NOT NULL,
   hvp_id       CHAR(10)     PRIMARY KEY,
-  user         VARCHAR(255) NOT NULL,
+  `user`       VARCHAR(255) NOT NULL,
   UNIQUE (profile_uid,  filename),
   UNIQUE (analysis_uid, filename),
-  INDEX (user),
+  INDEX (`user`),
   FOREIGN KEY (profile_uid)  REFERENCES profiles(profile_uid),
   FOREIGN KEY (analysis_uid) REFERENCES analyses(analysis_uid)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
@@ -320,8 +320,8 @@ CREATE TABLE IF NOT EXISTS submissions (
   report_timestamp     TIMESTAMP,
   complete             ENUM('yes','no') NOT NULL DEFAULT 'no',
   hvp_id               CHAR(10)         PRIMARY KEY,
-  user                 VARCHAR(255)     NOT NULL,
-  INDEX (user)
+  `user`               VARCHAR(255)     NOT NULL,
+  INDEX (`user`)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 # Use package Metagenome.environmental.1.0
@@ -370,9 +370,9 @@ CREATE TABLE IF NOT EXISTS biosamples (
   geo_loc_name                VARCHAR(255) NOT NULL DEFAULT ('not provided'),
   lat_lon                     VARCHAR(255) NOT NULL DEFAULT ('not collected'),
   hvp_id                      CHAR(10)     PRIMARY KEY,
-  user                        VARCHAR(255) NOT NULL,
+  `user`                      VARCHAR(255) NOT NULL,
   INDEX (biosample_accession),
-  INDEX (user),
+  INDEX (`user`),
   FOREIGN KEY (sample_name)       REFERENCES samples(sample_uid),
   FOREIGN KEY (submission_hvp_id) REFERENCES submissions(hvp_id),
   FOREIGN KEY (host_subject_id)   REFERENCES participants(participant_uid),
@@ -395,8 +395,8 @@ CREATE TABLE IF NOT EXISTS sra (
   library_construction_protocol VARCHAR(255),
   instrument_model              VARCHAR(255),
   hvp_id                        CHAR(10) PRIMARY KEY,
-  user                          VARCHAR(255) NOT NULL,
-  INDEX (user),
+  `user`                        VARCHAR(255) NOT NULL,
+  INDEX (`user`),
   FOREIGN KEY (profile_uid)  REFERENCES profiles(profile_uid),
   FOREIGN KEY (sample_name)  REFERENCES samples(sample_uid),
   FOREIGN KEY (library_name) REFERENCES profiles(library_id),
