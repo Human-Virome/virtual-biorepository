@@ -14,7 +14,7 @@ validate_table <- function (env) {
     dups <- unique(user_fields[duplicated(user_fields)])
     for (field in dups) {
       i <- which(names(env$df) == field)
-      x <- gsub(";+", ";", apply(env$df[, i, drop = FALSE], 1L, paste, collapse = ";"))
+      x <- apply(env$df[, i, drop = FALSE], 1L, \(y) paste(na.omit(y), collapse = ";"))
       env$df <- env$df[, -i, drop = FALSE]
       env$df[[field]] <- x
     }
