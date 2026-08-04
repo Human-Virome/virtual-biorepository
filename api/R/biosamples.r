@@ -125,15 +125,13 @@ biosamples_refresh <- function (env) {
         samples.hvp_id                        as hvp_id,
         samples.user                          as user,
         samples.sample_uid                    as sample_name,
-        samples.sample_taxonomy               as organism,
         samples.anatomical_site               as host_tissue_sampled,
         samples.body_product                  as host_body_product,
         samples.collection_method             as collection_method,
-        samples.sample_collection_device      as samp_collect_device,
-        samples.collection_date               as collection_date,
-        samples.collection_month_year         as _collection_month_year,
-        samples.negative_control_type         as neg_cont_type,
-        samples.postive_control_type          as pos_cont_type,
+        samples.collection_device             as samp_collect_device,
+        samples.is_control_sample             as control_type,
+
+        protocols.library_taxonomy            as organism,
         
         participants.participant_uid          as host_subject_id,
         participants.host_taxon               as host,
@@ -143,6 +141,8 @@ biosamples_refresh <- function (env) {
         participants.family_medical_history   as medic_hist_perform,
         
         events.event_uid                      as sampling_event_id,
+        events.year_month_day                 as collection_date,
+        events.year_month                     as _collection_month_year,
         events.state_or_province_of_residence as geo_loc_name,
         events.age                            as host_age,
         events.age_units                      as _age_units,
@@ -172,6 +172,7 @@ biosamples_refresh <- function (env) {
         
       FROM samples
         LEFT JOIN biosamples   ON samples.sample_uid = biosamples.sample_name
+        LEFT JOIN protocols    ON samples.collection_protocol_uid = protocols.protocol_uid
         LEFT JOIN participants USING (participant_uid)
         LEFT JOIN events       USING (event_uid)
         
