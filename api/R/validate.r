@@ -220,7 +220,7 @@ validate_uid <- function (env, field) {
 
   env$df[[field]] <- unname(sapply(uid_sets, function (x) {
     x <- trimws(x)
-    if (is.na(x) || nchar(x) == 0) return (NA_character_)
+    if (all(is.na(x) | nchar(x) == 0)) return (NA_character_)
     paste(x, collapse = ";")
   }))
 
