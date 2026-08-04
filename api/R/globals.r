@@ -4,8 +4,8 @@ unbox   <- jsonlite::unbox
 hasName <- utils::hasName
 
 UID_PREFIXES <- c(
-  "boston_", "broad_park_", "caltech_", "lbnl_", "mskcc_", "penn_", "pnnl_", 
-  "stanford_", "suny_", "ucdavis_", "ucla_", "ucsf_", "uncch_", "utah_", 
+  "boston_", "broad_park_", "caltech_", "cmmr_", "lbnl_", "mskcc_", "penn_", 
+  "pnnl_", "stanford_", "suny_", "ucdavis_", "ucla_", "ucsf_", "uncch_", "utah_", 
   "v2c2_", "vast_", "wu_dantas_", "wu_wylie_", "yu_foxman_", "yu_gilbert_" )
 
 MODE_SUFFIXES <- c(
