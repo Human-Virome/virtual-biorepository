@@ -89,7 +89,7 @@ db_insert <- function (db, tbl, df, err_code) {
       sql    <- "SHOW TABLES"
       tables <- db_query(db, sql, 'DbIn1')
       sapply(tables, function (x) {
-        sql    <- sprintf("DESCRIBE `%s`", x)
+        sql    <- sprintf("DESC `%s`", x)
         result <- db_query(db, sql, 'DbIn2')
         setdiff(result[['Field']], 'user')
       })
