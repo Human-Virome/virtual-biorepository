@@ -132,7 +132,6 @@ db_insert <- function (db, tbl, df, err_code) {
   colnames     <- paste0("`", names(df), "`", collapse = ", ")
   placeholders <- paste0(rep("?", ncol(df)),  collapse = ", ")
   fmt <- "INSERT INTO `%s` (%s, `user`) VALUES (%s, @user)"
-  if (isTRUE(ignore)) fmt <- sub('INSERT', 'INSERT IGNORE', fmt)
   sql <- sprintf(fmt, tbl, colnames, placeholders)
   
   db_query(db, sql, err_code, params = unname(as.list(df)))
