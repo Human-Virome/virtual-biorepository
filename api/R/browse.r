@@ -17,7 +17,7 @@ browse_db_table <- function (db, table) {
 api_browse_participants <- function (db) { browse_db_table(db, 'participants') }
 api_browse_events       <- function (db) { browse_db_table(db, 'events')       }
 api_browse_samples      <- function (db) { browse_db_table(db, 'samples')      }
-api_browse_libraries    <- function (db) { browse_db_table(db, 'libraries')    }
+api_browse_profiles     <- function (db) { browse_db_table(db, 'profiles')     }
 api_browse_analyses     <- function (db) { browse_db_table(db, 'analyses')     }
 api_browse_files        <- function (db) { browse_db_table(db, 'files')        }
 api_browse_sra          <- function (db) { browse_db_table(db, 'sra')          }
