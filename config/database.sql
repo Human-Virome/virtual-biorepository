@@ -1,6 +1,7 @@
 CREATE DATABASE IF NOT EXISTS vbr;
 use vbr;
 
+# DROP USER 'vbr'@'localhost';
 CREATE USER 'vbr'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON vbr.* TO 'vbr'@'localhost';
 FLUSH PRIVILEGES;
@@ -185,7 +186,7 @@ CREATE TABLE IF NOT EXISTS sample_controls (
   control_sample_uid      VARCHAR(255) NOT NULL,
   hvp_id                  CHAR(10)     PRIMARY KEY,
   `user`                  VARCHAR(255) NOT NULL,
-  UNIQUE (experimental_sample, control_sample),
+  UNIQUE (experimental_sample_uid, control_sample_uid),
   INDEX (`user`),
   FOREIGN KEY (experimental_sample_uid) REFERENCES samples(sample_uid),
   FOREIGN KEY (control_sample_uid)      REFERENCES samples(sample_uid)
