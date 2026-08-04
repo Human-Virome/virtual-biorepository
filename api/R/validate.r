@@ -396,7 +396,7 @@ validate_protocol <- function (env, field) {
       
       application_sets <- strsplit(res[['applications']], ';')
       applications     <- unlist(application_sets)
-      protocol_uids    <- rep(df[['protocol_uid']], sapply(application_sets, length))
+      protocol_uids    <- rep(res[['protocol_uid']], sapply(application_sets, length))
 
       protocols <- sapply(
         X        = unique(applications), 
