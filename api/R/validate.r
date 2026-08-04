@@ -268,7 +268,7 @@ validate_ontology <- function (env, field) {
     
     # Validations:
     # Missing if required+empty, OR if non-empty and lacks exactly 1 match
-    is_missing  <- (req & is_empty) | (!is_empty & n_matches == 0)
+    is_missing  <- !is_empty & n_matches == 0
     is_too_many <- !is_empty & n_matches > 1
     
     # Flatten single results
@@ -292,7 +292,7 @@ validate_ontology <- function (env, field) {
     
     # Validations per substring constraints:
     is_missing <- sapply(seq_along(sub_counts), function(i) {
-      if (is_empty[i]) return(isTRUE(req))
+      if (is_empty[i]) return(FALSE)
       any(sub_counts[[i]] == 0) # Fails if ANY substring has 0 matches
     })
     
