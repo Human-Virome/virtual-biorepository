@@ -51,7 +51,7 @@ db_query <- function (db, sql, err_code, params = NULL, simplify = TRUE, req1 = 
       #________________________________________________________
       # Only concerned with SELECT output from here on down.
       #________________________________________________________
-      if (verb != "SELECT") return (result)
+      if (!(verb %in% c("SELECT", "SHOW"))) return (result)
       
       
       #________________________________________________________
@@ -159,7 +159,7 @@ db_page <- function (db, err_code, table, page, size, sort, filter, where = NULL
   if (length(sort) > 0 || isTRUE(nzchar(trimws(filter)))) {
     
     # Fetch column information
-    sql        <- sprintf("SHOW COLUMNS FROM `%s`", table)
+    sql        <- sprintf("DESC `%s`", table)
     tbl_struct <- db_query(db, sql, ec("DbPage1"))
     
     # Assemble the ORDER BY clause
