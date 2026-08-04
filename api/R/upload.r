@@ -116,9 +116,7 @@ ingest_table <- function (env) {
   switch(
     EXPR = env$tbl,
     'participants' = participants_before_insert(env),
-    'events'       = events_before_insert(env),
-    'samples'      = samples_before_insert(env),
-    'profiles'     = profiles_before_insert(env) )
+    'events'       = events_before_insert(env) )
   
   db_insert(env$db, env$tbl, env$df, 'InTbl1')
   

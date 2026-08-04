@@ -78,9 +78,25 @@ db_query <- function (db, sql, err_code, params = NULL, simplify = TRUE, req1 = 
 }
 
 
+DESC <- NULL
 
 # Append data frame's rows to mariadb table
-db_insert <- function (db, tbl, df, err_code, ignore = FALSE) {
+db_insert <- function (db, tbl, df, err_code) {
+  
+  if (is.null(DESC)) {
+    DESC <<- local({
+      # Get column info for all tables
+      sql    <- "SHOW TABLES"
+      tables <- db_query(db, sql, 'DbIn1')
+      sapply(tables, function (x) {
+        sql    <- sprintf("DESCRIBE `%s`", x)
+        result <- db_query(db, sql, 'DbIn2')
+        setdiff(result[['Field']], 'user')
+      })
+    })
+  }
+
+  df <- df[, intersect(DESC[[tbl]], colnames(df)), drop = FALSE]
   
   prefix <- switch(
     EXPR = tbl,
@@ -111,14 +127,7 @@ db_insert <- function (db, tbl, df, err_code, ignore = FALSE) {
   current <- db_query(db, sprintf('SELECT `hvp_id` FROM `%s`', tbl), 'CrHvId')
   new_ids <- setdiff(new_ids, current)[seq_len(n)]
   stopifnot(!anyNA(new_ids)) # Too many collisions (highly unlikely).
-  
   df[['hvp_id']] <- new_ids
-  df[['user']]   <- NULL
-
-  if (!is.null(env$sql_ignored_fields)) {
-    df <- df[, setdiff(names(df), env$sql_ignored_fields), drop=FALSE]
-    env$sql_ignored_fields <- NULL
-  }
   
   colnames     <- paste0("`", names(df), "`", collapse = ", ")
   placeholders <- paste0(rep("?", ncol(df)),  collapse = ", ")

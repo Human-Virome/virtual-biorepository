@@ -1,9 +1,4 @@
 
-profiles_before_insert <- function (env) {
-  env$sql_ignored_fields <- c('control_profile_uids')
-}
-
-
 profiles_after_insert <- function (env) {
 
   df <- env$df

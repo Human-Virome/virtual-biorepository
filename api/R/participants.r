@@ -6,8 +6,6 @@ participants_before_insert <- function (env) {
     test = is.na(env$df[['animal_model']]), 
     yes  = "NCBI:txid9606",                 # Default to Human
     no   = env$df[['animal_model']] )
-
-  env$sql_ignored_fields <- c('animal_model', 'cohort_uids')
 }
 
 
@@ -25,11 +23,14 @@ participants_after_insert <- function (env) {
     cohort_uids      <- cohort_uids[!is_na]
     participant_uids <- participant_uids[!is_na]
 
-    df <- data.frame(cohort_uid = unique(cohort_uids))
-    db_insert(env$db, 'cohorts', df, 'PaAfIn1', ignore = TRUE)
+    # Add new cohorts
+    sql     <- "SELECT `cohort_uid` FROM `cohorts`"
+    current <- db_query(env$db, sql, "PaAfIn1")
+    df <- data.frame(cohort_uid = setdiff(unique(cohort_uids), current))
+    if (nrow(df) > 0) db_insert(env$db, 'cohorts', df, 'PaAfIn2')
 
     df <- data.frame(cohort_uid = cohort_uids, participant_uid = participant_uids)
-    db_insert(env$db, 'cohort_participants', df, 'PaAfIn2')
+    db_insert(env$db, 'cohort_participants', df, 'PaAfIn3')
 
   }
 

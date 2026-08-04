@@ -1,9 +1,4 @@
 
-samples_before_insert <- function (env) {
-  env$sql_ignored_fields <- c('control_sample_uids',	'composite_parent_uids')
-}
-
-
 samples_after_insert <- function (env) {
 
   df <- env$df
