@@ -5,7 +5,7 @@ sra_refresh <- function (env) {
     SELECT
       
       profiles.profile_uid           as profile_uid,
-      profiles.bioproject_id         as BioProject,
+      profiles.ncbi_bioproject_id    as BioProject,
       profiles.sample_uid            as sample_name,
       profiles.assay_platform        as instrument_model,
       profiles.library_prep_uid      as library_name,
