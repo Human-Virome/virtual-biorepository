@@ -24,6 +24,7 @@ sra_refresh <- function (env) {
     FROM profiles
       LEFT JOIN sra        USING (profile_uid)
       LEFT JOIN files      USING (profile_uid)
+      LEFT JOIN protocols  ON profiles.assay_protocol_uid = protocols.protocol_uid
       LEFT JOIN biosamples ON biosamples.sample_name = profiles.sample_uid
       
     WHERE sra.file_path IS NULL
