@@ -192,7 +192,7 @@ validate_uid <- function (env, field) {
   }
 
   special <- c()
-  if (!is_ref && field %in% c('participant_uid', 'event_uid')) { special <- c('composite$', 'mock$') }
+  if (is_ref && field %in% c('participant_uid', 'event_uid')) { special <- c('composite$', 'mock$') }
   pattern <- paste0("^(", paste0(c(special, UID_PREFIXES), collapse = "|"), ")")
 
   if (length(i <- head(which(!grepl(pattern, all_uids))))) {
