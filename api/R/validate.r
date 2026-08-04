@@ -171,8 +171,9 @@ validate_uid <- function (env, field) {
   errors <- c()
   x      <- env$df[[field]]
   dict   <- DICT[[env$tbl]][[field]]
-  multi  <- "multiple" %in% unlist(dict[['fmt']])
-  is_ref <- "ref"      %in% unlist(dict[['fmt']])
+  fmt    <- unlist(dict[['fmt']])
+  multi  <- "multiple" %in% fmt
+  is_ref <- isTRUE("ref" %in% fmt)
 
   uid_sets <- strsplit(x, ';')
   all_uids <- trimws(unlist(uid_sets))
@@ -183,7 +184,7 @@ validate_uid <- function (env, field) {
   uid_rows <- uid_rows[!is_na]
 
   if (!isTRUE(multi)) {
-    if (length(i <- head(which(sapply(uid_sets, length))))) {
+    if (length(i <- head(which(sapply(uid_sets, length) > 1)))) {
       msg    <- "%s:%s:%d: multiple UIDs are not allowed: \"%s\""
       msg    <- sprintf(msg, env$tbl, field, i + 1, x[i])
       errors <- c(errors, msg)
@@ -191,8 +192,7 @@ validate_uid <- function (env, field) {
   }
 
   special <- c()
-  if (field == 'participant_uid' && env$tbl != 'participants') { special <- c('composite$', 'mock$') }
-  if (field == 'event_uid'       && env$tbl != 'events')       { special <- c('composite$', 'mock$') }
+  if (!is_ref && field %in% c('participant_uid', 'event_uid')) { special <- c('composite$', 'mock$') }
   pattern <- paste0("^(", paste0(c(special, UID_PREFIXES), collapse = "|"), ")")
 
   if (length(i <- head(which(!grepl(pattern, all_uids))))) {
@@ -201,7 +201,7 @@ validate_uid <- function (env, field) {
       errors <- c(errors, msg)
   }
 
-  if (isTRUE(is_ref)) {
+  if (is_ref) {
     ref_table <- names(dict[['ref']])
     ref_field <- unname(dict[['ref']])
 
