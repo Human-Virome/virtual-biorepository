@@ -14,7 +14,7 @@ samples_after_insert <- function (env) {
     sample_uids  <- sample_uids[!is_na]
 
     df <- data.frame(experimental_sample_uid = sample_uids, control_sample_uid = control_uids)
-    db_insert(env$db, 'control_samples', df, 'SaAfIn1')
+    db_insert(env$db, 'sample_controls', df, 'SaAfIn1')
 
   }
 
