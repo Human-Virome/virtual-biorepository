@@ -10,7 +10,7 @@ events_before_insert <- function (env) {
 
   env$df[['day_of_week']] <- ifelse(
     test = nchar(env$df[['date']]) == 10,
-    yes  = weekdays(as.Date(env$df[['date']])),
+    yes  = weekdays(as.Date(env$df[['date']], optional = TRUE)),
     no   = env$df[['day_of_week']] )
   
   env$df[['converted_age_years']] <- with(
