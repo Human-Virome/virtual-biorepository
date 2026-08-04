@@ -44,7 +44,6 @@ validate_table <- function (env) {
         'ontology'   = validate_ontology(env, field),
         'cv'         = validate_cv(env, field),
         'primary'    = validate_primary(env, field),
-        'ref'        = validate_ref(env, field),
         'protocol'   = validate_protocol(env, field),
         'suffix'     = validate_suffix(env, field),
         'number'     = validate_number(env, field),
@@ -171,7 +170,9 @@ validate_uid <- function (env, field) {
   
   errors <- c()
   x      <- env$df[[field]]
-  multi  <- "multiple" %in% unlist(DICT[[env$tbl]][[field]][['fmt']])
+  dict   <- DICT[[env$tbl]][[field]]
+  multi  <- "multiple" %in% unlist(dict[['fmt']])
+  is_ref <- "ref"      %in% unlist(dict[['fmt']])
 
   uid_sets <- strsplit(x, ';')
   all_uids <- trimws(unlist(uid_sets))
@@ -198,6 +199,23 @@ validate_uid <- function (env, field) {
       msg    <- "%s:%s:%d: UID must begin with a center prefix: \"%s\""
       msg    <- sprintf(msg, env$tbl, field, uid_rows[i] + 1, all_uids[i])
       errors <- c(errors, msg)
+  }
+
+  if (isTRUE(is_ref)) {
+    ref_table <- names(dict[['ref']])
+    ref_field <- unname(dict[['ref']])
+
+    sql     <- sprintf('SELECT `%s` FROM `%s`', ref_field, ref_table)
+    current <- db_query(env$db, sql, 'ValUid')
+    
+    if (identical(ref_table, env$tbl))
+      current <- c(current, env$df[[ref_field]])
+    
+    if (length(i <- head(which(!(all_uids %in% current))))) {
+      msg <- "%s:%s:%d: \"%s\" is not defined by the %s table."
+      msg <- sprintf(msg, env$tbl, field, uid_rows[i] + 1, all_uids[i], ref_table)
+      errors <- c(errors, msg)
+    }
   }
 
   env$df[[field]] <- unname(sapply(uid_sets, function (x) {
@@ -336,42 +354,6 @@ validate_primary <- function (env, field) {
   }
   
   return(errors)   
-}
-
-
-
-validate_ref <- function (env, field) {
-  
-  errors <- c()
-  
-  x <- env$df[[field]]
-  
-  dict      <- DICT[[env$tbl]][[field]]
-  ref_table <- names(dict[['ref']])
-  ref_field <- unname(dict[['ref']])
-  multi     <- "multiple" %in% unlist(dict[['fmt']])
-
-  ref_sets <- strsplit(x, ';')
-  all_refs <- trimws(unlist(uid_sets))
-  ref_rows <- rep(seq_along(x), sapply(uid_sets, length))
-
-  is_na    <- is.na(all_refs) | !nzchar(all_refs)
-  all_refs <- all_refs[!is_na]
-  ref_rows <- ref_rows[!is_na]
-
-  sql     <- sprintf('SELECT `%s` FROM `%s`', ref_field, ref_table)
-  current <- db_query(env$db, sql, 'ValRef')
-  
-  if (identical(ref_table, env$tbl))
-    current <- c(current, env$df[[ref_field]])
-  
-  if (length(i <- head(which(!(all_refs %in% current))))) {
-    msg <- "%s:%s:%d: \"%s\" is not defined by the %s table."
-    msg <- sprintf(msg, env$tbl, field, ref_rows[i] + 1, all_refs[i], ref_table)
-    errors <- c(errors, msg)
-  }
-  
-  return(errors)  
 }
 
 
