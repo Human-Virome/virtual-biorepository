@@ -198,7 +198,7 @@ CREATE TABLE IF NOT EXISTS composite_samples (
   component_sample_uid VARCHAR(255) NOT NULL,
   hvp_id               CHAR(10)     PRIMARY KEY,
   `user`               VARCHAR(255) NOT NULL,
-  PRIMARY KEY (composite_sample_uid, component_sample_uid),
+  UNIQUE (composite_sample_uid, component_sample_uid),
   INDEX (component_sample_uid),
   INDEX (`user`),
   FOREIGN KEY (composite_sample_uid) REFERENCES samples(sample_uid),
