@@ -203,7 +203,7 @@ validate_uid <- function (env, field) {
 
   if (is_ref) {
     ref_table <- names(dict[['ref']])
-    ref_field <- unname(dict[['ref']])
+    ref_field <- unname(dict[['ref']])[[1]]
 
     sql     <- sprintf('SELECT `%s` FROM `%s`', ref_field, ref_table)
     current <- db_query(env$db, sql, 'ValUid')
