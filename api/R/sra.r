@@ -35,8 +35,10 @@ sra_refresh <- function (env) {
   
   if (nrow(sra) == 0) return (invisible())
   
-  sra <- plyr::ddply(sra, setdiff(names(sra), 'file_path'), function (x) {
-    data.frame(file_path = jsonlite::toJSON(x[['file_path']]))
+  sra <- plyr::ddply(sra, 'profile_uid', function (x) {
+    res <- x[1,,drop=FALSE]
+    res[['file_path']] <- jsonlite::toJSON(x[['file_path']])
+    return (res)
   })
 
 
