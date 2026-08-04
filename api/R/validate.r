@@ -468,7 +468,7 @@ validate_cv  <- function (env, field) {
   if ('multiple' %in% fmt) {
 
     # Treat user input as semicolon-delimited values
-    env$df[[field]] <- gsub("[\\s;]+", ";", env$df[[field]])
+    env$df[[field]] <- gsub("\\s*;\\s*", ";", env$df[[field]])
     is_valid <- sapply(env$df[[field]], function(x) {
       all(unlist(strsplit(x, split = ";", fixed = TRUE)) %in% cv)
     })
