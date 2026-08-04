@@ -2387,7 +2387,8 @@ const vbrDictionary = {
     "analysis_inputs":{
         "analysis_uid":{
             "def":"A previously defined analysis_uid from the analyses table. If multiple profiles/analyses were used as input to an analysis, each profile/analysis should have a separate entry in the analysis_inputs table.",
-            "fmt":["required", "uid", "primary"],
+            "fmt":["required", "uid", "ref"],
+            "ref":{"analyses":"analysis_uid"},
             "examples":["cmmr_EsViritu_study_xyz"]
         },
         "input_profile_uid":{
