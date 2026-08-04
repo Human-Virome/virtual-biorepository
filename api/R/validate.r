@@ -41,6 +41,7 @@ validate_table <- function (env) {
         'condition'  = validate_condition(env, field),
         'assert'     = validate_assert(env, field),
         'uid'        = validate_uid(env, field),
+        'non-blank'  = validate_nonblank(env, field),
         'ontology'   = validate_ontology(env, field),
         'cv'         = validate_cv(env, field),
         'primary'    = validate_primary(env, field),
@@ -52,7 +53,6 @@ validate_table <- function (env) {
         'json'       = validate_json(env, field),
         'url'        = validate_url(env, field),
         'file'       = validate_file(env, field),
-        'non-blank'  = validate_nonblank(env, field),
         'bioproject' = validate_bioproject(env, field),
         NULL
       ))
@@ -228,6 +228,33 @@ validate_uid <- function (env, field) {
 }
 
 
+
+# Allows optional multi-value fields (e.g. Rx Meds) to
+# differentiate between "not collected" and "none reported".
+validate_nonblank <- function (env, field) {
+  
+  errors <- c()
+  
+  # Importer has already converted all blanks ("") to NA.
+  x <- env$df[[field]]
+
+  # Handle sentinel values. Required for optional multi-value columns.
+  if (any(is.na(x))) {
+    bad_rows <- head(which(is.na(x)))
+    msg <- "%s:%d: blank values are ambigous in `%s`. Please use \"none reported\" or \"not collected\"."
+    msg <- sprintf(msg, env$tbl, bad_rows + 1, field)
+    errors <- c(errors, msg)
+  }
+
+  # Recode sentinel values.
+  x[x == "not collected"] <- NA
+  x[x == "none reported"] <- ""
+  env$df[[field]] <- x
+  
+  return(errors)  
+}
+
+
 # Converts
 # From: "Dog [NCBI:txid9615]; Cat (Domestic) [NCBI:txid9685]"
 # To:   "NCBI:txid9615;NCBI:txid9685"
@@ -394,33 +421,6 @@ validate_protocol <- function (env, field) {
     msg    <- sprintf(msg, env$tbl, field, i + 1, x[i], a, application)
     errors <- c(errors, msg)
   }
-  
-  return(errors)  
-}
-
-
-
-# Allows optional multi-value fields (e.g. Rx Meds) to
-# differentiate between "not collected" and "none reported".
-validate_nonblank <- function (env, field) {
-  
-  errors <- c()
-  
-  # Importer has already converted all blanks ("") to NA.
-  x <- env$df[[field]]
-
-  # Handle sentinel values. Required for optional multi-value columns.
-  if (any(is.na(x))) {
-    bad_rows <- head(which(is.na(x)))
-    msg <- "%s:%d: blank values are ambigous in `%s`. Please use \"none reported\" or \"not collected\"."
-    msg <- sprintf(msg, env$tbl, bad_rows + 1, field)
-    errors <- c(errors, msg)
-  }
-
-  # Recode sentinel values.
-  x[x == "not collected"] <- NA
-  x[x == "none reported"] <- ""
-  env$df[[field]] <- x
   
   return(errors)  
 }

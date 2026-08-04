@@ -735,7 +735,7 @@ const vbrDictionary = {
         },
         "systemic_comorbidities":{
             "def":"Disease Ontology IDs of the participant's comorbidities (at the time of sampling), can be described at a general or specific level depending on how center gathered that information. Multiple IDs can be delimited with a semicolon.",
-            "fmt":["ontology", "multiple", "non-blank"],
+            "fmt":["non-blank", "ontology", "multiple"],
             "ontology":["DOID:"],
             "urls":{"Disease Ontology":"https://www.ebi.ac.uk/ols4/ontologies/doid"},
             "suggestions":[
@@ -901,7 +901,7 @@ const vbrDictionary = {
         },
         "mental_health_history":{
             "def":"Disease Ontology IDs for mental health conditions that participant has experienced in the past, but is not currently experiencing. Only the ID (e.g. \"DOID:0060041\") is needed; the rest of the text is ignored/discarded. Multiple IDs can be delimited with a semicolon.",
-            "fmt":["ontology", "multiple", "non-blank"],
+            "fmt":["non-blank", "ontology", "multiple"],
             "ontology":["DOID:"],
             "urls":{"Disease Ontology \"mental health\" branch":"https://www.ebi.ac.uk/ols4/ontologies/doid/classes/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FDOID_150"},
             "suggestions":[
@@ -1034,7 +1034,7 @@ const vbrDictionary = {
         },
         "mental_health_at_sampling":{
             "def":"Disease Ontology IDs for mental health conditions that participant is experiencing at time of sample collection. Only the ID (e.g. \"DOID:0060041\") is needed; the rest of the text is ignored/discarded. Multiple IDs can be delimited with a semicolon.",
-            "fmt":["ontology", "multiple", "non-blank"],
+            "fmt":["non-blank", "ontology", "multiple"],
             "ontology":["DOID:"],
             "urls":{"Disease Ontology \"mental health\" branch":"https://www.ebi.ac.uk/ols4/ontologies/doid/classes/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FDOID_150"},
             "suggestions":[
@@ -1167,7 +1167,7 @@ const vbrDictionary = {
         },
         "disabilities":{
             "def":"Disease Ontology or Symptom Ontology IDs for participant's disabilities at time of sample collection. Only the ID (e.g. \"DOID:8947\") is needed; the rest of the text is ignored/discarded. Multiple IDs can be delimited with a semicolon.",
-            "fmt":["ontology", "multiple", "non-blank"],
+            "fmt":["non-blank", "ontology", "multiple"],
             "ontology":["DOID:","SYMP:"],
             "urls":{
               "Disease Ontology":"https://www.ebi.ac.uk/ols4/ontologies/doid",
@@ -1238,7 +1238,7 @@ const vbrDictionary = {
         },
         "prescription_medications":{
             "def":"DrugBank IDs for prescription medications the participant was taking regularly as prescribed at time of sample collection. Only the ID (e.g. \"DB00318\") and optional suffixes are imported; the rest of the text is ignored/discarded. If DrugBank does not have the term you need, please use \"DBX_freetext\" and contact the HVPCC.",
-            "fmt":["ontology", "multiple", "suffix", "mode", "non-blank"],
+            "fmt":["non-blank", "ontology", "multiple", "suffix", "mode"],
             "ontology":["DB"],
             "urls":{"DrugBank Collection":"https://go.drugbank.com/drugs"},
             "examples":["DB00318", "DBX_amazinase:oral"],
@@ -1459,7 +1459,7 @@ const vbrDictionary = {
         },
         "antibiotics_or_antivirals":{
             "def":"DrugBank IDs for any antibiotics or antivirals taken within 3 months of sampling. Only the ID (e.g. \"DB01060\") and optional suffixes are imported; the rest of the text is ignored/discarded. If DrugBank does not have the term you need, please use \"DBX_freetext\" and contact the HVPCC.",
-            "fmt":["ontology", "multiple", "suffix", "mode", "non-blank"],
+            "fmt":["non-blank", "ontology", "multiple", "suffix", "mode"],
             "ontology":["DB"],
             "urls":{"DrugBank Collection":"https://go.drugbank.com/drugs"},
             "examples":["DB00207", "DB01060:oral;DB00878:topical"],
@@ -1506,7 +1506,7 @@ const vbrDictionary = {
         },
         "otc_medications":{
             "def":"DrugBank IDs for over-the-counter medication participant was taking or had taken at time of sample collection. Only the ID (e.g. \"DB00316\") is needed; the rest of the text is ignored/discarded. If DrugBank does not have the term you need, please use \"DBX_freetext\" and contact the HVPCC.",
-            "fmt":["ontology", "multiple", "non-blank"],
+            "fmt":["non-blank", "ontology", "multiple"],
             "ontology":["DB"],
             "urls":{"DrugBank Collection":"https://go.drugbank.com/drugs"},
             "examples":["DB00316", "DBX_simethicone"],
@@ -1551,7 +1551,7 @@ const vbrDictionary = {
         },
         "supplements_or_vitamins_or_herbal":{
             "def":"DrugBank IDs for supplements, vitamins, herbal items, etc. that participant was taking or had taken at time of sample collection. Only the ID (e.g. \"DB15823\") is needed; the rest of the text is ignored/discarded. If DrugBank does not have the term you need, please use \"DBX_freetext\" and contact the HVPCC.",
-            "fmt":["ontology", "multiple", "non-blank"],
+            "fmt":["non-blank", "ontology", "multiple"],
             "ontology":["DB"],
             "urls":{"DrugBank Collection":"https://go.drugbank.com/drugs"},
             "examples":["DB00126","DB01373;DBX_multivitamin"],
@@ -1579,7 +1579,7 @@ const vbrDictionary = {
         },
         "lifetime_vaccinations":{
             "def":"CVX IDs for all vaccinations the participant has received. Only the ID (e.g. \"CVX:20\") is needed; the rest of the text is ignored/discarded. Multiple IDs can be delimited with a semicolon.",
-            "fmt":["ontology", "multiple", "non-blank"],
+            "fmt":["non-blank", "ontology", "multiple"],
             "ontology":["CVX:"],
             "urls":{"IIS: HL7 Standard Code Set CVX - Vaccines Administered":"https://www2a.cdc.gov/vaccines/iis/iisstandards/vaccines.asp?rpt=cvx"},
             "examples":["CVX:03", "CVX:21;CVX:314"],
@@ -1621,7 +1621,7 @@ const vbrDictionary = {
         },
         "seasonal_vaccinations":{
             "def":"CVX IDs for all seasonal vaccinations the participant received within the past year, such as those for COVID-19 and influenza. Only the ID (e.g. \"CVX:312\") is needed; the rest of the text is ignored/discarded. Multiple IDs can be delimited with a semicolon.",
-            "fmt":["ontology", "multiple", "non-blank"],
+            "fmt":["non-blank", "ontology", "multiple"],
             "urls":{"IIS: HL7 Standard Code Set CVX - Vaccines Administered":"https://www2a.cdc.gov/vaccines/iis/iisstandards/vaccines.asp?rpt=cvx"},
             "examples":["CVX:150", "CVX:88;CVX:213"],
             "suggestions":[
@@ -1691,7 +1691,7 @@ const vbrDictionary = {
         },
         "recreational_or_illicit_drugs":{
             "def":"DrugBank IDs for recreational/illicit drugs (excluding cannabis). Only the ID (e.g. \"DB01452\") and optional suffixes are imported; the rest of the text is ignored/discarded. If the substance is not known/available/provided, use \"DBX_unknown\". If there is no DrugBank ID for the substance, use \"DBX_freetext\" and also inform the HVPCC.",
-            "fmt":["ontology", "multiple", "suffix", "mode", "freq", "non-blank"],
+            "fmt":["non-blank", "ontology", "multiple", "suffix", "mode", "freq"],
             "ontology":["DB"],
             "urls":{"DrugBank Collection":"https://go.drugbank.com/drugs"},
             "examples":[
