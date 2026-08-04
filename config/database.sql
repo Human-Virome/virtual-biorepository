@@ -408,8 +408,8 @@ CREATE TABLE IF NOT EXISTS sra (
 INSERT INTO `participants`
   (hvp_id, participant_uid, access, data_use_condition, race, ethnicity, sex_at_birth, country_of_birth, country_of_childhood_residence, host_taxon, `user`)
   VALUES
-    ('hvpp00MOCK', 'mock',      'open', 'DUO:0000004', 'mock',      'mock',      'mock',      'mock',      'mock',      'mock',      'Daniel.Smith@bcm.edu'),
-    ('hvpp00COMP', 'composite', 'open', 'DUO:0000004', 'composite', 'composite', 'composite', 'composite', 'composite', 'composite', 'Daniel.Smith@bcm.edu');
+    ('hvpp00MOCK', 'mock',      'open', 'DUO:0000004', 'mock',      'mock',      'mock',      'mock',      'mock',      'NCBI:txid9606', 'Daniel.Smith@bcm.edu'),
+    ('hvpp00COMP', 'composite', 'open', 'DUO:0000004', 'composite', 'composite', 'composite', 'composite', 'composite', 'NCBI:txid9606', 'Daniel.Smith@bcm.edu');
 
 INSERT INTO `events`
   (hvp_id, event_uid, participant_uid, `year_month`, state_or_province_of_residence, `user`)
