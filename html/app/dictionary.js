@@ -20,7 +20,7 @@ const vbrDictionary = {
         },
         "race":{
             "def":"Race of the participant.",
-            "fmt":["required", "cv", "unavailable"],
+            "fmt":["required", "cv", "multiple", "unavailable"],
             "cv":[
               "Asian", "Black or African American", "American Indian/Alaska Native", 
               "Native Hawaiian or Other Pacific Islander", "Middle Eastern or North African", 
@@ -74,7 +74,7 @@ const vbrDictionary = {
         },
         "country_of_childhood_residence":{
             "def":"Country where participant resided during childhood",
-            "fmt":["required", "cv", "unavailable"],
+            "fmt":["required", "cv", "multiple", "unavailable"],
             "cv":[
               "United States of America", "Canada", "Mexico", "Afghanistan", "Albania", "Algeria", 
               "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", 
@@ -258,7 +258,7 @@ const vbrDictionary = {
         },
         "exposure_animal_type":{
             "def":"NCBI Taxonomy IDs of animals that participant has exposure to. Only the ID (e.g. \"NCBI:txid9615\") is needed; the rest of the text is ignored/discarded.",
-            "fmt":["ontology"],
+            "fmt":["ontology", "multiple"],
             "ontology":["NCBI:txid"],
             "urls":{"NCBI Taxonomy Browser":"https://www.ncbi.nlm.nih.gov/datasets/taxonomy/browser/"},
             "suggestions":[
@@ -1597,14 +1597,14 @@ const vbrDictionary = {
             "examples":["SAMN12345678"]
         },
         "event_uid":{
-            "def":"A previously defined event_uid at which this sample was collected. This value must be the same for any sampling that occurred at the same event. May be left blank for subsamples (which provide `parent_sample_uid`) and for composite samples (`sample_type` \"composite_*\"). Set to \"mock\" for quality control mock samples.",
+            "def":"A previously defined event_uid at which this sample was collected. This value must be the same for any sampling that occurred at the same event. May be left blank for subsamples (which provide `parent_sample_uid`), for composite samples (`sample_type` \"composite_*\"), and for mock samples (`participant_uid` \"mock\").",
             "fmt":["condition", "uid", "ref"],
             "condition":{
-              "description":"`event_uid` is required unless `parent_sample_uid` is provided or `sample_type` is \"composite_*\".",
+              "description":"`event_uid` is required unless `parent_sample_uid` is provided, `sample_type` is \"composite_*\", or `participant_uid` is \"mock\".",
               "when_unset":"parent_sample_uid",
-              "when_false":{"sample_type":"^composite_"}},
+              "when_false":{"sample_type":"^composite_", "participant_uid":"^mock$"}},
             "ref":{"events":"event_uid"},
-            "examples":["vast_subj_294_t1", "vast_subj_294_t2", "suny_e101", "mock"]
+            "examples":["vast_subj_294_t1", "vast_subj_294_t2", "suny_e101"]
         },
         "lab":{
             "def":"Lab, group, or facility within a grant-level project where the sample was collected and/or processed. This should be the group responsible for metadata about the sample.",

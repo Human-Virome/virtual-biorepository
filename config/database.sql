@@ -231,7 +231,7 @@ CREATE TABLE IF NOT EXISTS biosamples (
   submission_hvp_id           CHAR(10),
   biosample_accession         VARCHAR(20) UNIQUE,
   submission_error            TEXT,
-  host_subject_id             VARCHAR(255) NOT NULL,
+  host_subject_id             VARCHAR(255),
   sampling_event_id           VARCHAR(255),
   organism                    VARCHAR(255),
   host_tissue_sampled         VARCHAR(255),
@@ -303,11 +303,4 @@ CREATE TABLE IF NOT EXISTS sra (
 INSERT INTO `participants`
   (hvp_id, participant_uid, cohort_uid, taxon, `user`)
   VALUES
-    ('hvpp00MOCK', 'mock',      'mock',      'NCBI:txid9606', 'Daniel.Smith@bcm.edu'),
-    ('hvpp00COMP', 'composite', 'composite', 'NCBI:txid9606', 'Daniel.Smith@bcm.edu');
-
-INSERT INTO `events`
-  (hvp_id, event_uid, participant_uid, `user`)
-  VALUES
-    ('hvpe00MOCK', 'mock',      'mock',      'Daniel.Smith@bcm.edu'),
-    ('hvpe00COMP', 'composite', 'composite', 'Daniel.Smith@bcm.edu');
+    ('hvpp00MOCK', 'mock', 'mock', 'NCBI:txid9606', 'Daniel.Smith@bcm.edu');

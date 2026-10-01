@@ -156,7 +156,7 @@ biosamples_refresh <- function (env) {
   # Subsamples have a `parent_sample_uid` instead of an `event_uid`, so they
   # inherit the event of their parent (or grandparent). Composite samples with
   # multiple parents have no single event. Samples from multiple participants
-  # are attributed to the 'composite' participant.
+  # have no single host subject, but keep `host` if their participants share a taxon.
   sql <- "
       SELECT
         samples.sample_uid                    as sample_name,
@@ -171,7 +171,10 @@ biosamples_refresh <- function (env) {
         samples.positive_control_type         as pos_cont_type,
         samples.sample_taxonomy               as organism,
 
-        participants.taxon                    as host,
+        COALESCE(participants.taxon, (
+          SELECT MIN(p.taxon) FROM participants AS p
+          WHERE LOCATE(CONCAT(';', p.participant_uid, ';'), CONCAT(';', samples.participant_uid, ';')) > 0
+          HAVING COUNT(DISTINCT p.taxon) = 1 )) as host,
         participants.race                     as race,
         participants.ethnicity                as ethnicity,
         participants.sex_at_birth             as host_sex_at_birth,
@@ -206,7 +209,7 @@ biosamples_refresh <- function (env) {
         LEFT JOIN samples AS parent      ON parent.sample_uid      = samples.parent_sample_uid
         LEFT JOIN samples AS grandparent ON grandparent.sample_uid = parent.parent_sample_uid
         LEFT JOIN events                 ON events.event_uid       = COALESCE(samples.event_uid, parent.event_uid, grandparent.event_uid)
-        LEFT JOIN participants           ON participants.participant_uid = IF(samples.participant_uid LIKE '%;%', 'composite', samples.participant_uid)
+        LEFT JOIN participants           ON participants.participant_uid = samples.participant_uid
 
       WHERE biosamples.sample_name IS NULL 
         AND samples.user = @user"

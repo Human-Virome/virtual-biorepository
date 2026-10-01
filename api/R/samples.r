@@ -38,7 +38,7 @@ samples_before_insert <- function (env) {
   env$df[['collection_day_of_week']] <- data.table::fcoalesce(df[['collection_day_of_week']], dow)
 
   # `participant_uid` must agree with the participant recorded for `event_uid`.
-  has_event <- !is.na(df[['event_uid']]) & !(df[['event_uid']] %in% c('mock', 'composite'))
+  has_event <- !is.na(df[['event_uid']])
   if (any(has_event)) {
     sql    <- "SELECT event_uid, participant_uid FROM events"
     events <- db_query(env$db, sql, 'SaBfIn1', simplify = FALSE)
