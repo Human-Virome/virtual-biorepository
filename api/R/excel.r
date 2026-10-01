@@ -63,6 +63,10 @@ export_excel <- function () {
 
       # --- Safe Extraction from JSON ---
       x  <- dict[[sheet]][[i]]
+      
+      # Coerce to character and provide safe fallbacks for missing JSON fields
+      def <- if (is.null(x[['def']])) ""           else as.character(x[['def']][1])
+      fmt <- if (is.null(x[['fmt']])) character(0) else as.character(unlist(x[['fmt']]))
 
       # Gather information for an Excel dropdown option list.
       cv_terms <- any(utils::hasName(x, c('cv', 'suggestions')))
@@ -70,11 +74,8 @@ export_excel <- function () {
       if      (cv_force) { cv_terms <- unlist(x[['cv']]);          }
       else if (cv_terms) { cv_terms <- unlist(x[['suggestions']]); }
       else               { cv_terms <- NULL                        }
+      if (!is.null(cv_terms) && 'unavailable' %in% fmt) cv_terms <- c(cv_terms, 'unavailable')
       cv_yesno <- (length(cv_terms) == 2 && all(c('yes', 'no') %in% cv_terms))
-      
-      # Coerce to character and provide safe fallbacks for missing JSON fields
-      def <- if (is.null(x[['def']])) ""           else as.character(x[['def']][1])
-      fmt <- if (is.null(x[['fmt']])) character(0) else as.character(unlist(x[['fmt']]))
 
       # Freeze up to this column in addition to the first row.
       if ('primary' %in% fmt)
@@ -157,6 +158,7 @@ export_excel <- function () {
       num_type <- NULL
       if      ('number'  %in% fmt) { num_type <- "decimal" }
       else if ('integer' %in% fmt) { num_type <- "whole"   }
+      if  ('unavailable' %in% fmt) { num_type <- NULL      }
 
       if (!is.null(num_type)) {
 

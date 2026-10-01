@@ -5,7 +5,8 @@
 # https://submit.ncbi.nlm.nih.gov/biosample/template/?package-0=Metagenome.environmental.1.0&action=definition
 
 api_biosamples_assign <- function (db, hvp_ids) {
-  
+
+  hvp_ids <- unlist(hvp_ids)
   stopifnot(length(hvp_ids) > 0)
   
   # release_date <- as.character(strptime(release_date, format="%Y-%m-%d"))
@@ -15,21 +16,22 @@ api_biosamples_assign <- function (db, hvp_ids) {
   sql <- "
     SELECT b.*, s.complete 
     FROM biosamples b
-    LEFT JOIN submissions s USING (submission_id)
+    LEFT JOIN submissions s ON b.submission_hvp_id = s.hvp_id
     WHERE b.user = @user"
   res <- db_query(db, sql, 'ApiBiAs1', simplify = FALSE)
-  
+
   res <- res[res[['hvp_id']] %in% hvp_ids,,drop=FALSE]
-  attrs <- setdiff(names(res), c('user', 'submission_id', 'biosample_accession', 'sample_name', 'organism', 'complete'))
+  attrs <- setdiff(names(res), c('user', 'hvp_id', 'submission_hvp_id', 'submission_error', 'biosample_accession', 'sample_name', 'organism', 'complete'))
   
   
   # Confirm validity of all the provided `sample_name`s.
   if (length(missing_hvp_ids <- setdiff(hvp_ids, res[['hvp_id']])))
     stop("`hvp_id`(s) missing from database: ", paste(collapse = ', ', missing_hvp_ids))
   
-  is_pending_or_success <- !is.na(res[['submission_id']]) & (is.na(res[['complete']]) | res[['complete']] == 'no' | !is.na(res[['biosample_accession']]))
+  # Accessions may come from our own submissions or be provided by the user.
+  is_pending_or_success <- !is.na(res[['biosample_accession']]) | (!is.na(res[['submission_hvp_id']]) & (is.na(res[['complete']]) | res[['complete']] == 'no'))
   if (length(already_submitted <- res[['sample_name']][is_pending_or_success]))
-    stop("Samples are already submitted to NCBI (or pending): ", paste(collapse = ', ', already_submitted))
+    stop("Samples already have a BioSample accession (or are pending): ", paste(collapse = ', ', already_submitted))
   
   
   # Create the root node
@@ -96,60 +98,95 @@ api_biosamples_assign <- function (db, hvp_ids) {
   # Write to a formatted XML file on disk
   xml2::write_xml(Submission, local_xml_file)
   file.create(local_ready_file)
-  
-  sftp_conn <- sftpR::sftp_connect(
-    hostname = "sftp-private.ncbi.nlm.nih.gov",
-    user     = Sys.getenv("NCBI_SFTP_USERNAME"),
-    password = Sys.getenv("NCBI_SFTP_PASSWORD") )
-  
-  sftpR::sftp_upload(sftp_conn, local_xml_file, remote_xml_file, .create_dir = TRUE)
-  sftpR::sftp_upload(sftp_conn, local_ready_file, remote_ready_file,  .create_dir = TRUE)
-  
-  
-  sql <- "INSERT INTO submissions (submission_name, submission_xml, user) VALUES (?, ?, @user)"
-  db_query(db, sql, 'ApiBiAsInsert', list(submission_name, as.character(Submission)))
-  
-  submission_id <- db_query(db, "SELECT LAST_INSERT_ID()", 'ApiBiAsId', req1 = TRUE)
-  
-  sql <- 'UPDATE biosamples SET submission_id = ? WHERE user = @user AND hvp_id = ?'
-  db_query(db, sql, 'ApiBiAs2', list(rep(submission_id, nrow(res)), res[['hvp_id']]))
-  
+
+
+  # Claim the samples before uploading, all in one transaction. A concurrent
+  # request for the same samples (e.g. a double-click reaching both httpuv
+  # workers) waits on these row locks, then finds them already claimed.
+  # READ COMMITTED lets that waiting UPDATE see the other request's claim,
+  # rather than failing with "Record has changed since last read". (The
+  # connection only lives for this request.)
+  db_query(db, "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED", 'ApiBiAsIso')
+  DBI::dbBegin(db)
+  tryCatch(
+    error = function (e) {
+      DBI::dbRollback(db)
+      stop(e$message)
+    },
+    expr = {
+
+      df <- data.frame(submission_name = submission_name, submission_xml = as.character(Submission))
+      db_insert(db, 'submissions', df, 'ApiBiAsInsert')
+
+      sql <- "SELECT hvp_id FROM submissions WHERE user = @user AND submission_name = ?"
+      submission_hvp_id <- db_query(db, sql, 'ApiBiAsId', list(submission_name), req1 = TRUE)
+
+      # Resubmitting a failed sample also clears its old error.
+      sql <- sprintf("
+        UPDATE biosamples b
+          LEFT JOIN submissions s ON s.hvp_id = b.submission_hvp_id
+        SET b.submission_hvp_id = ?, b.submission_error = NULL
+        WHERE b.user = @user
+          AND b.hvp_id IN (%s)
+          AND b.biosample_accession IS NULL
+          AND (b.submission_hvp_id IS NULL OR s.complete = 'yes')",
+        paste(rep("?", nrow(res)), collapse = ", ") )
+      claimed <- db_query(db, sql, 'ApiBiAs3', c(list(submission_hvp_id), as.list(res[['hvp_id']])))
+
+      if (!isTRUE(claimed == nrow(res)))
+        stop("Some of these samples were just submitted by another request. Refresh the page to see their status.")
+
+      sftp_conn <- sftpR::sftp_connect(
+        hostname = "sftp-private.ncbi.nlm.nih.gov",
+        user     = Sys.getenv("NCBI_SFTP_USERNAME"),
+        password = Sys.getenv("NCBI_SFTP_PASSWORD") )
+
+      sftpR::sftp_upload(sftp_conn, local_xml_file, remote_xml_file, .create_dir = TRUE)
+      sftpR::sftp_upload(sftp_conn, local_ready_file, remote_ready_file,  .create_dir = TRUE)
+
+      DBI::dbCommit(db)
+    })
+
   return (list())
 }
 
 
 biosamples_refresh <- function (env) {
   
+  # Subsamples have a `parent_sample_uid` instead of an `event_uid`, so they
+  # inherit the event of their parent (or grandparent). Composite samples with
+  # multiple parents have no single event. Samples from multiple participants
+  # are attributed to the 'composite' participant.
   sql <- "
       SELECT
-        samples.hvp_id                        as hvp_id,
-        samples.user                          as user,
         samples.sample_uid                    as sample_name,
+        participants.participant_uid          as host_subject_id,
         samples.anatomical_site               as host_tissue_sampled,
         samples.body_product                  as host_body_product,
         samples.collection_method             as collection_method,
         samples.collection_device             as samp_collect_device,
-        samples.is_control_sample             as control_type,
+        samples.collection_date               as collection_date,
+        samples.collection_month_year         as _collection_month_year,
+        samples.negative_control_type         as neg_cont_type,
+        samples.positive_control_type         as pos_cont_type,
+        samples.sample_taxonomy               as organism,
 
-        protocols.library_taxonomy            as organism,
-        
-        participants.participant_uid          as host_subject_id,
-        participants.host_taxon               as host,
+        participants.taxon                    as host,
         participants.race                     as race,
         participants.ethnicity                as ethnicity,
         participants.sex_at_birth             as host_sex_at_birth,
         participants.family_medical_history   as medic_hist_perform,
-        
+        participants.mental_health_collected    as mental_health_collected,
+        participants.medication_info_collected  as medication_info_collected,
+        participants.alcohol_activity_collected as alcohol_activity_collected,
+        participants.tobacco_use_collected      as tobacco_use_collected,
+        participants.drug_use_collected         as drug_use_collected,
+
         events.event_uid                      as sampling_event_id,
-        events.year_month_day                 as collection_date,
-        events.year_month                     as _collection_month_year,
-        events.state_or_province_of_residence as geo_loc_name,
-        events.age                            as host_age,
-        events.age_units                      as _age_units,
-        events.height                         as host_height,
-        events.height_units                   as _height_units,
-        events.weight                         as host_tot_mass,
-        events.weight_units                   as _weight_units,
+        COALESCE(events.state_or_province_of_residence, 'not provided') as geo_loc_name,
+        events.converted_age_years            as host_age,
+        events.converted_height_cm            as host_height,
+        events.converted_weight_kg            as host_tot_mass,
         events.bmi                            as host_body_mass_index,
         NULL                                  as pet_farm_animal,
         events.animal_exposure                as _animal_exposure,
@@ -158,66 +195,64 @@ biosamples_refresh <- function (env) {
         events.cigarette_smoking              as smoker,
         events.oral_health                    as oral_health_collected,
         events.dental_exam                    as dental_exam,
-        events.mental_health_collected        as mental_health_collected,
-        events.medication_info_collected      as medication_info_collected,
-        events.alcohol_activity_collected     as alcohol_activity_collected,
-        events.tobacco_use_collected          as tobacco_use_collected,
-        events.drug_use_collected             as drug_use_collected,
         events.current_geography              as current_geography,
         events.diet                           as diet_collected,
-        events.physical_activtiy_collected    as physical_activtiy_collected,
         events.wellness_information_available as wellness_collected,
         events.social_determinants_of_health  as social_det_collected,
         events.time_last_toothbrush           as time_last_toothbrush
         
       FROM samples
-        LEFT JOIN biosamples   ON samples.sample_uid = biosamples.sample_name
-        LEFT JOIN protocols    ON samples.collection_protocol_uid = protocols.protocol_uid
-        LEFT JOIN events       USING (event_uid)
-        LEFT JOIN participants USING (participant_uid)
-        
+        LEFT JOIN biosamples             ON biosamples.sample_name = samples.sample_uid
+        LEFT JOIN samples AS parent      ON parent.sample_uid      = samples.parent_sample_uid
+        LEFT JOIN samples AS grandparent ON grandparent.sample_uid = parent.parent_sample_uid
+        LEFT JOIN events                 ON events.event_uid       = COALESCE(samples.event_uid, parent.event_uid, grandparent.event_uid)
+        LEFT JOIN participants           ON participants.participant_uid = IF(samples.participant_uid LIKE '%;%', 'composite', samples.participant_uid)
+
       WHERE biosamples.sample_name IS NULL 
         AND samples.user = @user"
   
   biosamples <- db_query(env$db, sql, 'ApiBio1', simplify = FALSE)
-  
+
+  # Samples with a user-provided BioSample accession only need a minimal
+  # record, which prevents them from being submitted to NCBI by us.
+  accession <- env$df[['biosample_id']][match(biosamples[['sample_name']], env$df[['sample_uid']])]
+  if (any(has_acc <- !is.na(accession))) {
+    minimal <- biosamples[has_acc, c('sample_name', 'host_subject_id', 'sampling_event_id'), drop = FALSE]
+    minimal[['biosample_accession']] <- accession[has_acc]
+    db_insert(env$db, 'biosamples', minimal, 'BioRefr2')
+    biosamples <- biosamples[!has_acc, , drop = FALSE]
+  }
+
   if (nrow(biosamples) > 0) {
     
-    biosamples[['host_age']] <- data.table::fifelse(
-      test = is.na(biosamples[['host_age']]), 
-      yes  = 'not collected', 
-      no   = paste(biosamples[['host_age']], biosamples[['_age_units']]) )
-    
-    biosamples[['host_height']] <- data.table::fifelse(
-      test = is.na(biosamples[['host_height']]), 
-      yes  = 'not collected', 
-      no   = paste(biosamples[['host_height']], biosamples[['_height_units']]) )
-    
-    biosamples[['host_tot_mass']] <- data.table::fifelse(
-      test = is.na(biosamples[['host_tot_mass']]), 
-      yes  = 'not collected', 
-      no   = paste(biosamples[['host_tot_mass']], biosamples[['_weight_units']]) )
-    
-    biosamples[['smoker']] <- data.table::fifelse(
-      test = is.na(biosamples[['smoker']]), 
-      no   = 'not collected', 
-      yes  = data.table::fifelse(
-        test = identical(biosamples[['smoker']], "non-smoker (<100 cigarettes lifetime)"), 
-        no   = 'no', 
-        yes  = 'yes' ))
-    
-    biosamples[['pet_farm_animal']] <- data.table::fifelse(
-      test = is.na(biosamples[['_animal_exposure']]), 
-      no   = 'not collected', 
-      yes  = data.table::fifelse(
-        test = is.na(biosamples[['_exposure_animal_type']]), 
-        no   = paste0('yes;', biosamples[['_animal_exposure']]), 
-        yes  = 'no' ))
-    
-    biosamples[['collection_date']] <- data.table::fifelse(
-      test = is.na(biosamples[['collection_date']]), 
-      yes  = biosamples[['_collection_month_year']], 
-      no   = biosamples[['collection_date']] )
+    # Standardized (converted_*) values, e.g. "42.5 years".
+    with_units <- function (x, units) {
+      data.table::fifelse(is.na(x), 'not collected', paste(signif(x, 4), units))
+    }
+    biosamples[['host_age']]      <- with_units(biosamples[['host_age']],      'years')
+    biosamples[['host_height']]   <- with_units(biosamples[['host_height']],   'cm')
+    biosamples[['host_tot_mass']] <- with_units(biosamples[['host_tot_mass']], 'kg')
+
+    biosamples[['smoker']] <- data.table::fcase(
+      is.na(biosamples[['smoker']]),                                     'not collected',
+      biosamples[['smoker']] == "non-smoker (<100 cigarettes lifetime)", 'no',
+      default = 'yes' )
+
+    # E.g. "yes;domestic;Canis lupus familiaris"
+    biosamples[['pet_farm_animal']] <- local({
+      exposure <- biosamples[['_animal_exposure']]
+      animal   <- txid_to_name(biosamples[['_exposure_animal_type']])
+      yes      <- apply(cbind('yes', exposure, animal), 1L, \(x) paste(na.omit(x), collapse = ';'))
+      data.table::fcase(
+        exposure %in% 'none',            'no',
+        is.na(exposure) & is.na(animal), 'not collected',
+        default = yes )
+    })
+
+    biosamples[['collection_date']] <- data.table::fcoalesce(
+      biosamples[['collection_date']],
+      biosamples[['_collection_month_year']],
+      'not provided' )
     
     biosamples[['host']]     <- txid_to_name(biosamples[['host']])
     biosamples[['organism']] <- txid_to_name(biosamples[['organism']])
@@ -235,10 +270,13 @@ biosamples_refresh <- function (env) {
 
 last_checked_at <- Sys.time()
 
+# NCBI statuses after which a submission's report no longer changes.
+FINAL_STATUSES <- c("processed-ok", "processed-error", "deleted", "failed")
+
 biosamples_status_check <- function (db) {
-  
+
   # Throttle scraping NCBI's FTP server
-  if (as.numeric(Sys.time() - last_checked_at) < 10) return (invisible())
+  if (difftime(Sys.time(), last_checked_at, units = "secs") < 10) return (invisible())
   last_checked_at <<- Sys.time()
   
   
@@ -253,54 +291,68 @@ biosamples_status_check <- function (db) {
     user     = Sys.getenv("NCBI_SFTP_USERNAME"),
     password = Sys.getenv("NCBI_SFTP_PASSWORD") )
   
-  accession_updates <- c()
-  error_updates <- c()
+  # character(0), not c(): `[[<-` on NULL would build a list, which RMariaDB rejects.
+  accession_updates <- character(0)
+  error_updates     <- character(0)
   
   for (submission_name in pending_submissions$submission_name) {
     local({
       
-      remote_file <- paste0("submit/Test/", submission_name, "/report.xml")
-      local_file <- tempfile(fileext = ".xml")
+      # NCBI adds report.1.xml, report.2.xml, ... as processing progresses.
+      # There are none until NCBI picks up the submission.
+      remote_dir <- paste0("submit/Test/", submission_name, "/")
+      listing    <- tryCatch(sftpR::sftp_list(sftp_conn, remote_dir, .verbose = FALSE), error = function(e) NULL)
+      reports    <- grep("^report(\\.[0-9]+)?\\.xml$", listing[['name']], value = TRUE)
+      if (length(reports) == 0) return()
+
+      report_n    <- suppressWarnings(as.integer(sub("^report\\.?([0-9]*)\\.xml$", "\\1", reports)))
+      remote_file <- paste0(remote_dir, reports[order(report_n, na.last = FALSE)][length(reports)])
+      local_file  <- tempfile(fileext = ".xml")
       on.exit(unlink(local_file))
-      
-      # Try downloading the file, it might not exist yet if NCBI hasn't processed it
+
       dl_res <- tryCatch({
         sftpR::sftp_download(sftp_conn, remote_file, local_file)
         TRUE
       }, error = function(e) FALSE)
-      
+
       if (!dl_res) return()
-      
+
       SubmissionStatus <- xml2::read_xml(local_file)
-      Responses        <- xml2::xml_find_all(SubmissionStatus, ".//Response")
-      
-      file_status <- xml2::xml_attr(SubmissionStatus, 'status')
-      
-      sql <- "UPDATE submissions SET report_xml = ?, report_timestamp = CURRENT_TIMESTAMP, complete = 'yes' WHERE submission_name = ?"
-      report_xml_content <- as.character(SubmissionStatus)
-      db_query(db, sql, 'BioStChk_Sub', list(report_xml_content, submission_name))
-      
-      for (i in seq_along(Responses)) {
-        
-        Response <- Responses[[i]]
-        Object   <- xml2::xml_find_first(Response, ".//Object")
-        
+      Actions          <- xml2::xml_find_all(SubmissionStatus, ".//Action")
+
+      # Keep polling until NCBI reports a final status (e.g. not "processing").
+      status     <- tolower(xml2::xml_attr(SubmissionStatus, 'status'))
+      complete   <- if (is.na(status) || status %in% FINAL_STATUSES) 'yes' else 'no'
+      report_xml <- as.character(SubmissionStatus)
+
+      # Skip unchanged reports; every UPDATE adds a system-versioned history row.
+      sql <- "
+        UPDATE submissions
+        SET report_xml = ?, report_timestamp = CURRENT_TIMESTAMP, complete = ?
+        WHERE submission_name = ? AND NOT (report_xml <=> ?)"
+      changed <- db_query(db, sql, 'BioStChk_Sub', list(report_xml, complete, submission_name, report_xml))
+      if (changed == 0) return()
+
+      for (i in seq_along(Actions)) {
+
+        Action <- Actions[[i]]
+        Object <- xml2::xml_find_first(Action, ".//Object")
+
         accession   <- xml2::xml_attr(Object, 'accession')
         sample_name <- xml2::xml_attr(Object, 'spuid')
-        
+
         if (!is.na(sample_name)) {
           if (isTRUE(!is.na(accession) & startsWith(accession, "SAMN"))) {
             accession_updates[[sample_name]] <<- accession
           }
-          else {
-            messages <- xml2::xml_find_all(Response, ".//Message")
-            if (length(messages) > 0) {
-              error_updates[[sample_name]] <<- paste(xml2::xml_text(messages), collapse = "; ")
-            }
+          else if (tolower(xml2::xml_attr(Action, 'status')) %in% FINAL_STATUSES) {
+            messages <- xml2::xml_text(xml2::xml_find_all(Action, ".//Message"))
+            if (length(messages) == 0) messages <- paste("NCBI status:", xml2::xml_attr(Action, 'status'))
+            error_updates[[sample_name]] <<- paste(messages, collapse = "; ")
           }
         }
       }
-      
+
     })
   }
   

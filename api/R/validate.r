@@ -34,26 +34,58 @@ validate_table <- function (env) {
     env$df[[field]] <- if (nonblank) "not collected" else NA_character_
   }
 
+  # Whitespace-only cells (and merged duplicate columns with no values) are blank.
+  for (field in dict_fields) {
+    x <- trimws(env$df[[field]])
+    x[!is.na(x) & !nzchar(x)] <- NA
+    env$df[[field]] <- x
+  }
+
+  # "unavailable" satisfies the field's own `required`/`condition` check, but
+  # is otherwise treated as blank and stored as NULL. The original positions
+  # are remembered in `env$unavailable` for validate_required/condition.
+  env$unavailable <- list()
+  for (field in dict_fields) {
+    if ("unavailable" %in% unlist(dict[[field]][['fmt']])) {
+      is_unavailable <- env$df[[field]] %in% "unavailable"
+      env$df[[field]][is_unavailable] <- NA
+      env$unavailable[[field]] <- is_unavailable
+    }
+  }
+
+  # Presence checks run first, so cross-field references see the values as
+  # entered (except "unavailable") rather than as normalized below.
   for (field in dict_fields) {
     for (f in unlist(dict[[field]][['fmt']])) {
       errors <- c(errors, switch(f,
         'required'   = validate_required(env, field),
         'condition'  = validate_condition(env, field),
         'assert'     = validate_assert(env, field),
+        NULL
+      ))
+    }
+  }
+
+  # Format checks, which may also normalize/convert values in env$df.
+  for (field in dict_fields) {
+    for (f in unlist(dict[[field]][['fmt']])) {
+      errors <- c(errors, switch(f,
         'uid'        = validate_uid(env, field),
         'non-blank'  = validate_nonblank(env, field),
         'ontology'   = validate_ontology(env, field),
         'cv'         = validate_cv(env, field),
         'primary'    = validate_primary(env, field),
-        'protocol'   = validate_protocol(env, field),
         'suffix'     = validate_suffix(env, field),
         'number'     = validate_number(env, field),
         'date'       = validate_date(env, field),
+        'YYYY-MM-DD' = validate_yyyy_mm_dd(env, field),
+        'YYYY-MM'    = validate_yyyy_mm(env, field),
         'md5'        = validate_md5(env, field),
         'json'       = validate_json(env, field),
         'url'        = validate_url(env, field),
         'file'       = validate_filename(env, field),
         'bioproject' = validate_bioproject(env, field),
+        'biosample'  = validate_biosample(env, field),
         NULL
       ))
     }
@@ -66,6 +98,22 @@ validate_table <- function (env) {
 
 
 
+# TRUE where the user entered "unavailable" (since converted to NA).
+is_unavailable <- function (env, field) {
+  x <- env$unavailable[[field]]
+  if (is.null(x)) rep(FALSE, nrow(env$df)) else x
+}
+
+
+# Fail loudly on dictionary typos instead of silently skipping a check.
+dict_target <- function (env, field, target) {
+  if (!hasName(env$df, target))
+    stop(sprintf("Dictionary error: %s:%s references unknown field `%s`.", env$tbl, field, target))
+  env$df[[target]]
+}
+
+
+
 validate_required <- function (env, field) {
   
   errors <- c()
@@ -73,9 +121,11 @@ validate_required <- function (env, field) {
   x <- env$df[[field]]
   x <- trimws(gsub(";", "", x, fixed = TRUE))
   
-  if (length(i <- head(which(is.na(x) | !nzchar(x))))) {
+  if (length(i <- head(which((is.na(x) | !nzchar(x)) & !is_unavailable(env, field))))) {
     msg    <- "%s:%s:%d: `%s` is required."
-    msg    <- sprintf(msg, env$tbl, field, bad_rows + 1, field)
+    if (hasName(env$unavailable, field))
+      msg  <- "%s:%s:%d: `%s` is required. Use \"unavailable\" if the value is not known."
+    msg    <- sprintf(msg, env$tbl, field, i + 1, field)
     errors <- c(errors, msg)
   }
 
@@ -88,46 +138,54 @@ validate_condition <- function (env, field) {
 
   errors <- c()
 
+  # Conditions with only a description are enforced by `<tbl>_before_insert()`, if at all.
   conditions <- DICT[[env$tbl]][[field]][['condition']]
-  if (length(conditions) == 1) return (errors)
+  checks     <- setdiff(names(conditions), "description")
+  if (length(checks) == 0) return (errors)
 
-  failing <- is.na(env$df[[field]])
+  failing <- is.na(env$df[[field]]) & !is_unavailable(env, field)
 
-  for (check in setdiff(names(conditions), "description")) {
+  for (check in checks) {
 
     if (check == "when_true") {
-      target  <- names(conditions[[check]])
-      pattern <- unname(conditions[[check]])
-      failing <- failing & grepl(pattern, env$df[[target]])
+      for (target in names(conditions[[check]])) {
+        pattern <- conditions[[check]][[target]]
+        failing <- failing & grepl(pattern, dict_target(env, field, target))
+      }
     }
     else if (check == "when_false") {
-      target  <- names(conditions[[check]])
-      pattern <- unname(conditions[[check]])
-      failing <- failing & !grepl(pattern, env$df[[target]])
+      for (target in names(conditions[[check]])) {
+        pattern <- conditions[[check]][[target]]
+        failing <- failing & !grepl(pattern, dict_target(env, field, target))
+      }
     }
     else if (check == "when_set") {
-      target  <- unname(conditions[[check]])
-      failing <- failing & !is.na(env$df[[target]])
+      for (target in unlist(conditions[[check]]))
+        failing <- failing & !is.na(dict_target(env, field, target))
     }
     else if (check == "when_unset") {
-      target  <- unname(conditions[[check]])
-      failing <- failing & is.na(env$df[[target]])
+      for (target in unlist(conditions[[check]]))
+        failing <- failing & is.na(dict_target(env, field, target))
     }
     else {
       stop("Unknown condition check: ", check)
     }
-    
+
   }
 
-  if (any(failing)) {
-    i <- head(which(failing))
-    msg    <- "%s:%s:%d: %s"
-    msg    <- sprintf(msg, env$tbl, field, i + 1, conditions[['description']])
-    errors <- c(errors, msg)
-  }
+  return (condition_error(env, field, failing))
+}
 
 
-  return(errors)  
+
+# Reports a failed `condition` using its dictionary description. Also used by
+# `<tbl>_before_insert()` for conditions too complex for `when_*` checks.
+condition_error <- function (env, field, failing) {
+
+  if (!length(i <- head(which(failing)))) return (NULL)
+
+  msg <- DICT[[env$tbl]][[field]][['condition']][['description']]
+  sprintf("%s:%s:%d: %s", env$tbl, field, i + 1, msg)
 }
 
 
@@ -142,7 +200,7 @@ validate_assert <- function (env, field) {
   for (check in names(asserts)) {
 
     target     <- asserts[[check]]
-    has_target <- !is.na(env$df[[target]])
+    has_target <- !is.na(dict_target(env, field, target))
 
     if (check == "XOR") {
       if (length(i <- head(which(!xor(has_field, has_target))))) {
@@ -385,48 +443,6 @@ validate_primary <- function (env, field) {
 
 
 
-validate_protocol <- function (env, field) {
-  
-  errors <- c()
-
-  if (is.null(env$protocols)) {
-    env$protocols <- local({
-      sql <- "SELECT `protocol_uid`, `applications` FROM `protocols`"
-      res <- db_query(env$db, sql, 'ValPro')
-      
-      application_sets <- strsplit(res[['applications']], ';')
-      applications     <- unlist(application_sets)
-      protocol_uids    <- rep(res[['protocol_uid']], sapply(application_sets, length))
-
-      protocols <- sapply(
-        X        = unique(applications), 
-        simplify = FALSE, 
-        FUN      = function (application) {
-          protocol_uids[applications == application]
-      })
-
-      return (protocols)
-    })
-  }
-  
-  application <- DICT[[env$tbl]][[field]][['protocol']]
-  protocols   <- c(env$protocols[[application]], NA)
-  
-  x <- env$df[[field]]
-  
-  if (length(i <- which(!(x %in% protocols)))) {
-    i      <- i[head(which(!duplicated(x[i])))]
-    a      <- ifelse(substr(application, 1, 1) %in% c('a', 'e'), 'an', 'a')
-    msg    <- "%s:%s:%d: \"%s\" is not %s %s protocol"
-    msg    <- sprintf(msg, env$tbl, field, i + 1, x[i], a, application)
-    errors <- c(errors, msg)
-  }
-  
-  return(errors)  
-}
-
-
-
 validate_suffix  <- function (env, field) {
   
   errors <- c()
@@ -542,35 +558,73 @@ validate_number <- function (env, field) {
 
 
 
+validate_yyyy_mm <- function (env, field) {
+  
+  x <- env$df[[field]]
+  
+  is_fmt <- (is.na(x) | grepl("^[0-9]{4}\\-[0-9]{2}$", x))
+  if (any(!is_fmt)) {
+    bad_rows <- head(which(!is_fmt))
+    msg    <- "%s:%d: `%s` has invalid YYYY-MM date format: \"%s\""
+    errors <- sprintf(msg, env$tbl, bad_rows + 1, field, x[bad_rows])
+  }
+  else {
+    errors <- validate_date(env, field)
+  }
+  
+  return(errors)   
+}
+
+
+
+validate_yyyy_mm_dd <- function (env, field) {
+  
+  x <- env$df[[field]]
+  
+  is_fmt <- (is.na(x) | grepl("^[0-9]{4}\\-[0-9]{2}\\-[0-9]{2}$", x))
+  if (any(!is_fmt)) {
+    bad_rows <- head(which(!is_fmt))
+    msg    <- "%s:%d: `%s` has invalid YYYY-MM-DD date format: \"%s\""
+    errors <- sprintf(msg, env$tbl, bad_rows + 1, field, x[bad_rows])
+  }
+  else {
+    errors <- validate_date(env, field)
+  }
+  
+  return(errors)   
+}
+
+
+
 validate_date <- function (env, field) {
   
   errors <- c()
   
   x <- env$df[[field]]
   
-  is_ymd_fmt <- (!is.na(x) | grepl("^[0-9]{4}\\-[0-9]{2}(|\\-[0-9]{2})$", x))
-  if (any(!is_ymd_fmt)) {
-    bad_rows <- head(which(!is_ymd_fmt))
+  is_fmt <- (is.na(x) | grepl("^[0-9]{4}\\-[0-9]{2}(|\\-[0-9]{2})$", x))
+  if (any(!is_fmt)) {
+    bad_rows <- head(which(!is_fmt))
     msg <- "%s:%d: `%s` has invalid date format: \"%s\""
     msg <- sprintf(msg, env$tbl, bad_rows + 1, field, x[bad_rows])
     errors <- c(errors, msg)
   }
   
   x_full  <- ifelse(nchar(x) == 7, paste0(x, "-01"), x)
-  x_full  <- strptime(x_full, format="%Y-%m-%d")
+  x_full  <- as.Date(x_full, format="%Y-%m-%d")
   is_date <- is.na(x) | !is.na(x_full)
   
   if (any(!is_date)) {
     bad_rows <- head(which(!is_date))
-    msg <- "%s:%d: `%s` is not a real %s date: \"%s\""
-    msg <- sprintf(msg, env$tbl, bad_rows + 1, field, ymd, x[bad_rows])
+    msg <- "%s:%d: `%s` is not a real date: \"%s\""
+    msg <- sprintf(msg, env$tbl, bad_rows + 1, field, x[bad_rows])
     errors <- c(errors, msg)
   }
 
   max_date <- Sys.Date()
   min_date <- max_date - 100*365.25 # 100 years
   oob_dates <- x_full > max_date | x_full < min_date
-  if (any(oob_dates)) {
+  if (any(oob_dates, na.rm = TRUE)) {
     bad_rows <- head(which(oob_dates))
     msg <- "%s:%d: `%s` is outside the allowed range [%s, %s]: \"%s\""
     msg <- sprintf(msg, env$tbl, bad_rows + 1, field, min_date, max_date, x[bad_rows])
@@ -713,11 +767,11 @@ validate_bioproject <- function (env, field) {
     
     valid_ids <- sapply(summaries, `[[`, 'project_acc')
     
-    not_found <- !(x %in% valid_ids)
+    not_found <- !is.na(x) & !(x %in% valid_ids)
     if (any(not_found)) {
       bad_rows <- head(which(not_found))
-      msg <- "%s:%d: cannot find `bioproject_id` \"%s\" in NCBI."
-      msg <- sprintf(msg, env$tbl, bad_rows + 1, x[bad_rows])
+      msg <- "%s:%d: cannot find `%s` \"%s\" in NCBI."
+      msg <- sprintf(msg, env$tbl, bad_rows + 1, field, x[bad_rows])
       errors <- c(errors, msg)
     }
     
@@ -728,3 +782,51 @@ validate_bioproject <- function (env, field) {
 
 
 
+validate_biosample <- function (env, field) {
+  
+  x <- env$df[[field]]
+  errors <- c()
+  
+  if (length(i <- head(which(duplicated(x) & !is.na(x))))) {
+    msg <- "%s:%d: `%s` is used by more than one sample: \"%s\""
+    msg <- sprintf(msg, env$tbl, i + 1, field, x[i])
+    errors <- c(errors, msg)
+  }
+  
+  sql     <- 'SELECT `biosample_accession` FROM `biosamples`'
+  current <- db_query(env$db, sql, 'ValBioS')
+  
+  if (length(i <- head(which(x %in% current & !is.na(x))))) {
+    msg <- "%s:%d: `%s` is already assigned to another sample: \"%s\""
+    msg <- sprintf(msg, env$tbl, i + 1, field, x[i])
+    errors <- c(errors, msg)
+  }
+  
+  unique_ids <- unique(x[!is.na(x)])
+  valid_ids  <- c()
+  
+  # Query NCBI in batches to keep the request URLs short.
+  for (ids in split(unique_ids, ceiling(seq_along(unique_ids) / 100))) {
+    
+    search_res <- rentrez::entrez_search(
+      db     = "biosample", 
+      term   = paste0(ids, "[accn]", collapse = " OR "),
+      retmax = length(ids) )
+    
+    if (length(search_res$ids) > 0) {
+      summaries <- rentrez::entrez_summary(
+        db = "biosample",
+        id = search_res$ids,
+        always_return_list = TRUE )
+      valid_ids <- c(valid_ids, sapply(summaries, `[[`, 'accession'))
+    }
+  }
+  
+  if (length(i <- head(which(!is.na(x) & !(x %in% valid_ids))))) {
+    msg <- "%s:%d: cannot find `%s` \"%s\" in NCBI."
+    msg <- sprintf(msg, env$tbl, i + 1, field, x[i])
+    errors <- c(errors, msg)
+  }
+  
+  return(errors)  
+}

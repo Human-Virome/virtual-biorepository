@@ -25,7 +25,7 @@
                 <button class="tab-btn active" data-table="participants">participants</button>
                 <button class="tab-btn" data-table="events">events</button>
                 <button class="tab-btn" data-table="samples">samples</button>
-                <button class="tab-btn" data-table="profiles">profiles</button>
+                <button class="tab-btn" data-table="libraries">libraries</button>
                 <button class="tab-btn" data-table="analyses">analyses</button>
                 <button class="tab-btn" data-table="files">files</button>
             </div>
@@ -108,7 +108,19 @@
             
             let currentTable = "participants";
             let gridApi;
-            let hideEmptyColumns = true; 
+            let hideEmptyColumns = true;
+            const MAX_AUTO_WIDTH = 400;
+
+            // Colors for biosamples.submission_status (see api_browse_biosamples).
+            const STATUS_CLASSES = {
+                'text-secondary': p => ['accessioned', 'provided'].includes(p.value),
+                'text-warning':   p => ['submitted', 'queued', 'processing'].includes(p.value),
+                'text-error':     p => p.value === 'failed'
+            };
+
+            // Only one action request at a time, so a double-click can't send two.
+            let actionInFlight  = false;
+            let actionListeners = [];
     
             function getEmptyColumns(data) {
                 if (!data || data.length === 0) return [];
@@ -198,11 +210,12 @@
                         
                         const firstVisibleKey = keys.find(k => k !== 'hvp_id');
                         
-                        const colDefs = keys.map(k => ({ 
-                            field: k, 
+                        const colDefs = keys.map(k => ({
+                            field: k,
                             headerName: k,
                             hide: k === 'hvp_id' ? true : (hideEmptyColumns && emptyCols.includes(k)),
-                            pinned: k === firstVisibleKey ? 'left' : null
+                            pinned: k === firstVisibleKey ? 'left' : null,
+                            cellClassRules: k === 'submission_status' ? STATUS_CLASSES : undefined
                         }));
                         
                         gridApi.setGridOption('columnDefs', colDefs);
@@ -210,6 +223,10 @@
                         setTimeout(() => {
                             const allColumnIds = gridApi.getColumns().map(col => col.getColId());
                             gridApi.autoSizeColumns(allColumnIds);
+
+                            // Keep long text (e.g. NCBI error messages) from producing huge columns.
+                            const wideCols = gridApi.getColumns().filter(col => col.getActualWidth() > MAX_AUTO_WIDTH);
+                            gridApi.setColumnWidths(wideCols.map(col => ({ key: col.getColId(), newWidth: MAX_AUTO_WIDTH })));
                         }, 50);
                     } else if (result.data.length === 0 && currentCols.length === 0) {
                         gridApi.setGridOption('columnDefs', []);
@@ -281,36 +298,62 @@
                       // Guard clause in case data isn't fully attached yet
                       if (!rowNode.data) return false;
                       
+                      const isBlank = x => x === null || x === undefined || String(x).trim() === '';
+
+                      // Mirrors api_biosamples_assign(): rows in an in-flight
+                      // submission, or with an accession, can't be submitted.
                       if (currentTable === 'biosamples') {
-                          const acc = rowNode.data.biosample_accession;
-                          return acc === null || acc === undefined || String(acc).trim() === '';
+                          return ['not submitted', 'failed'].includes(rowNode.data.submission_status);
+                      }
+
+                      // api_sra_export() needs the sample's BioSample accession.
+                      if (currentTable === 'sra') {
+                          return !isBlank(rowNode.data.BioSample);
                       }
                       return true; 
                   }
                 } : undefined);
             }
 
+            // Save a file returned by an action, e.g. the SRA submission XML.
+            function saveDownload({ filename, type, content }) {
+                const url  = URL.createObjectURL(new Blob([content], { type }));
+                const link = Object.assign(document.createElement('a'), { href: url, download: filename });
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 0);
+            }
+
             function updateActionBar() {
               
-                actionBar.innerHTML = ''; 
+                actionBar.innerHTML = '';
                 const actions = ACTION_CONFIG[currentTable] || [];
-                
+
+                // Drop the listeners of the buttons just removed.
+                actionListeners.forEach(l => gridApi.removeEventListener('selectionChanged', l));
+                actionListeners = [];
+
                 actions.forEach(action => {
                     const btn = document.createElement('button');
                     btn.className = 'ag-icon-btn action-btn';
-                    btn.disabled = true; 
-                    btn.style.opacity = '0.5'; 
-                    
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+
                     btn.innerHTML = `<span class="material-symbols-outlined action-icon">${action.icon}</span> <span class="action-label">${action.label}</span>`;
-                    
+
                     const selectionListener = () => {
-                        const hasSelection = gridApi.getSelectedRows().length > 0;
-                        btn.disabled = !hasSelection;
-                        btn.style.opacity = hasSelection ? '1' : '0.5';
+                        const enabled = !actionInFlight && gridApi.getSelectedRows().length > 0;
+                        btn.disabled = !enabled;
+                        btn.style.opacity = enabled ? '1' : '0.5';
                     };
                     gridApi.addEventListener('selectionChanged', selectionListener);
-                    
+                    actionListeners.push(selectionListener);
+
                     btn.addEventListener('click', async () => {
+                        if (actionInFlight) return;
+                        actionInFlight = true;
+
                         const selectedData = gridApi.getSelectedRows();
                         const payloadData = selectedData.map(row => row.hvp_id).filter(Boolean);
                         
@@ -338,15 +381,17 @@
                             if (!response.ok || data.error) {
                                 showErrorModal(data.error || `Server Error: ${response.status}`);
                             } else {
-                                gridApi.deselectAll(); 
+                                if (data.download) saveDownload(data.download);
+                                gridApi.deselectAll();
                                 await loadClientData(); 
                             }
                         } catch (err) {
                             showErrorModal(`Network Error: ${err.message}`);
                         } finally {
+                            actionInFlight = false;
                             iconSpan.textContent = originalIcon;
                             iconSpan.style.animation = 'none';
-                            selectionListener(); 
+                            actionListeners.forEach(l => l());
                         }
                     });
                     

@@ -200,6 +200,7 @@
                                         <span class="prefix-tag">boston_</span>
                                         <span class="prefix-tag">broad_park_</span>
                                         <span class="prefix-tag">caltech_</span>
+                                        <span class="prefix-tag">cmmr_</span>
                                         <span class="prefix-tag">lbnl_</span>
                                         <span class="prefix-tag">mskcc_</span>
                                         <span class="prefix-tag">penn_</span>
@@ -412,12 +413,17 @@
                         "integer": "Must be a whole number (integer).",
                         "number": "Must be a numeric value.",
                         "md5": "Hexadecimal MD5 checksum, 32 characters in length.",
-                        "url": "Must be a valid permanent URL.",
+                        "url": "Must be a valid permanent URL, beginning with http:// or https://, that is reachable when uploaded.",
+                        "YYYY-MM": "Must be a real month in the past 100 years, formatted as YYYY-MM (e.g. 2025-07).",
+                        "YYYY-MM-DD": "Must be a real date in the past 100 years, formatted as YYYY-MM-DD (e.g. 2025-07-30).",
+                        "bioproject": "Must be an existing NCBI BioProject accession (e.g. PRJNA123456).",
+                        "biosample": "Must be an existing NCBI BioSample accession (e.g. SAMN12345678) that is not already assigned to another sample.",
                         "text": "Accepts freeform text, up to 65,535 characters in length.",
                         "uid": "The data generator's internal ID combined with their center's assigned prefix.",
                         "primary": "This identifier must not already exist in the database.",
                         "ref": "Identifiers must already exist in the database or be defined in the uploaded file.",
                         "json": "Must be in JSON format, including opening and closing curly braces.",
+                        "unavailable": "Enter \"unavailable\" when the value is not known or cannot be shared. It will be stored as blank.",
                         "non-blank": "Use \"none reported\" or \"not collected\" instead of leaving values blank/empty, or omit this column entirely to indicate data not collected.",
                         "mode": "Accepts one of the following \"mode of administration\" suffixes: <span class='prefix-tag'>:oral</span>, <span class='prefix-tag'>:topical</span>, <span class='prefix-tag'>:injected</span>, <span class='prefix-tag'>:intranasal</span>, <span class='prefix-tag'>:inhalation</span>, <span class='prefix-tag'>:sublingual</span>, <span class='prefix-tag'>:subdermal</span>, <span class='prefix-tag'>:transdermal</span>, <span class='prefix-tag'>:ophthalmic</span>, <span class='prefix-tag'>:rectal</span>, <span class='prefix-tag'>:vaginal</span>.",
                         "freq": "Accepts one of the following \"frequency of use\" suffixes: <span class='prefix-tag'>:daily</span>, <span class='prefix-tag'>:weekly</span>, <span class='prefix-tag'>:occasionally</span>, <span class='prefix-tag'>:prior_months</span>, or <span class='prefix-tag'>:prior_years</span>. \"Occasionally\" is defined here as 1-3 times per month or less. Use \"prior_months\" or \"prior_years\" when the last use was at least one month or year, respectively, prior to sample collection."
@@ -431,11 +437,11 @@
                         if (desc) {
 
                           // Inject inline styled tags for 'ontology' format rule
-                          if (f === 'ontology' && fieldData.prefix && fieldData.prefix.length > 0) {
-                              const prefixHtml = fieldData.prefix.map(p => `<span class="prefix-tag">${p}</span>`).join(' ');
-                              
+                          if (f === 'ontology' && fieldData.ontology && fieldData.ontology.length > 0) {
+                              const prefixHtml = fieldData.ontology.map(p => `<span class="prefix-tag">${p}</span>`).join(' ');
+
                               // Check if there is more than one prefix to determine singular/plural wording
-                              const isPlural = fieldData.prefix.length > 1;
+                              const isPlural = fieldData.ontology.length > 1;
                               const prefixText = isPlural ? "one of the specified ontology prefixes:" : " the ontology prefix";
                               
                               desc = `Must include ${prefixText} ${prefixHtml}`;

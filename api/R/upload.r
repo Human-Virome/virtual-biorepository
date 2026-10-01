@@ -9,7 +9,7 @@ ingest_file <- function (db, file, commit) {
     expr = {
       DBI::dbBegin(db)
       
-      is_xls <- isTRUE(nzchar(readxl::excel_format(file)))
+      is_xls <- !is.na(readxl::excel_format(file))
       
       if (is_xls) { ingest_excel_file(db, file) }
       else        { ingest_delim_file(db, file) }
@@ -83,19 +83,12 @@ ingest_delim_file <- function (db, file) {
     stop('No data records were found in the uploaded file.')
   
   env$tbl <- {
-    if      (hasName(env$df, 'host_taxon'))                                      { 'participants'        }
-    else if (any(hasName(env$df, c('age', 'age_range'))))                        { 'events'              }
-    else if (hasName(env$df, 'collection_protocol_uid'))                         { 'samples'             }
-    else if (hasName(env$df, 'assay_protocol_uid'))                              { 'profiles'            }
-    else if (hasName(env$df, 'analysis_protocol_uid'))                           { 'analyses'            }
-    else if (any(hasName(env$df, c('input_profile_uid', 'input_analysis_uid')))) { 'analysis_inputs'     }
-    else if (hasName(env$df, 'filename'))                                        { 'files'               }
-    else if (hasName(env$df, 'application'))                                     { 'protocols'           }
-    else if (all(hasName(env$df, c('cohort_uid','participant_uid'))))            { 'cohort_participants' }
-    else if (all(names(env$df) %in% c('cohort_uid', 'title')))                   { 'cohorts'             }
-    else if (hasName(env$df, 'experimental_sample'))                             { 'sample_controls'     }
-    else if (hasName(env$df, 'experimental_profile'))                            { 'profile_controls'    }
-    else if (hasName(env$df, 'composite_sample'))                                { 'composite_samples'   }
+    if      (hasName(env$df, 'taxon'))                        { 'participants' }
+    else if (any(hasName(env$df, c('age', 'age_range'))))     { 'events'       }
+    else if (hasName(env$df, 'sample_type'))                  { 'samples'      }
+    else if (hasName(env$df, 'library_prep_lab'))             { 'libraries'    }
+    else if (hasName(env$df, 'analysis_description'))         { 'analyses'     }
+    else if (hasName(env$df, 'md5_checksum'))                 { 'files'        }
     else { stop('Required headers are missing.') }
   }
   
@@ -113,18 +106,19 @@ ingest_table <- function (env) {
   
   validate_table(env)
   
+  # Derived fields and checks too complex for the dictionary.
   switch(
     EXPR = env$tbl,
-    'participants' = participants_before_insert(env),
-    'events'       = events_before_insert(env) )
-  
+    'events'       = events_before_insert(env),
+    'samples'      = samples_before_insert(env),
+    'libraries'    = libraries_before_insert(env),
+    'files'        = files_before_insert(env) )
+
   db_insert(env$db, env$tbl, env$df, 'InTbl1')
-  
+
   switch(
     EXPR = env$tbl,
-    'participants' = participants_after_insert(env),
     'samples'      = samples_after_insert(env),
-    'profiles'     = profiles_after_insert(env),
     'files'        = files_after_insert(env) )
   
   invisible()

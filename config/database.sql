@@ -19,88 +19,39 @@ CREATE TABLE IF NOT EXISTS tokens (
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 
-# hvpoXXXXXX
-CREATE TABLE IF NOT EXISTS protocols (
-  protocol_uid         VARCHAR(255) NOT NULL UNIQUE,
-  author               VARCHAR(255) NOT NULL,
-  title                VARCHAR(255) NOT NULL,
-  version              VARCHAR(255) NOT NULL,
-  applications         VARCHAR(255) NOT NULL,
-  access               VARCHAR(255) NOT NULL,
-  summary              TEXT,
-  url                  VARCHAR(255),
-  collection_additive  VARCHAR(255),
-  preprocess_growth    VARCHAR(255),
-  preprocess_spike_in  VARCHAR(255),
-  preprocess_substance VARCHAR(255),
-  preprocess_isolation VARCHAR(255),
-  library_taxonomy     VARCHAR(255),
-  library_purpose      VARCHAR(255),
-  sequencing_strategy  VARCHAR(255),
-  sequencing_source    VARCHAR(255),
-  sequencing_selection VARCHAR(255),
-  sequencing_layout    VARCHAR(255),
-  transit_temp_celsius FLOAT,
-  storage_temp_celsius FLOAT,
-  hvp_id               CHAR(10)     PRIMARY KEY,
-  `user`               VARCHAR(255) NOT NULL,
-  INDEX (`user`)
-) ENGINE=InnoDB WITH SYSTEM VERSIONING;
-
 # hvppXXXXXX
 CREATE TABLE IF NOT EXISTS participants (
   participant_uid                VARCHAR(255) NOT NULL UNIQUE,
-  access                         VARCHAR(255) NOT NULL,
-  data_use_condition             VARCHAR(255) NOT NULL,
-  data_use_specific_limit        VARCHAR(255),
-  race                           VARCHAR(255) NOT NULL,
-  ethnicity                      VARCHAR(255) NOT NULL,
-  sex_at_birth                   VARCHAR(255) NOT NULL,
-  country_of_birth               VARCHAR(255) NOT NULL,
-  country_of_childhood_residence VARCHAR(255) NOT NULL,
+  cohort_uid                     VARCHAR(255) NOT NULL,
+  taxon                          VARCHAR(255) NOT NULL,
+  race                           VARCHAR(255),
+  ethnicity                      VARCHAR(255),
+  sex_at_birth                   VARCHAR(255),
+  country_of_birth               VARCHAR(255),
+  country_of_childhood_residence VARCHAR(255),
   gestational_age_at_birth       FLOAT,
   mode_of_birth_delivery         VARCHAR(255),
   blood_type                     VARCHAR(255),
   family_medical_history         ENUM('yes','no'),
-  host_taxon                     VARCHAR(255) NOT NULL,
+  mental_health_collected        ENUM('yes','no'),
+  medication_info_collected      ENUM('yes','no'),
+  alcohol_activity_collected     ENUM('yes','no'),
+  tobacco_use_collected          ENUM('yes','no'),
+  drug_use_collected             ENUM('yes','no'),
   hvp_id                         CHAR(10)     PRIMARY KEY,
   `user`                         VARCHAR(255) NOT NULL,
   INDEX (`user`)
-) ENGINE=InnoDB WITH SYSTEM VERSIONING;
-
-# hvpcXXXXXX
-CREATE TABLE IF NOT EXISTS cohorts (
-  cohort_uid VARCHAR(255) NOT NULL UNIQUE,
-  hvp_id     CHAR(10)     PRIMARY KEY,
-  `user`     VARCHAR(255) NOT NULL,
-  INDEX (`user`)
-) ENGINE=InnoDB WITH SYSTEM VERSIONING;
-
-# hvphXXXXXX
-CREATE TABLE IF NOT EXISTS cohort_participants (
-  cohort_uid      VARCHAR(255) NOT NULL,
-  participant_uid VARCHAR(255) NOT NULL,
-  hvp_id          CHAR(10)     PRIMARY KEY,
-  `user`          VARCHAR(255) NOT NULL,
-  UNIQUE (cohort_uid, participant_uid),
-  INDEX (participant_uid),
-  INDEX (`user`),
-  FOREIGN KEY (cohort_uid)      REFERENCES cohorts(cohort_uid),
-  FOREIGN KEY (participant_uid) REFERENCES participants(participant_uid)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 # hvpeXXXXXX
 CREATE TABLE IF NOT EXISTS events (
   event_uid                               VARCHAR(255) NOT NULL UNIQUE,
   participant_uid                         VARCHAR(255) NOT NULL,
-  `year_month`                            VARCHAR(255) NOT NULL,
-  year_month_day                          VARCHAR(255),
-  day_of_week                             VARCHAR(255),
   age                                     FLOAT,
   age_units                               VARCHAR(255),
   converted_age_years                     FLOAT,
   age_range                               VARCHAR(255),
-  state_or_province_of_residence          VARCHAR(255) NOT NULL,
+  state_or_province_of_residence          VARCHAR(255),
   current_geography                       VARCHAR(255),
   vital_status                            VARCHAR(255),
   weight                                  FLOAT,
@@ -119,31 +70,25 @@ CREATE TABLE IF NOT EXISTS events (
   oral_health                             ENUM('yes','no'),
   dental_exam                             ENUM('yes','no'),
   systemic_comorbidities                  TEXT,
-  mental_health_collected                 ENUM('yes','no'),
   mental_health_history                   TEXT,
   mental_health_at_sampling               TEXT,
   disabilities                            TEXT,
-  medication_info_collected               ENUM('yes','no'),
   prescription_medications                TEXT,
   antibiotics_or_antivirals               TEXT,
   otc_medications                         TEXT,
   supplements_or_vitamins_or_herbal       TEXT,
   lifetime_vaccinations                   TEXT,
   seasonal_vaccinations                   TEXT,
-  alcohol_activity_collected              ENUM('yes','no'),
   alcohol_consumption                     VARCHAR(255),
-  tobacco_use_collected                   ENUM('yes','no'),
   cigarette_smoking                       VARCHAR(255),
   former_pack_years                       FLOAT,
   current_pack_years                      FLOAT,
   other_tobacco_exposure                  VARCHAR(255),
-  drug_use_collected                      ENUM('yes','no'),
   vaping_behavior                         VARCHAR(255),
   cannabis                                VARCHAR(255),
   recreational_or_illicit_drugs           TEXT,
   diet                                    ENUM('yes','no'),
   diet_comment                            TEXT,
-  physical_activtiy_collected             ENUM('yes','no'),
   physical_activity                       VARCHAR(255),
   physical_activity_comment               TEXT,
   wellness_information_available          ENUM('yes','no'),
@@ -156,159 +101,112 @@ CREATE TABLE IF NOT EXISTS events (
   hvp_id                                  CHAR(10)     PRIMARY KEY,
   `user`                                  VARCHAR(255) NOT NULL,
   INDEX (`user`),
+  INDEX (participant_uid),
   FOREIGN KEY (participant_uid) REFERENCES participants(participant_uid)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 # hvpsXXXXXX
 CREATE TABLE IF NOT EXISTS samples (
   sample_uid              VARCHAR(255) NOT NULL UNIQUE,
-  event_uid               VARCHAR(255) NOT NULL,
-  collection_protocol_uid VARCHAR(255) NOT NULL,
-  collection_method       VARCHAR(255) NOT NULL,
+  event_uid               VARCHAR(255),
+  lab                     VARCHAR(255) NOT NULL,
+  participant_uid         TEXT,
+  sample_type             VARCHAR(255) NOT NULL,
+  sample_subtype          VARCHAR(255),
+  parent_sample_uid       TEXT,
+  sampling_protocol       TEXT,
+  sample_taxonomy         VARCHAR(255) NOT NULL,
   anatomical_site         VARCHAR(255),
   body_product            VARCHAR(255),
+  collection_method       VARCHAR(255),
   collection_device       VARCHAR(255),
-  self_collection         ENUM('yes','no'),
-  transit_hours           FLOAT,
+  collection_month_year   VARCHAR(255),
+  collection_date         VARCHAR(255),
+  collection_day_of_week  VARCHAR(255),
+  sample_storage          VARCHAR(255),
+  sample_additive         VARCHAR(255),
+  control_sample_uid      TEXT,
+  sample_transit_temp     FLOAT,
+  sample_transit_duration FLOAT,
+  storage_temp_celsius    FLOAT,
   stool_type              VARCHAR(255),
-  is_control_sample       VARCHAR(255),
+  self_collection         ENUM('yes','no'),
+  is_control_sample       ENUM('yes','no') NOT NULL,
+  negative_control_type   VARCHAR(255),
+  positive_control_type   VARCHAR(255),
   hvp_id                  CHAR(10)     PRIMARY KEY,
   `user`                  VARCHAR(255) NOT NULL,
+  INDEX (`user`),
   INDEX (event_uid),
-  INDEX (`user`),
-  FOREIGN KEY (event_uid)               REFERENCES events(event_uid),
-  FOREIGN KEY (collection_protocol_uid) REFERENCES protocols(protocol_uid)
-) ENGINE=InnoDB WITH SYSTEM VERSIONING;
-
-# hvpnXXXXXX
-CREATE TABLE IF NOT EXISTS sample_controls (
-  experimental_sample_uid VARCHAR(255) NOT NULL,
-  control_sample_uid      VARCHAR(255) NOT NULL,
-  hvp_id                  CHAR(10)     PRIMARY KEY,
-  `user`                  VARCHAR(255) NOT NULL,
-  UNIQUE (experimental_sample_uid, control_sample_uid),
-  INDEX (`user`),
-  FOREIGN KEY (experimental_sample_uid) REFERENCES samples(sample_uid),
-  FOREIGN KEY (control_sample_uid)      REFERENCES samples(sample_uid)
-) ENGINE=InnoDB WITH SYSTEM VERSIONING;
-
-# hvpmXXXXXX
-CREATE TABLE IF NOT EXISTS composite_samples (
-  composite_sample_uid VARCHAR(255) NOT NULL,
-  component_sample_uid VARCHAR(255) NOT NULL,
-  hvp_id               CHAR(10)     PRIMARY KEY,
-  `user`               VARCHAR(255) NOT NULL,
-  UNIQUE (composite_sample_uid, component_sample_uid),
-  INDEX (component_sample_uid),
-  INDEX (`user`),
-  FOREIGN KEY (composite_sample_uid) REFERENCES samples(sample_uid),
-  FOREIGN KEY (component_sample_uid) REFERENCES samples(sample_uid)
+  FOREIGN KEY (event_uid) REFERENCES events(event_uid)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 # hvplXXXXXX
-CREATE TABLE IF NOT EXISTS profiles (
-  profile_uid               VARCHAR(255) NOT NULL UNIQUE,
-  sample_uid                VARCHAR(255) NOT NULL,
-  ncbi_bioproject_id        CHAR(12),
-  sample_storage_days       FLOAT,
-  preprocess_protocol_uid   VARCHAR(255),
-  preprocess_lab            VARCHAR(255),
-  preprocess_uid            VARCHAR(255),
-  extraction_protocol_uid   VARCHAR(255),
-  extraction_lab            VARCHAR(255),
-  extraction_uid            VARCHAR(255),
-  library_prep_protocol_uid VARCHAR(255) NOT NULL,
-  library_prep_lab          VARCHAR(255) NOT NULL,
-  library_prep_uid          VARCHAR(255),
-  multiplex_pool_uid        VARCHAR(255),
-  aliquot_uid               VARCHAR(255),
-  assay_protocol_uid        VARCHAR(255) NOT NULL,
-  assay_lab                 VARCHAR(255) NOT NULL,
-  assay_platform            VARCHAR(255),
-  assay_uid                 VARCHAR(255),
-  postprocess_protocol_uid  VARCHAR(255),
-  postprocess_lab           VARCHAR(255),
-  postprocess_uid           VARCHAR(255),
-  is_control_profile        VARCHAR(255),
-  hvp_id                    CHAR(10)     PRIMARY KEY,
-  `user`                    VARCHAR(255) NOT NULL,
+CREATE TABLE IF NOT EXISTS libraries (
+  library_uid                 VARCHAR(255) NOT NULL UNIQUE,
+  sample_uid                  VARCHAR(255) NOT NULL,
+  library_prep_lab            VARCHAR(255) NOT NULL,
+  library_aliquot             ENUM('yes','no') NOT NULL,
+  parent_library_uid          TEXT,
+  technique                   VARCHAR(255) NOT NULL,
+  subspecimen_type            VARCHAR(255),
+  library_processing_url      TEXT,
+  samp_store_dur              FLOAT,
+  control_library_uid         TEXT,
+  is_control_library          ENUM('yes','no') NOT NULL,
+  library_pos_cont_type       VARCHAR(255),
+  library_neg_cont_type       VARCHAR(255),
+  library_strategy            VARCHAR(255),
+  library_source              VARCHAR(255),
+  library_selection           VARCHAR(255),
+  paired_or_single            VARCHAR(255),
+  sequencing_platform         VARCHAR(255),
+  sequencing_instrument_model VARCHAR(255),
+  hvp_id                      CHAR(10)     PRIMARY KEY,
+  `user`                      VARCHAR(255) NOT NULL,
+  INDEX (`user`),
   INDEX (sample_uid),
-  INDEX (ncbi_bioproject_id),
-  INDEX (preprocess_protocol_uid),
-  INDEX (preprocess_uid),
-  INDEX (extraction_protocol_uid),
-  INDEX (extraction_uid),
-  INDEX (library_prep_protocol_uid),
-  INDEX (library_prep_uid),
-  INDEX (assay_protocol_uid),
-  INDEX (assay_uid),
-  INDEX (postprocess_protocol_uid),
-  INDEX (postprocess_uid),
-  INDEX (`user`),
-  FOREIGN KEY (sample_uid)                REFERENCES samples(sample_uid),
-  FOREIGN KEY (preprocess_protocol_uid)   REFERENCES protocols(protocol_uid),
-  FOREIGN KEY (extraction_protocol_uid)   REFERENCES protocols(protocol_uid),
-  FOREIGN KEY (library_prep_protocol_uid) REFERENCES protocols(protocol_uid),
-  FOREIGN KEY (assay_protocol_uid)        REFERENCES protocols(protocol_uid),
-  FOREIGN KEY (postprocess_protocol_uid)  REFERENCES protocols(protocol_uid)
-) ENGINE=InnoDB WITH SYSTEM VERSIONING;
-
-# hvptXXXXXX
-CREATE TABLE IF NOT EXISTS profile_controls (
-  experimental_profile_uid VARCHAR(255) NOT NULL,
-  control_profile_uid      VARCHAR(255) NOT NULL,
-  hvp_id                   CHAR(10)     PRIMARY KEY,
-  `user`                   VARCHAR(255) NOT NULL,
-  UNIQUE (experimental_profile_uid, control_profile_uid),
-  INDEX (`user`),
-  FOREIGN KEY (experimental_profile_uid) REFERENCES profiles(profile_uid),
-  FOREIGN KEY (control_profile_uid)      REFERENCES profiles(profile_uid)
+  FOREIGN KEY (sample_uid) REFERENCES samples(sample_uid)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 # hvpaXXXXXX
 CREATE TABLE IF NOT EXISTS analyses (
-  analysis_uid          VARCHAR(255) NOT NULL UNIQUE,
-  analysis_protocol_uid VARCHAR(255) NOT NULL,
-  workspace             VARCHAR(255),
-  arguments             TEXT,
-  settings              JSON,
-  hvp_id                CHAR(10)     PRIMARY KEY,
-  `user`                VARCHAR(255) NOT NULL,
-  INDEX (`user`),
-  FOREIGN KEY (analysis_protocol_uid) REFERENCES protocols(protocol_uid)
-) ENGINE=InnoDB WITH SYSTEM VERSIONING;
-
-# hvpiXXXXXX
-CREATE TABLE IF NOT EXISTS analysis_inputs (
-  analysis_uid       VARCHAR(255) NOT NULL,
-  input_profile_uid  VARCHAR(255),
-  input_analysis_uid VARCHAR(255),
-  hvp_id             CHAR(10)     PRIMARY KEY,
-  `user`             VARCHAR(255) NOT NULL,
-  INDEX       (analysis_uid),
-  UNIQUE      (input_profile_uid,  analysis_uid),
-  UNIQUE      (input_analysis_uid, analysis_uid),
-  INDEX       (user),
-  FOREIGN KEY (analysis_uid)       REFERENCES analyses(analysis_uid),
-  FOREIGN KEY (input_profile_uid)  REFERENCES profiles(profile_uid),
-  FOREIGN KEY (input_analysis_uid) REFERENCES analyses(analysis_uid)
+  analysis_uid           VARCHAR(255) NOT NULL UNIQUE,
+  analysis_description   TEXT         NOT NULL,
+  pipeline_name          VARCHAR(255),
+  pipeline_description   TEXT,
+  pipeline_version       VARCHAR(255),
+  sop_url                TEXT,
+  community_workspace    VARCHAR(255),
+  pipeline_container_url TEXT,
+  hvp_id                 CHAR(10)     PRIMARY KEY,
+  `user`                 VARCHAR(255) NOT NULL,
+  INDEX (`user`)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 # hvpfXXXXXX
 CREATE TABLE IF NOT EXISTS files (
-  profile_uid  VARCHAR(255),
-  analysis_uid VARCHAR(255),
-  filename     VARCHAR(255) NOT NULL,
-  data_type    VARCHAR(255) NOT NULL,
-  file_format  VARCHAR(255) NOT NULL,
-  md5_checksum CHAR(32)     NOT NULL,
-  hvp_id       CHAR(10)     PRIMARY KEY,
-  `user`       VARCHAR(255) NOT NULL,
-  UNIQUE (profile_uid,  filename),
-  UNIQUE (analysis_uid, filename),
+  file_uniq_name          VARCHAR(255) NOT NULL UNIQUE,
+  library_uid             VARCHAR(255),
+  library_aliquot_uid     VARCHAR(255),
+  bioproject_id           VARCHAR(255),
+  data_type               VARCHAR(255) NOT NULL,
+  file_format             VARCHAR(255) NOT NULL,
+  md5_checksum            CHAR(32)     NOT NULL,
+  file_derived_from       TEXT,
+  analysis_uid            VARCHAR(255),
+  access                  VARCHAR(255) NOT NULL,
+  data_use_condition      VARCHAR(255) NOT NULL,
+  data_use_specific_limit VARCHAR(255),
+  hvp_id                  CHAR(10)     PRIMARY KEY,
+  `user`                  VARCHAR(255) NOT NULL,
   INDEX (`user`),
-  FOREIGN KEY (profile_uid)  REFERENCES profiles(profile_uid),
-  FOREIGN KEY (analysis_uid) REFERENCES analyses(analysis_uid)
+  INDEX (library_uid),
+  INDEX (library_aliquot_uid),
+  INDEX (analysis_uid),
+  FOREIGN KEY (library_uid)          REFERENCES libraries(library_uid),
+  FOREIGN KEY (library_aliquot_uid)  REFERENCES libraries(library_uid),
+  FOREIGN KEY (analysis_uid)         REFERENCES analyses(analysis_uid)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 
@@ -334,7 +232,7 @@ CREATE TABLE IF NOT EXISTS biosamples (
   biosample_accession         VARCHAR(20) UNIQUE,
   submission_error            TEXT,
   host_subject_id             VARCHAR(255) NOT NULL,
-  sampling_event_id           VARCHAR(255) NOT NULL,
+  sampling_event_id           VARCHAR(255),
   organism                    VARCHAR(255),
   host_tissue_sampled         VARCHAR(255),
   host_body_product           VARCHAR(255),
@@ -364,7 +262,6 @@ CREATE TABLE IF NOT EXISTS biosamples (
   drug_use_collected          ENUM('yes','no'),
   current_geography           VARCHAR(255),
   diet_collected              ENUM('yes','no'),
-  physical_activtiy_collected ENUM('yes','no'),
   wellness_collected          ENUM('yes','no'),
   social_det_collected        ENUM('yes','no'),
   time_last_toothbrush        FLOAT,
@@ -382,37 +279,35 @@ CREATE TABLE IF NOT EXISTS biosamples (
 
 # hvprXXXXXX
 CREATE TABLE IF NOT EXISTS sra (
-  profile_uid                   VARCHAR(255) UNIQUE,
+  library_name                  VARCHAR(255) UNIQUE,
   file_path                     JSON,
   sample_name                   VARCHAR(255) NOT NULL,
   BioSample                     VARCHAR(20),
   BioProject                    VARCHAR(20),
   file_format                   VARCHAR(255),
-  library_name                  VARCHAR(255),
   library_strategy              VARCHAR(255),
   library_source                VARCHAR(255),
   library_selection             VARCHAR(255),
   library_layout                VARCHAR(255),
-  library_construction_protocol VARCHAR(255),
+  library_construction_protocol TEXT,
   instrument_model              VARCHAR(255),
   hvp_id                        CHAR(10) PRIMARY KEY,
   `user`                        VARCHAR(255) NOT NULL,
   INDEX (`user`),
-  FOREIGN KEY (profile_uid)  REFERENCES profiles(profile_uid),
+  FOREIGN KEY (library_name) REFERENCES libraries(library_uid),
   FOREIGN KEY (sample_name)  REFERENCES samples(sample_uid),
-  FOREIGN KEY (library_name) REFERENCES profiles(library_prep_uid),
   FOREIGN KEY (BioSample)    REFERENCES biosamples(biosample_accession)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
       
 INSERT INTO `participants`
-  (hvp_id, participant_uid, access, data_use_condition, race, ethnicity, sex_at_birth, country_of_birth, country_of_childhood_residence, host_taxon, `user`)
+  (hvp_id, participant_uid, cohort_uid, taxon, `user`)
   VALUES
-    ('hvpp00MOCK', 'mock',      'open', 'DUO:0000004', 'mock',      'mock',      'mock',      'mock',      'mock',      'NCBI:txid9606', 'Daniel.Smith@bcm.edu'),
-    ('hvpp00COMP', 'composite', 'open', 'DUO:0000004', 'composite', 'composite', 'composite', 'composite', 'composite', 'NCBI:txid9606', 'Daniel.Smith@bcm.edu');
+    ('hvpp00MOCK', 'mock',      'mock',      'NCBI:txid9606', 'Daniel.Smith@bcm.edu'),
+    ('hvpp00COMP', 'composite', 'composite', 'NCBI:txid9606', 'Daniel.Smith@bcm.edu');
 
 INSERT INTO `events`
-  (hvp_id, event_uid, participant_uid, `year_month`, state_or_province_of_residence, `user`)
+  (hvp_id, event_uid, participant_uid, `user`)
   VALUES
-    ('hvpe00MOCK', 'mock',      'mock',      '2026-08', 'mock',      'Daniel.Smith@bcm.edu'),
-    ('hvpe00COMP', 'composite', 'composite', '2026-08', 'composite', 'Daniel.Smith@bcm.edu');
+    ('hvpe00MOCK', 'mock',      'mock',      'Daniel.Smith@bcm.edu'),
+    ('hvpe00COMP', 'composite', 'composite', 'Daniel.Smith@bcm.edu');
