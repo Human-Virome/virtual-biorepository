@@ -6,4 +6,4 @@ virtual-biorepository.Rproj
 docs/
 secrets/
 .positai
-html/app/vbr_metadata_template_v.*
+html/app/vbr_metadata_template_v*
