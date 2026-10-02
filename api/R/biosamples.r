@@ -340,34 +340,37 @@ biosamples_status_check <- function (db) {
 
   if (nrow(pending) == 0) return (invisible())
 
-  sftp_conn <- sftpR::sftp_connect(
-    hostname = "sftp-private.ncbi.nlm.nih.gov",
-    user     = Sys.getenv("NCBI_SFTP_USERNAME"),
-    password = Sys.getenv("NCBI_SFTP_PASSWORD"),
-    .verbose = FALSE )
+  # Not sftpR: it drops the trailing "/" from folder URLs, and NCBI's server
+  # refuses to open a folder as a file.
+  h <- curl::new_handle(
+    userpwd        = paste0(Sys.getenv("NCBI_SFTP_USERNAME"), ":", Sys.getenv("NCBI_SFTP_PASSWORD")),
+    ssh_auth_types = 2L,     # password
+    dirlistonly    = TRUE,   # folder listings are just file names
+    timeout        = 30L )
 
   # One unreadable report shouldn't hold up the rest.
   for (i in seq_len(nrow(pending)))
     tryCatch(
       error = function (e) message("Submission ", pending$submission_name[[i]], ": ", conditionMessage(e)),
-      expr  = biosamples_status_update(db, sftp_conn, pending$hvp_id[[i]], pending$submission_name[[i]]) )
+      expr  = biosamples_status_update(db, h, pending$hvp_id[[i]], pending$submission_name[[i]]) )
 
   invisible()
 }
 
 
-biosamples_status_update <- function (db, sftp_conn, submission_hvp_id, submission_name) {
+biosamples_status_update <- function (db, h, submission_hvp_id, submission_name) {
 
   # NCBI adds report.1.xml, report.2.xml, ... as processing progresses.
   # There are none until NCBI picks up the submission.
-  remote_dir <- paste0(NCBI_SUBMIT_DIR, submission_name, "/")
-  listing    <- sftpR::sftp_list(sftp_conn, remote_dir, .verbose = FALSE)
-  reports    <- grep("^report(\\.[0-9]+)?\\.xml$", listing[['name']], value = TRUE)
+  remote_dir <- paste0("sftp://sftp-private.ncbi.nlm.nih.gov/", NCBI_SUBMIT_DIR, submission_name, "/")
+  listing    <- rawToChar(curl::curl_fetch_memory(remote_dir, handle = h)$content)
+  reports    <- grep("^report(\\.[0-9]+)?\\.xml$", strsplit(listing, "\r?\n")[[1]], value = TRUE)
   if (length(reports) == 0) return (invisible())
 
+  # report.xml is a link to the latest numbered report.
   report_n   <- suppressWarnings(as.integer(sub("^report\\.?([0-9]*)\\.xml$", "\\1", reports)))
   latest     <- reports[order(report_n, na.last = FALSE)][length(reports)]
-  report_xml <- sftpR::sftp_download(sftp_conn, paste0(remote_dir, latest), local_file = NULL, .verbose = FALSE)
+  report_xml <- curl::curl_fetch_memory(paste0(remote_dir, latest), handle = h)$content
   report_xml <- as.character(xml2::read_xml(report_xml))
   report     <- ncbi_report_parse(report_xml)
 
