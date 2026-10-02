@@ -493,10 +493,14 @@
                     elHasCv.style.display = 'none';
                 }
 
-                // --- Examples Check ---
-                if (fieldData.examples && Array.isArray(fieldData.examples) && fieldData.examples.length > 0) {
+                // --- Examples & Suggestions Check ---
+                const examples = [
+                    ...(Array.isArray(fieldData.examples)    ? fieldData.examples    : []),
+                    ...(Array.isArray(fieldData.suggestions) ? fieldData.suggestions : [])
+                ];
+                if (examples.length > 0) {
                     elHasExamples.style.display = '';
-                    elExamples.textContent = fieldData.examples.join('\n');
+                    elExamples.textContent = examples.join('\n');
                 } else {
                     elHasExamples.style.display = 'none';
                 }
