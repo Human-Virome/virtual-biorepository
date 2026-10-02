@@ -92,8 +92,8 @@ api_biosamples_assign <- function (db, hvp_ids) {
   local_xml_file    <- tempfile(); on.exit(unlink(local_xml_file), add = TRUE)
   local_ready_file  <- tempfile(); on.exit(unlink(local_ready_file), add = TRUE)
   submission_name   <- paste0(Sys.Date(), "-", stringi::stri_rand_strings(1,6))
-  remote_xml_file   <- paste0("submit/Test/", submission_name, "/submission.xml")
-  remote_ready_file <- paste0("submit/Test/", submission_name, "/submit.ready")
+  remote_xml_file   <- paste0(NCBI_SUBMIT_DIR, submission_name, "/submission.xml")
+  remote_ready_file <- paste0(NCBI_SUBMIT_DIR, submission_name, "/submit.ready")
   
   # Write to a formatted XML file on disk
   xml2::write_xml(Submission, local_xml_file)
@@ -271,104 +271,138 @@ biosamples_refresh <- function (env) {
 
 
 
-last_checked_at <- Sys.time()
-
-# NCBI statuses after which a submission's report no longer changes.
+# NCBI action statuses after which an action's report no longer changes.
 FINAL_STATUSES <- c("processed-ok", "processed-error", "deleted", "failed")
 
+
+# Reads an NCBI report.<N>.xml into the submission's status and, for each
+# Action (one per BioSample), its SPUID, status, accession, and error.
+ncbi_report_parse <- function (report_xml) {
+
+  SubmissionStatus <- xml2::read_xml(report_xml)
+  Actions          <- xml2::xml_find_all(SubmissionStatus, "Action")
+
+  # Error messages, or all messages when none are errors.
+  messages <- function (Messages) {
+    is_error <- startsWith(xml2::xml_attr(Messages, "severity"), "error") %in% TRUE
+    if (any(is_error)) Messages <- Messages[is_error]
+    if (length(Messages) == 0) return (NA_character_)
+    paste(trimws(xml2::xml_text(Messages)), collapse = "; ")
+  }
+
+  status        <- tolower(xml2::xml_attr(SubmissionStatus, "status"))
+  message       <- messages(xml2::xml_find_all(SubmissionStatus, "Message"))
+  action_status <- tolower(xml2::xml_attr(Actions, "status"))
+  accession     <- xml2::xml_attr(xml2::xml_find_first(Actions, ".//Object[@accession]"), "accession")
+
+  # Failed actions may lack an Object, but their action_id is
+  # "<submission_id>-<spuid>", with the SPUID lowercased.
+  spuid <- data.table::fcoalesce(
+    xml2::xml_attr(xml2::xml_find_first(Actions, ".//Object[@spuid]"), "spuid"),
+    sub("^SUB[0-9]+-", "", xml2::xml_attr(Actions, "action_id")) )
+
+  # A finished action without an accession failed, perhaps for a reason
+  # given only for the whole submission.
+  error <- vapply(seq_along(Actions), function (i) {
+    if (!action_status[[i]] %in% FINAL_STATUSES || !is.na(accession[[i]])) return (NA_character_)
+    data.table::fcoalesce(
+      messages(xml2::xml_find_all(Actions[[i]], ".//Message")),
+      message,
+      paste("NCBI status:", action_status[[i]]) )
+  }, character(1))
+
+  list(
+    status   = status,
+
+    # The submission is "processed-error" as soon as one action fails, even
+    # while others are still processing.
+    complete = status %in% c("failed", "deleted") ||
+               (length(Actions) > 0 && all(action_status %in% FINAL_STATUSES)),
+
+    message  = message,
+    actions  = data.frame(spuid, status = action_status, accession, error) )
+}
+
+
+
+last_checked_at <- Sys.time()
+
+# Records the BioSample accessions or errors in NCBI's reports for every
+# pending submission, regardless of user (poor-man's cron job).
 biosamples_status_check <- function (db) {
 
   # Throttle scraping NCBI's FTP server
   if (difftime(Sys.time(), last_checked_at, units = "secs") < 10) return (invisible())
   last_checked_at <<- Sys.time()
-  
-  
-  # Process all submissions regardless of the active user (poor-man's cron job)
-  sql <- "SELECT submission_name FROM `submissions` WHERE complete = 'no'"
-  pending_submissions <- db_query(db, sql, 'BioStChk1', simplify = FALSE)
-  
-  if (nrow(pending_submissions) == 0) return (invisible())
-  
+
+  sql     <- "SELECT hvp_id, submission_name FROM `submissions` WHERE complete = 'no'"
+  pending <- db_query(db, sql, 'BioStChk1', simplify = FALSE)
+
+  if (nrow(pending) == 0) return (invisible())
+
   sftp_conn <- sftpR::sftp_connect(
-    hostname = "sftp-private.ncbi.nlm.nih.gov", 
+    hostname = "sftp-private.ncbi.nlm.nih.gov",
     user     = Sys.getenv("NCBI_SFTP_USERNAME"),
-    password = Sys.getenv("NCBI_SFTP_PASSWORD") )
-  
-  # character(0), not c(): `[[<-` on NULL would build a list, which RMariaDB rejects.
-  accession_updates <- character(0)
-  error_updates     <- character(0)
-  
-  for (submission_name in pending_submissions$submission_name) {
-    local({
-      
-      # NCBI adds report.1.xml, report.2.xml, ... as processing progresses.
-      # There are none until NCBI picks up the submission.
-      remote_dir <- paste0("submit/Test/", submission_name, "/")
-      listing    <- tryCatch(sftpR::sftp_list(sftp_conn, remote_dir, .verbose = FALSE), error = function(e) NULL)
-      reports    <- grep("^report(\\.[0-9]+)?\\.xml$", listing[['name']], value = TRUE)
-      if (length(reports) == 0) return()
+    password = Sys.getenv("NCBI_SFTP_PASSWORD"),
+    .verbose = FALSE )
 
-      report_n    <- suppressWarnings(as.integer(sub("^report\\.?([0-9]*)\\.xml$", "\\1", reports)))
-      remote_file <- paste0(remote_dir, reports[order(report_n, na.last = FALSE)][length(reports)])
-      local_file  <- tempfile(fileext = ".xml")
-      on.exit(unlink(local_file))
+  # One unreadable report shouldn't hold up the rest.
+  for (i in seq_len(nrow(pending)))
+    tryCatch(
+      error = function (e) message("Submission ", pending$submission_name[[i]], ": ", conditionMessage(e)),
+      expr  = biosamples_status_update(db, sftp_conn, pending$hvp_id[[i]], pending$submission_name[[i]]) )
 
-      dl_res <- tryCatch({
-        sftpR::sftp_download(sftp_conn, remote_file, local_file)
-        TRUE
-      }, error = function(e) FALSE)
+  invisible()
+}
 
-      if (!dl_res) return()
 
-      SubmissionStatus <- xml2::read_xml(local_file)
-      Actions          <- xml2::xml_find_all(SubmissionStatus, ".//Action")
+biosamples_status_update <- function (db, sftp_conn, submission_hvp_id, submission_name) {
 
-      # Keep polling until NCBI reports a final status (e.g. not "processing").
-      status     <- tolower(xml2::xml_attr(SubmissionStatus, 'status'))
-      complete   <- if (is.na(status) || status %in% FINAL_STATUSES) 'yes' else 'no'
-      report_xml <- as.character(SubmissionStatus)
+  # NCBI adds report.1.xml, report.2.xml, ... as processing progresses.
+  # There are none until NCBI picks up the submission.
+  remote_dir <- paste0(NCBI_SUBMIT_DIR, submission_name, "/")
+  listing    <- sftpR::sftp_list(sftp_conn, remote_dir, .verbose = FALSE)
+  reports    <- grep("^report(\\.[0-9]+)?\\.xml$", listing[['name']], value = TRUE)
+  if (length(reports) == 0) return (invisible())
 
-      # Skip unchanged reports; every UPDATE adds a system-versioned history row.
+  report_n   <- suppressWarnings(as.integer(sub("^report\\.?([0-9]*)\\.xml$", "\\1", reports)))
+  latest     <- reports[order(report_n, na.last = FALSE)][length(reports)]
+  report_xml <- sftpR::sftp_download(sftp_conn, paste0(remote_dir, latest), local_file = NULL, .verbose = FALSE)
+  report_xml <- as.character(xml2::read_xml(report_xml))
+  report     <- ncbi_report_parse(report_xml)
+
+  # Match case-insensitively, since SPUIDs from action IDs are lowercased.
+  sql       <- "SELECT sample_name FROM biosamples WHERE submission_hvp_id = ?"
+  samples   <- db_query(db, sql, 'BioStChk2', list(submission_hvp_id), simplify = FALSE)[['sample_name']]
+  j         <- match(tolower(samples), tolower(report$actions$spuid))
+  accession <- report$actions$accession[j]
+  error     <- report$actions$error[j]
+
+  # Once complete, every sample has either an accession or an error.
+  if (report$complete)
+    error[is.na(accession) & is.na(error)] <- data.table::fcoalesce(report$message, paste("NCBI status:", report$status))
+
+  # The report and the samples it describes are recorded together, so an
+  # unchanged report means there's nothing new.
+  DBI::dbWithTransaction(db, {
+
+    # Skip unchanged reports; every UPDATE adds a system-versioned history row.
+    sql <- "
+      UPDATE submissions
+      SET report_xml = ?, report_timestamp = CURRENT_TIMESTAMP, complete = ?
+      WHERE hvp_id = ? AND NOT (report_xml <=> ?)"
+    complete <- if (report$complete) 'yes' else 'no'
+    changed  <- db_query(db, sql, 'BioStChk3', list(report_xml, complete, submission_hvp_id, report_xml))
+
+    k <- which(!is.na(accession) | !is.na(error))
+    if (changed > 0 && length(k) > 0) {
       sql <- "
-        UPDATE submissions
-        SET report_xml = ?, report_timestamp = CURRENT_TIMESTAMP, complete = ?
-        WHERE submission_name = ? AND NOT (report_xml <=> ?)"
-      changed <- db_query(db, sql, 'BioStChk_Sub', list(report_xml, complete, submission_name, report_xml))
-      if (changed == 0) return()
+        UPDATE biosamples SET biosample_accession = ?, submission_error = ?
+        WHERE sample_name = ? AND submission_hvp_id = ?"
+      db_query(db, sql, 'BioStChk4', list(accession[k], error[k], samples[k], rep(submission_hvp_id, length(k))))
+    }
+  })
 
-      for (i in seq_along(Actions)) {
-
-        Action <- Actions[[i]]
-        Object <- xml2::xml_find_first(Action, ".//Object")
-
-        accession   <- xml2::xml_attr(Object, 'accession')
-        sample_name <- xml2::xml_attr(Object, 'spuid')
-
-        if (!is.na(sample_name)) {
-          if (isTRUE(!is.na(accession) & startsWith(accession, "SAMN"))) {
-            accession_updates[[sample_name]] <<- accession
-          }
-          else if (tolower(xml2::xml_attr(Action, 'status')) %in% FINAL_STATUSES) {
-            messages <- xml2::xml_text(xml2::xml_find_all(Action, ".//Message"))
-            if (length(messages) == 0) messages <- paste("NCBI status:", xml2::xml_attr(Action, 'status'))
-            error_updates[[sample_name]] <<- paste(messages, collapse = "; ")
-          }
-        }
-      }
-
-    })
-  }
-  
-  if (length(accession_updates) > 0) {
-    sql <- "UPDATE biosamples SET biosample_accession = ? WHERE sample_name = ?"
-    db_query(db, sql, 'BioStChk3', list(unname(accession_updates), names(accession_updates)))
-  }
-  
-  if (length(error_updates) > 0) {
-    sql <- "UPDATE biosamples SET submission_error = ? WHERE sample_name = ?"
-    db_query(db, sql, 'BioStChk4', list(unname(error_updates), names(error_updates)))
-  }
-  
   invisible()
 }
 

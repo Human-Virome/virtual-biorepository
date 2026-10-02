@@ -10,10 +10,6 @@ samples_before_insert <- function (env) {
   failing <- is_control & is.na(df[['negative_control_type']]) & is.na(df[['positive_control_type']])
   errors  <- c(errors, condition_error(env, 'negative_control_type', failing))
 
-  # Either may be "unavailable" (now NA), but at least one needs a real value.
-  failing <- is.na(df[['anatomical_site']]) & is.na(df[['body_product']])
-  errors  <- c(errors, condition_error(env, 'body_product', failing))
-
   # Only experimental samples link to their controls.
   if (length(i <- head(which(is_control & !is.na(df[['control_sample_uid']]))))) {
     msg    <- "%s:%d: `control_sample_uid` must be blank when `is_control_sample` is \"yes\"."

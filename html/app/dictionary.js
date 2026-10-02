@@ -1663,9 +1663,9 @@ const vbrDictionary = {
         },
         "anatomical_site":{
             "def":"Uberon Ontology ID or Cell Ontology ID for the anatomical structure from which sample was obtained. Use the most specific term that applies to your data from the Uberon ontology \"anatomical structure\" branch. Only the ID (e.g. \"UBERON:0002372\") is needed; the rest of the text is ignored/discarded.",
-            "fmt":["condition", "ontology", "unavailable"],
+            "fmt":["condition", "ontology"],
             "condition":{
-              "description":"At least one of `anatomical_site` or `body_product` must be provided (other than \"unavailable\")."},
+              "description":"At least one of `anatomical_site` or `body_product` must be provided."},
             "ontology":["UBERON:", "CL:"],
             "urls":{"Uberon Ontology \"anatomical structure\" branch":"https://www.ebi.ac.uk/ols4/ontologies/uberon/classes/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FUBERON_0000061?lang=en"},
             "examples":["UBERON:0000165", "CL:0000082"],
@@ -1852,9 +1852,10 @@ const vbrDictionary = {
         },
         "body_product":{
             "def":"Uberon ontology ID for the substance collected from the participant, e.g. stool, mucus, urine. Use any term from the Uberon ontology \"organism substance\" branch. Only the ID (e.g. \"UBERON:0001988\") is needed; the rest of the text is ignored/discarded.",
-            "fmt":["condition", "ontology", "unavailable"],
+            "fmt":["condition", "ontology"],
             "condition":{
-              "description":"At least one of `anatomical_site` or `body_product` must be provided (other than \"unavailable\")."},
+              "description":"At least one of `anatomical_site` or `body_product` must be provided.",
+              "when_unset":"anatomical_site"},
             "ontology":["UBERON:"],
             "urls":{
               "Uberon Ontology \"organism substance\" branch":"https://www.ebi.ac.uk/ols4/ontologies/uberon/classes/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FUBERON_0000463"

@@ -49,7 +49,7 @@ chmod 600 /etc/oauth2-proxy.env
 # Change these values.
 echo 'NCBI_SFTP_USERNAME="your_ncbi_sftp_username"' >  /etc/httpuv.env
 echo 'NCBI_SFTP_PASSWORD="your_ncbi_sftp_password"' >> /etc/httpuv.env
-echo 'ENTREZ_KEY="your_ncbi_eutils_api_key"         >> /etc/httpuv.env
+echo 'ENTREZ_KEY="your_ncbi_eutils_api_key"'        >> /etc/httpuv.env
 sudo chown root:www-data /etc/httpuv.env
 chmod 640 /etc/httpuv.env
 

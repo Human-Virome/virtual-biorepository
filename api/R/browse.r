@@ -40,12 +40,16 @@ api_browse_biosamples   <- function (db) {
     tolower(xml2::xml_attr(xml2::read_xml(x), "status"))
   }, character(1), USE.NAMES = FALSE)
 
+  # A pending "processed-error" submission has samples still processing.
+  sub_status[sub_status == "processed-error"] <- "processing"
+
   df <- res$data
   i  <- match(df$submission_hvp_id, sub$hvp_id)
   df$submission_status <- data.table::fcase(
     !is.na(df$biosample_accession) & is.na(i), "provided",
     !is.na(df$biosample_accession),            "accessioned",
     is.na(i),                                  "not submitted",
+    !is.na(df$submission_error),               "failed",
     sub$complete[i] == "yes",                  "failed",
     default = sub_status[i] )
 

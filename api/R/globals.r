@@ -14,6 +14,9 @@ MODE_SUFFIXES <- c(
 
 FREQ_SUFFIXES <- c("daily", "weekly", "occasionally", "prior_months", "prior_years")
 
+# Folder on NCBI's SFTP server for BioSample submissions and their reports.
+NCBI_SUBMIT_DIR <- "submit/Test/"
+
 #  `files.data_type` terms requiring sequencing/SRA metadata, vs. those that
 #  are secondary files produced by an analysis.
 SEQUENCE_DATA_TYPES <- c("scrubbed_sequence_reads", "unscrubbed_sequence_reads")
