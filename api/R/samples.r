@@ -33,15 +33,17 @@ samples_before_insert <- function (env) {
   }
   env$df[['collection_day_of_week']] <- data.table::fcoalesce(df[['collection_day_of_week']], dow)
 
-  # `participant_uid` must agree with the participant recorded for `event_uid`.
+  # `event_uid` must be defined for this sample's `participant_uid` (an
+  # `event_uid` is only unique per participant).
   has_event <- !is.na(df[['event_uid']])
   if (any(has_event)) {
-    sql    <- "SELECT event_uid, participant_uid FROM participant_event_attributes"
+    sql    <- "SELECT participant_uid, event_uid FROM participant_event_attributes"
     events <- db_query(env$db, sql, 'SaBfIn1', simplify = FALSE)
-    linked <- events[['participant_uid']][match(df[['event_uid']], events[['event_uid']])]
-    if (length(i <- head(which(has_event & linked != df[['participant_uid']])))) {
-      msg    <- "%s:%d: `participant_uid` \"%s\" does not match the participant of event \"%s\" (\"%s\")."
-      errors <- c(errors, sprintf(msg, env$tbl, i + 1, df[['participant_uid']][i], df[['event_uid']][i], linked[i]))
+    known  <- paste(events[['participant_uid']], events[['event_uid']], sep = "\t")
+    pairs  <- paste(df[['participant_uid']], df[['event_uid']], sep = "\t")
+    if (length(i <- head(which(has_event & !pairs %in% known)))) {
+      msg    <- "%s:%d: `event_uid` \"%s\" is not defined for `participant_uid` \"%s\"."
+      errors <- c(errors, sprintf(msg, env$tbl, i + 1, df[['event_uid']][i], df[['participant_uid']][i]))
     }
   }
 

@@ -157,6 +157,7 @@ biosamples_refresh <- function (env) {
   # inherit the event of their parent (or grandparent). Composite samples with
   # multiple parents have no single event. Samples from multiple participants
   # have no single host subject, but keep `host` if their participants share a taxon.
+  # An `event_uid` is only unique per participant, so events join on both.
   sql <- "
       SELECT
         samples.sample_uid                    as sample_name,
@@ -208,7 +209,8 @@ biosamples_refresh <- function (env) {
         LEFT JOIN biosamples                   ON biosamples.sample_name = samples.sample_uid
         LEFT JOIN samples AS parent            ON parent.sample_uid      = samples.parent_sample_uid
         LEFT JOIN samples AS grandparent       ON grandparent.sample_uid = parent.parent_sample_uid
-        LEFT JOIN participant_event_attributes ON participant_event_attributes.event_uid = COALESCE(samples.event_uid, parent.event_uid, grandparent.event_uid)
+        LEFT JOIN participant_event_attributes ON participant_event_attributes.event_uid       = COALESCE(samples.event_uid, parent.event_uid, grandparent.event_uid)
+                                              AND participant_event_attributes.participant_uid = samples.participant_uid
         LEFT JOIN participants           ON participants.participant_uid = samples.participant_uid
 
       WHERE biosamples.sample_name IS NULL 
