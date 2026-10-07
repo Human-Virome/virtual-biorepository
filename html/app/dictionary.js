@@ -1616,10 +1616,9 @@ const vbrDictionary = {
             "def":"Lab, group, or facility within a grant-level project where the sample was collected and/or processed. This should be the group responsible for metadata about the sample.",
             "fmt":["required", "cv"],
             "cv":[
-              "anderson", "baldridge", "bhatt", "bittinger", "bushman", "cmmr", 
-              "dantas", "de melo-martin", "dittmer", "emerson", "foxman", "gilber", 
-              "glmc", "ismagilov", "lareau", "li", "mason", "moustafa", "naik", 
-              "sabeti", "snyder", "tcgb", "thoreen", "yracheta", "zhou"]
+              "anderson", "baldridge", "bhatt", "bittinger", "bushman", "cmmr", "dantas", 
+              "de melo-martin", "dittmer", "emerson", "foxman", "glmc", "lareau", "li", 
+              "mason", "moustafa", "naik", "sabeti", "snyder", "tcgb", "yracheta", "zhou"]
         },
         "sample_type":{
             "def":"Indicates the composition of the sample - describes if the sample comes from one participant or is a mixture of material from more than one participant. This field can also include terms for various in vitro or cell culture systems. Contact the HVPCC if you need additional vocabulary terms for this field.",
@@ -2079,10 +2078,9 @@ const vbrDictionary = {
             "def":"The lab that performed the library preparation protocol on the sample.",
             "fmt":["required", "cv"],
             "cv":[
-              "anderson", "baldridge", "bhatt", "bittinger", "bushman", "cmmr", 
-              "dantas", "de melo-martin", "dittmer", "emerson", "foxman", "gilber", 
-              "glmc", "ismagilov", "lareau", "li", "mason", "moustafa", "naik", 
-              "sabeti", "snyder", "tcgb", "thoreen", "yracheta", "zhou"]
+              "anderson", "baldridge", "bhatt", "bittinger", "bushman", "cmmr", "dantas", 
+              "de melo-martin", "dittmer", "emerson", "foxman", "glmc", "lareau", "li", 
+              "mason", "moustafa", "naik", "sabeti", "snyder", "tcgb", "yracheta", "zhou"]
         },
         "library_aliquot":{
             "def":"Is this an aliquot, or subsample, of the original library or processed sample?",
