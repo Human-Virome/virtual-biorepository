@@ -100,15 +100,15 @@ db_insert <- function (db, tbl, df, err_code) {
   
   prefix <- switch(
     EXPR = tbl,
-    'participants' = "hvpp",
-    'events'       = "hvpe",
-    'samples'      = "hvps",
-    'libraries'    = "hvpl",
-    'analyses'     = "hvpa",
-    'files'        = "hvpf",
-    'submissions'  = "hvpu",
-    'biosamples'   = "hvpb",
-    'sra'          = "hvpr",
+    'participants'                 = "hvpp",
+    'participant_event_attributes' = "hvpe",
+    'samples'                      = "hvps",
+    'libraries'                    = "hvpl",
+    'analyses'                     = "hvpa",
+    'files'                        = "hvpf",
+    'submissions'                  = "hvpu",
+    'biosamples'                   = "hvpb",
+    'sra'                          = "hvpr",
     stop('invalid table name: ', tbl) )
 
   # Generate 5 extra IDs in case of collisions.

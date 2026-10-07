@@ -175,40 +175,40 @@ biosamples_refresh <- function (env) {
           SELECT MIN(p.taxon) FROM participants AS p
           WHERE LOCATE(CONCAT(';', p.participant_uid, ';'), CONCAT(';', samples.participant_uid, ';')) > 0
           HAVING COUNT(DISTINCT p.taxon) = 1 )) as host,
-        participants.race                     as race,
-        participants.ethnicity                as ethnicity,
-        participants.sex_at_birth             as host_sex_at_birth,
-        participants.family_medical_history   as medic_hist_perform,
+        participants.race                       as race,
+        participants.ethnicity                  as ethnicity,
+        participants.sex_at_birth               as host_sex_at_birth,
+        participants.family_medical_history     as medic_hist_perform,
         participants.mental_health_collected    as mental_health_collected,
         participants.medication_info_collected  as medication_info_collected,
         participants.alcohol_activity_collected as alcohol_activity_collected,
         participants.tobacco_use_collected      as tobacco_use_collected,
         participants.drug_use_collected         as drug_use_collected,
 
-        events.event_uid                      as sampling_event_id,
-        COALESCE(events.state_or_province_of_residence, 'not provided') as geo_loc_name,
-        events.converted_age_years            as host_age,
-        events.converted_height_cm            as host_height,
-        events.converted_weight_kg            as host_tot_mass,
-        events.bmi                            as host_body_mass_index,
-        NULL                                  as pet_farm_animal,
-        events.animal_exposure                as _animal_exposure,
-        events.exposure_animal_type           as _exposure_animal_type,
-        events.occupation                     as host_occupation,
-        events.cigarette_smoking              as smoker,
-        events.oral_health                    as oral_health_collected,
-        events.dental_exam                    as dental_exam,
-        events.current_geography              as current_geography,
-        events.diet                           as diet_collected,
-        events.wellness_information_available as wellness_collected,
-        events.social_determinants_of_health  as social_det_collected,
-        events.time_last_toothbrush           as time_last_toothbrush
+        participant_event_attributes.event_uid                      as sampling_event_id,
+        COALESCE(participant_event_attributes.state_or_province_of_residence, 'not provided') as geo_loc_name,
+        participant_event_attributes.converted_age_years            as host_age,
+        participant_event_attributes.converted_height_cm            as host_height,
+        participant_event_attributes.converted_weight_kg            as host_tot_mass,
+        participant_event_attributes.bmi                            as host_body_mass_index,
+        NULL                                                        as pet_farm_animal,
+        participant_event_attributes.animal_exposure                as _animal_exposure,
+        participant_event_attributes.exposure_animal_type           as _exposure_animal_type,
+        participant_event_attributes.occupation                     as host_occupation,
+        participant_event_attributes.cigarette_smoking              as smoker,
+        participant_event_attributes.oral_health                    as oral_health_collected,
+        participant_event_attributes.dental_exam                    as dental_exam,
+        participant_event_attributes.current_geography              as current_geography,
+        participant_event_attributes.diet                           as diet_collected,
+        participant_event_attributes.wellness_information_available as wellness_collected,
+        participant_event_attributes.social_determinants_of_health  as social_det_collected,
+        participant_event_attributes.time_last_toothbrush           as time_last_toothbrush
         
       FROM samples
-        LEFT JOIN biosamples             ON biosamples.sample_name = samples.sample_uid
-        LEFT JOIN samples AS parent      ON parent.sample_uid      = samples.parent_sample_uid
-        LEFT JOIN samples AS grandparent ON grandparent.sample_uid = parent.parent_sample_uid
-        LEFT JOIN events                 ON events.event_uid       = COALESCE(samples.event_uid, parent.event_uid, grandparent.event_uid)
+        LEFT JOIN biosamples                   ON biosamples.sample_name = samples.sample_uid
+        LEFT JOIN samples AS parent            ON parent.sample_uid      = samples.parent_sample_uid
+        LEFT JOIN samples AS grandparent       ON grandparent.sample_uid = parent.parent_sample_uid
+        LEFT JOIN participant_event_attributes ON participant_event_attributes.event_uid = COALESCE(samples.event_uid, parent.event_uid, grandparent.event_uid)
         LEFT JOIN participants           ON participants.participant_uid = samples.participant_uid
 
       WHERE biosamples.sample_name IS NULL 

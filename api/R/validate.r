@@ -77,7 +77,8 @@ validate_table <- function (env) {
         'primary'    = validate_primary(env, field),
         'suffix'     = validate_suffix(env, field),
         'number'     = validate_number(env, field),
-        'date'       = validate_date(env, field),
+        'text'       = validate_text(env, field),
+        'date'     = validate_date(env, field),
         'YYYY-MM-DD' = validate_yyyy_mm_dd(env, field),
         'YYYY-MM'    = validate_yyyy_mm(env, field),
         'md5'        = validate_md5(env, field),
@@ -554,6 +555,27 @@ validate_number <- function (env, field) {
   env$df[[field]] <- x_num
   
   return(errors)   
+}
+
+
+
+validate_text <- function (env, field) {
+
+  errors <- c()
+
+  maxlen <- unlist(DICT[[env$tbl]][[field]][['maxlen']])
+  if (is.null(maxlen)) return (errors)
+
+  x    <- env$df[[field]]
+  size <- nchar(x, type = "chars", allowNA = TRUE)
+
+  if (length(i <- head(which(!is.na(size) & size > maxlen)))) {
+    msg    <- "%s:%d: `%s` exceeds the maximum length of %d characters (%d): \"%s…\""
+    msg    <- sprintf(msg, env$tbl, i + 1, field, as.integer(maxlen), size[i], substr(x[i], 1, 40))
+    errors <- c(errors, msg)
+  }
+
+  return(errors)
 }
 
 

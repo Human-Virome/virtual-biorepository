@@ -153,7 +153,7 @@ const vbrDictionary = {
             "cv":["yes", "no"]
         }
     },
-    "events":{
+    "participant_event_attributes":{
         "participant_uid":{
             "def":"A previously defined participant_uid for which this event information was gathered.",
             "fmt":["required", "uid", "ref", "hvp"],
@@ -161,8 +161,8 @@ const vbrDictionary = {
             "examples":["vast_subj_294", "wu_wylie_p827"]
         },
         "event_uid":{
-            "def":"HVP-unique event identifier. See below for UID format.",
-            "fmt":["required", "uid", "primary"],
+            "def":"Event at which participant was assayed. This value must be the same for any sampling that occured at the same event.",
+            "fmt":["required", "uid"],
             "examples":["vast_subj_294_t1", "vast_subj_294_t2", "suny_e101"]
         },
         "age":{
@@ -1596,6 +1596,12 @@ const vbrDictionary = {
             "ontology":["SAMN", "SAMEA", "SAMD"],
             "examples":["SAMN12345678"]
         },
+        "participant_uid":{
+            "def":"Identifier of the participant (s) from which the sample came. Participant id must be unique within a project. This participant id should have associated metadata from the Participant Metadata dictionary. For composite samples, indicate identifers of all participants from which the composite sample was built, separate values with a semicolon. If this is a mock or synthetic sample, put 'mock' in this field",
+            "fmt":["required", "uid", "ref", "multiple"],
+            "ref":{"participants":"participant_uid"},
+            "examples":["vast_subj_294", "wu_wylie_p827;wu_wylie_p828;", "mock"]
+        },
         "event_uid":{
             "def":"A previously defined event_uid at which this sample was collected. This value must be the same for any sampling that occurred at the same event. May be left blank for subsamples (which provide `parent_sample_uid`), for composite samples (`sample_type` \"composite_*\"), and for mock samples (`participant_uid` \"mock\").",
             "fmt":["condition", "uid", "ref"],
@@ -1603,7 +1609,7 @@ const vbrDictionary = {
               "description":"`event_uid` is required unless `parent_sample_uid` is provided, `sample_type` is \"composite_*\", or `participant_uid` is \"mock\".",
               "when_unset":"parent_sample_uid",
               "when_false":{"sample_type":"^composite_", "participant_uid":"^mock$"}},
-            "ref":{"events":"event_uid"},
+            "ref":{"participant_event_attributes":"event_uid"},
             "examples":["vast_subj_294_t1", "vast_subj_294_t2", "suny_e101"]
         },
         "lab":{
@@ -1611,15 +1617,9 @@ const vbrDictionary = {
             "fmt":["required", "cv"],
             "cv":[
               "anderson", "baldridge", "bhatt", "bittinger", "bushman", "cmmr", 
-              "dantas", "de melo-martin", "dittmer", "emerson", "foxman", "glmc", 
-              "lareau", "li", "mason", "moustafa", "naik", "sabeti", "snyder", 
-              "tcgb", "yracheta", "zhou"]
-        },
-        "participant_uid":{
-            "def":"Identifier of the participant (s) from which the sample came. Participant id must be unique within a project. This participant id should have associated metadata from the Participant Metadata dictionary. For composite samples, indicate identifers of all participants from which the composite sample was built, separate values with a semicolon. If this is a mock or synthetic sample, put 'mock' in this field",
-            "fmt":["required", "uid", "ref", "multiple"],
-            "ref":{"participants":"participant_uid"},
-            "examples":["vast_subj_294", "wu_wylie_p827;wu_wylie_p828;", "mock"]
+              "dantas", "de melo-martin", "dittmer", "emerson", "foxman", "gilber", 
+              "glmc", "ismagilov", "lareau", "li", "mason", "moustafa", "naik", 
+              "sabeti", "snyder", "tcgb", "thoreen", "yracheta", "zhou"]
         },
         "sample_type":{
             "def":"Indicates the composition of the sample - describes if the sample comes from one participant or is a mixture of material from more than one participant. This field can also include terms for various in vitro or cell culture systems. Contact the HVPCC if you need additional vocabulary terms for this field.",
@@ -2080,9 +2080,9 @@ const vbrDictionary = {
             "fmt":["required", "cv"],
             "cv":[
               "anderson", "baldridge", "bhatt", "bittinger", "bushman", "cmmr", 
-              "dantas", "de melo-martin", "dittmer", "emerson", "foxman", "glmc", 
-              "lareau", "li", "mason", "moustafa", "naik", "sabeti", "snyder", 
-              "tcgb", "yracheta", "zhou"]
+              "dantas", "de melo-martin", "dittmer", "emerson", "foxman", "gilber", 
+              "glmc", "ismagilov", "lareau", "li", "mason", "moustafa", "naik", 
+              "sabeti", "snyder", "tcgb", "thoreen", "yracheta", "zhou"]
         },
         "library_aliquot":{
             "def":"Is this an aliquot, or subsample, of the original library or processed sample?",
@@ -2099,13 +2099,16 @@ const vbrDictionary = {
             "examples":["cmmr_sam889_pool8391", "ucsf_sam183_miseq1", "ucdavis_neg_ctrl_extraction", "penn_lib001"]
         },
         "technique":{
-            "def":"This is a free text field. Please use the suggested terms below. If none of these terms work, you may use a new term but please notify the HVPCC of the new term(s) added. Please keep the terms general, and exclud version details.",
+            "def":"Technique performed to create the library/processed sample. This is a free text field. Please use the suggested root terms below, and add on a version or more specific details. If none of these terms work, you may use a new root term but please notify the HVPCC of the new term(s) added.",
             "fmt":["required", "text"],
+            "maxlen":100,
             "suggestions":[
               "Twist CVRP", "WashU ViroCap", "Twist HVP Human Tropic Virus Panel", 
               "10X Genomics Visium", "10X Genomics Xenium", 
               "Bruker Geomx", "Bruker Cosmx", 
-              "Singular Genomics G4x", "Slide-seq", "Stereo-seq" ]
+              "Singular Genomics G4x", "Slide-seq", "Stereo-seq" ],
+            "examples":[
+              "Twist CVRP v1.5", "Slide-seq v2", "WashU ViroCap 2025" ]
         },
         "subspecimen_type":{
             "def":"A term to describe the nature of the sample to differentiate between processes focusing on single cells or nuclei and processes that operate on many cells in a mixture.",
@@ -2168,8 +2171,7 @@ const vbrDictionary = {
             "condition":{
               "description":"Required for sequence data."},
             "cv":[
-              "GENOMIC", "TRANSCRIPTOMIC", "METAGENOMIC", "METATRANSCRIPTOMIC", "SYNTHETIC", 
-              "VIRAL RNA", "GENOMIC SINGLE CELL", "TRANSCRIPTOMIC SINGLE CELL", "OTHER" ]
+              "GENOMIC", "TRANSCRIPTOMIC", "METAGENOMIC", "METATRANSCRIPTOMIC", "SYNTHETIC" ]
         },
         "library_selection":{
             "def":"The method used to get the nucleic acid sample that will be sequenced, for example RANDOM (random shearing of nucleic acid), PolyA (selection of mRNAs based on binding to polyA tails).",

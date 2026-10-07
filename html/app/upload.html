@@ -447,6 +447,11 @@
                               desc = `Must include ${prefixText} ${prefixHtml}`;
                           }
                           
+                          // Replace the default length limit with the field's own `maxlen`.
+                          if (f === 'text' && Number.isInteger(fieldData.maxlen)) {
+                              desc = `Accepts freeform text, up to ${fieldData.maxlen.toLocaleString('en-US')} characters in length.`;
+                          }
+
                           li.innerHTML = `<strong>${f}</strong>: ${desc}`;
                           elFmtList.appendChild(li);
                         }

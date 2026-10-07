@@ -36,7 +36,7 @@ samples_before_insert <- function (env) {
   # `participant_uid` must agree with the participant recorded for `event_uid`.
   has_event <- !is.na(df[['event_uid']])
   if (any(has_event)) {
-    sql    <- "SELECT event_uid, participant_uid FROM events"
+    sql    <- "SELECT event_uid, participant_uid FROM participant_event_attributes"
     events <- db_query(env$db, sql, 'SaBfIn1', simplify = FALSE)
     linked <- events[['participant_uid']][match(df[['event_uid']], events[['event_uid']])]
     if (length(i <- head(which(has_event & linked != df[['participant_uid']])))) {

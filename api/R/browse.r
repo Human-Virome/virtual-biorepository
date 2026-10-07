@@ -14,12 +14,12 @@ browse_db_table <- function (db, table) {
   return(list(data = res))
 }
 
-api_browse_participants <- function (db) { browse_db_table(db, 'participants') }
-api_browse_events       <- function (db) { browse_db_table(db, 'events')       }
-api_browse_samples      <- function (db) { browse_db_table(db, 'samples')      }
-api_browse_libraries    <- function (db) { browse_db_table(db, 'libraries')    }
-api_browse_analyses     <- function (db) { browse_db_table(db, 'analyses')     }
-api_browse_files        <- function (db) { browse_db_table(db, 'files')        }
+api_browse_participants <- function (db) { browse_db_table(db, 'participants')                 }
+api_browse_events       <- function (db) { browse_db_table(db, 'participant_event_attributes') }
+api_browse_samples      <- function (db) { browse_db_table(db, 'samples')                      }
+api_browse_libraries    <- function (db) { browse_db_table(db, 'libraries')                    }
+api_browse_analyses     <- function (db) { browse_db_table(db, 'analyses')                     }
+api_browse_files        <- function (db) { browse_db_table(db, 'files')                        }
 api_browse_sra          <- function (db) {
   biosamples_status_check(db)
   sra_sync_biosamples(db)

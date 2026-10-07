@@ -83,12 +83,12 @@ ingest_delim_file <- function (db, file) {
     stop('No data records were found in the uploaded file.')
   
   env$tbl <- {
-    if      (hasName(env$df, 'taxon'))                        { 'participants' }
-    else if (any(hasName(env$df, c('age', 'age_range'))))     { 'events'       }
-    else if (hasName(env$df, 'sample_type'))                  { 'samples'      }
-    else if (hasName(env$df, 'library_prep_lab'))             { 'libraries'    }
-    else if (hasName(env$df, 'analysis_description'))         { 'analyses'     }
-    else if (hasName(env$df, 'md5_checksum'))                 { 'files'        }
+    if      (hasName(env$df, 'taxon'))                    { 'participants'                 }
+    else if (any(hasName(env$df, c('age', 'age_range')))) { 'participant_event_attributes' }
+    else if (hasName(env$df, 'sample_type'))              { 'samples'                      }
+    else if (hasName(env$df, 'library_prep_lab'))         { 'libraries'                    }
+    else if (hasName(env$df, 'analysis_description'))     { 'analyses'                     }
+    else if (hasName(env$df, 'md5_checksum'))             { 'files'                        }
     else { stop('Required headers are missing.') }
   }
   
@@ -109,10 +109,10 @@ ingest_table <- function (env) {
   # Derived fields and checks too complex for the dictionary.
   switch(
     EXPR = env$tbl,
-    'events'       = events_before_insert(env),
-    'samples'      = samples_before_insert(env),
-    'libraries'    = libraries_before_insert(env),
-    'files'        = files_before_insert(env) )
+    'participant_event_attributes' = events_before_insert(env),
+    'samples'                      = samples_before_insert(env),
+    'libraries'                    = libraries_before_insert(env),
+    'files'                        = files_before_insert(env) )
 
   db_insert(env$db, env$tbl, env$df, 'InTbl1')
 

@@ -44,9 +44,9 @@ CREATE TABLE IF NOT EXISTS participants (
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 # hvpeXXXXXX
-CREATE TABLE IF NOT EXISTS events (
-  event_uid                               VARCHAR(255) NOT NULL UNIQUE,
+CREATE TABLE IF NOT EXISTS participant_event_attributes (
   participant_uid                         VARCHAR(255) NOT NULL,
+  event_uid                               VARCHAR(255) NOT NULL,
   age                                     FLOAT,
   age_units                               VARCHAR(255),
   converted_age_years                     FLOAT,
@@ -102,15 +102,16 @@ CREATE TABLE IF NOT EXISTS events (
   `user`                                  VARCHAR(255) NOT NULL,
   INDEX (`user`),
   INDEX (participant_uid),
+  UNIQUE (participant_uid, event_uid),
   FOREIGN KEY (participant_uid) REFERENCES participants(participant_uid)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 # hvpsXXXXXX
 CREATE TABLE IF NOT EXISTS samples (
   sample_uid              VARCHAR(255) NOT NULL UNIQUE,
+  participant_uid         TEXT,
   event_uid               VARCHAR(255),
   lab                     VARCHAR(255) NOT NULL,
-  participant_uid         TEXT,
   sample_type             VARCHAR(255) NOT NULL,
   sample_subtype          VARCHAR(255),
   parent_sample_uid       TEXT,
@@ -137,8 +138,7 @@ CREATE TABLE IF NOT EXISTS samples (
   hvp_id                  CHAR(10)     PRIMARY KEY,
   `user`                  VARCHAR(255) NOT NULL,
   INDEX (`user`),
-  INDEX (event_uid),
-  FOREIGN KEY (event_uid) REFERENCES events(event_uid)
+  INDEX (event_uid)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 # hvplXXXXXX
@@ -273,8 +273,7 @@ CREATE TABLE IF NOT EXISTS biosamples (
   INDEX (`user`),
   FOREIGN KEY (sample_name)       REFERENCES samples(sample_uid),
   FOREIGN KEY (submission_hvp_id) REFERENCES submissions(hvp_id),
-  FOREIGN KEY (host_subject_id)   REFERENCES participants(participant_uid),
-  FOREIGN KEY (sampling_event_id) REFERENCES events(event_uid)
+  FOREIGN KEY (host_subject_id)   REFERENCES participants(participant_uid)
 ) ENGINE=InnoDB WITH SYSTEM VERSIONING;
 
 # hvprXXXXXX
