@@ -420,17 +420,25 @@ txid_to_name <- function (txids) {
     `NCBI:txid9606`    = "Homo sapiens",
     `NCBI:txid10090`   = "Mus musculus" )
   
-  if (sum(!is.na(txids)) > 0 && !all(txids %in% c(names(map), NA))) {
-    query_ids  <- sub('NCBI:txid', '', unique(txids[!is.na(txids)]), fixed = TRUE)
+  # Multi-valued fields are semicolon-delimited, e.g. "NCBI:txid9615;NCBI:txid9685"
+  splits  <- strsplit(txids, ";", fixed = TRUE)
+  all_ids <- unique(unlist(splits))
+  all_ids <- all_ids[!is.na(all_ids) & nzchar(all_ids)]
+
+  if (!all(all_ids %in% names(map))) {
+    query_ids  <- sub('NCBI:txid', '', setdiff(all_ids, names(map)), fixed = TRUE)
     search_res <- tryCatch(
-      expr    = rentrez::entrez_summary(db = "taxonomy", id = query_ids, always_return_list = TRUE), 
-      error   = \(e) stop('Error looking up NCBI taxa ID.\n', e$message), 
+      expr    = rentrez::entrez_summary(db = "taxonomy", id = query_ids, always_return_list = TRUE),
+      error   = \(e) stop('Error looking up NCBI taxa ID.\n', e$message),
       warning = \(w) stop('Error looking up NCBI taxa ID.\n', w$message) )
-    map <- setNames(
-      object = rentrez::extract_from_esummary(search_res, "scientificname"), 
-      nm     = paste0('NCBI:txid', rentrez::extract_from_esummary(search_res, "taxid")) )
+    map <- c(map, setNames(
+      object = rentrez::extract_from_esummary(search_res, "scientificname"),
+      nm     = paste0('NCBI:txid', rentrez::extract_from_esummary(search_res, "taxid")) ))
   }
-  
-  unname(map[txids])
+
+  vapply(splits, FUN.VALUE = character(1), \(x) {
+    x <- x[!is.na(x) & nzchar(x)]
+    if (length(x) == 0) NA_character_ else paste(map[x], collapse = ';')
+  })
 }
 
