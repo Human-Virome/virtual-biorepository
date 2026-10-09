@@ -80,7 +80,7 @@ db_query <- function (db, sql, err_code, params = NULL, simplify = TRUE, req1 = 
 
 DESC <- NULL
 
-# Append data frame's rows to mariadb table
+# Append data frame's rows to mariadb table, each with a new unique `hvp_id`.
 db_insert <- function (db, tbl, df, err_code) {
   
   if (is.null(DESC)) {
@@ -111,15 +111,18 @@ db_insert <- function (db, tbl, df, err_code) {
     'sra'                          = "hvpr",
     stop('invalid table name: ', tbl) )
 
-  # Generate 5 extra IDs in case of collisions.
-  n <- nrow(df)
-  new_ids <- stringi::stri_rand_strings(n + 5, 6)
-  new_ids <- paste0(prefix, new_ids)
+  # `hvp_id` compares case-insensitively (utf8mb4_general_ci), so IDs use
+  # only lowercase letters and digits, e.g. "hvpsq1etq2". IDs in the table's
+  # history are taken too, so a deleted record's ID isn't reused.
+  # No other request can add IDs meanwhile; see GET_LOCK in handler.r.
+  sql   <- sprintf('SELECT DISTINCT `hvp_id` FROM `%s` FOR SYSTEM_TIME ALL', tbl)
+  taken <- db_query(db, sql, 'CrHvId')
   
-  # Avoid colliding with existing IDs.
-  current <- db_query(db, sprintf('SELECT `hvp_id` FROM `%s`', tbl), 'CrHvId')
-  new_ids <- setdiff(new_ids, current)[seq_len(n)]
-  stopifnot(!anyNA(new_ids)) # Too many collisions (highly unlikely).
+  new_ids <- character(0)
+  while (length(new_ids) < nrow(df)) {
+    new_ids <- c(new_ids, paste0(prefix, stringi::stri_rand_strings(nrow(df) - length(new_ids), 6, '[a-z0-9]')))
+    new_ids <- setdiff(new_ids, taken) # Also drops duplicates.
+  }
   df[['hvp_id']] <- new_ids
   
   colnames     <- paste0("`", names(df), "`", collapse = ", ")

@@ -1999,8 +1999,8 @@ const vbrDictionary = {
             "def":"Additive/preservative in which sample is stored or initially stored.",
             "fmt":["required", "cv", "unavailable"],
             "cv":[
-              "RNA Later", "Qiagen Allprotect", "Glycerol", "Ethanol", "Oral Cocktail ", "PBS/Saline", 
-              "VTM ", "Zymo DNA/RNA Shield", "None/Neat", "PIC", "DNA Shield"]
+              "RNA Later", "Qiagen Allprotect", "Glycerol", "Ethanol", "Oral Cocktail", "PBS/Saline", 
+              "VTM", "Zymo DNA/RNA Shield", "None/Neat", "PIC", "DNA Shield"]
         },
         "control_sample_uid":{
             "def":"Sample identifier of linked control. This can be a semicolon separated list, if there are multiple controls associated with the sample. This field is to be populated only for experimental samples, not for control samples. The purpose of this field is to link to an experimental sample to any control samples that were generated in association with the experimental sample.",
@@ -2069,7 +2069,7 @@ const vbrDictionary = {
             "examples":["cmmr_sam889_pool8391", "ucsf_sam183_miseq1", "ucdavis_neg_ctrl_extraction", "penn_lib001"]
         },
         "sample_uid":{
-            "def":"A previously defined sample_uid from which the library or processed sample was derived. ",
+            "def":"A previously defined sample_uid from which the library or processed sample was derived.",
             "fmt":["required", "uid", "ref"],
             "ref":{"samples":"sample_uid"},
             "examples":["cmmr_sam123", "ucsf_sam1083", "boston_s_001"]
@@ -2253,7 +2253,7 @@ const vbrDictionary = {
             "fmt":["text"]
         },
         "pipeline_version":{
-            "def":"If your analysis process used a defined, formalized or packaged pipeline, put the pipeline version of pipeline here. If the pipeline is versioned in a location like github, it should be the official version number. If not, this could be a combination of the pipeline name and date it was run. ",
+            "def":"If your analysis process used a defined, formalized or packaged pipeline, put the pipeline version of pipeline here. If the pipeline is versioned in a location like github, it should be the official version number. If not, this could be a combination of the pipeline name and date it was run.",
             "fmt":["text"]
         },
         "sop_url":{
@@ -2262,7 +2262,7 @@ const vbrDictionary = {
             "examples":["https://doi.org/10.1093/nar/gkab996", "https://zenodo.org/record/1234567"]
         },
         "community_workspace":{
-            "def":"If a community workspace or compute infrastructure (such as Terra or CyVerse) was used for the analysis, put the name of the workspace or infrastructure here. ",
+            "def":"If a community workspace or compute infrastructure (such as Terra or CyVerse) was used for the analysis, put the name of the workspace or infrastructure here.",
             "fmt":["text"],
             "examples":["Terra", "CyVerse"]
         },
@@ -2322,7 +2322,7 @@ const vbrDictionary = {
               "Whole Body Deep Tissue Characterization of the Human Virome [PRJNA1336852]"]
         },
         "data_type":{
-            "def":"Term that indicates the type of data contained in the file. Counts should only be used for summary information from a single sample. If fastq files are demultiplexed, please use demultiplexed_fastq. ",
+            "def":"Term that indicates the type of data contained in the file. Counts should only be used for summary information from a single sample. If fastq files are demultiplexed, please use demultiplexed_fastq.",
             "fmt":["required", "cv"],
             "cv":[
               "scrubbed_sequence_reads", "unscrubbed_sequence_reads", "alignment", "counts", 

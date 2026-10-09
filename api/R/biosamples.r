@@ -100,13 +100,7 @@ api_biosamples_assign <- function (db, hvp_ids) {
   file.create(local_ready_file)
 
 
-  # Claim the samples before uploading, all in one transaction. A concurrent
-  # request for the same samples (e.g. a double-click reaching both httpuv
-  # workers) waits on these row locks, then finds them already claimed.
-  # READ COMMITTED lets that waiting UPDATE see the other request's claim,
-  # rather than failing with "Record has changed since last read". (The
-  # connection only lives for this request.)
-  db_query(db, "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED", 'ApiBiAsIso')
+  # Claim the samples before uploading, all in one transaction.
   DBI::dbBegin(db)
   tryCatch(
     error = function (e) {
@@ -123,18 +117,11 @@ api_biosamples_assign <- function (db, hvp_ids) {
 
       # Resubmitting a failed sample also clears its old error.
       sql <- sprintf("
-        UPDATE biosamples b
-          LEFT JOIN submissions s ON s.hvp_id = b.submission_hvp_id
-        SET b.submission_hvp_id = ?, b.submission_error = NULL
-        WHERE b.user = @user
-          AND b.hvp_id IN (%s)
-          AND b.biosample_accession IS NULL
-          AND (b.submission_hvp_id IS NULL OR s.complete = 'yes')",
+        UPDATE biosamples
+        SET submission_hvp_id = ?, submission_error = NULL
+        WHERE user = @user AND hvp_id IN (%s)",
         paste(rep("?", nrow(res)), collapse = ", ") )
-      claimed <- db_query(db, sql, 'ApiBiAs3', c(list(submission_hvp_id), as.list(res[['hvp_id']])))
-
-      if (!isTRUE(claimed == nrow(res)))
-        stop("Some of these samples were just submitted by another request. Refresh the page to see their status.")
+      db_query(db, sql, 'ApiBiAs3', c(list(submission_hvp_id), as.list(res[['hvp_id']])))
 
       sftp_conn <- sftpR::sftp_connect(
         hostname = "sftp-private.ncbi.nlm.nih.gov",

@@ -2,6 +2,12 @@
 # Load all logic and endpoint functions.
 invisible(sapply(list.files("R", pattern = "\\.r$", full.names = TRUE), source))
 
+# Endpoints that never write to the database. All others take a write lock.
+READ_ONLY_APIS <- c(
+  "api_browse_participants", "api_browse_participant_event_attributes",
+  "api_browse_samples", "api_browse_libraries", "api_browse_analyses",
+  "api_browse_files" )
+
 
 # Define the httpuv application router
 app <- list(
@@ -49,6 +55,14 @@ app <- list(
           args$db <- DBI::dbConnect(RMariaDB::MariaDB(), dbname = "vbr", port = 3306, user = "vbr")
           on.exit(DBI::dbDisconnect(args$db), add = TRUE)
           stopifnot(DBI::dbIsValid(args$db))
+          
+          # One writer at a time across all httpuv workers, so a writer never
+          # races another's uncommitted changes (e.g. new `hvp_id`s). Readers
+          # don't wait; they see the last committed data. Released on
+          # disconnect. Gives up before nginx's 60s timeout.
+          sql <- "SELECT GET_LOCK('vbr_api', 45)"
+          if (!api_fn %in% READ_ONLY_APIS && !isTRUE(db_query(args$db, sql, 'GetLock') == 1))
+            stop("The server is busy with another request. Please try again shortly.")
           
           attr(args$db, 'user') <- req$HTTP_X_OAUTH_EMAIL
           db_query(args$db, 'SET @user = ?;', 'SetEmail', list(req$HTTP_X_OAUTH_EMAIL))

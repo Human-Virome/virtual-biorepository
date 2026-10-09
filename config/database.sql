@@ -302,4 +302,4 @@ CREATE TABLE IF NOT EXISTS sra (
 INSERT INTO `participants`
   (hvp_id, participant_uid, cohort_uid, taxon, `user`)
   VALUES
-    ('hvpp00MOCK', 'mock', 'mock', 'NCBI:txid9606', 'Daniel.Smith@bcm.edu');
+    ('hvpp00mock', 'mock', 'mock', 'NCBI:txid9606', 'Daniel.Smith@bcm.edu');
