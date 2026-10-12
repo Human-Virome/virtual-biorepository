@@ -1,14 +1,16 @@
 # Builds the Excel workbook that metadata is uploaded in: a worksheet per
 # table, with the dictionary's definitions, controlled vocabularies, and
 # range checks. `data` optionally fills the worksheets with records. It is a
-# list of data frames named by table, as returned by export_records(). Those
-# worksheets also get an `hvp_id` column, so that uploading the workbook
-# updates the records rather than adding them again.
+# list of data frames named by table, as returned by export_records(). The
+# workbook then has only those tables' worksheets, each with an `hvp_id`
+# column, so that uploading the workbook updates the records rather than
+# adding them again.
 export_excel <- function (data = NULL, file = "html/app/vbr_metadata_template.xlsx") {
   
   dict <- read_dictionary()
   
   if (!is.null(data)) {
+    dict <- dict[names(data)]
     for (sheet in names(dict)) {
       dict[[sheet]][['hvp_id']] <- list(
         fmt = list(),

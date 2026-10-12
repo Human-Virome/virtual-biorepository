@@ -28,6 +28,10 @@
                 <button class="tab-btn" data-table="libraries">libraries</button>
                 <button class="tab-btn" data-table="analyses">analyses</button>
                 <button class="tab-btn" data-table="files">files</button>
+                <button id="export-all-btn" class="ag-icon-btn action-btn" style="margin-left: auto;" title="Download every record in all of your metadata tables (participants through files) as one Excel workbook. It can be edited and uploaded again.">
+                    <span class="material-symbols-outlined action-icon">table_view</span>
+                    <span class="action-label">Download All Records</span>
+                </button>
             </div>
     
             <div class="workspace-layout ag-integrated-wrapper">
@@ -142,12 +146,13 @@
             };
     
             // Records of the tables that users upload can be downloaded, edited, and
-            // uploaded again. The workbook holds every record, so needs no selection.
+            // uploaded again: the selected rows, or the whole table when none are.
             const UPLOAD_TABLES = ["participants", "participant_event_attributes", "samples", "libraries", "analyses", "files"];
-            UPLOAD_TABLES.forEach(table => ACTION_CONFIG[table] = [
-                { id: "btn-export-csv",   label: "Download Selected (CSV)", icon: "download",   endpoint: "/api/export/csv",   refresh: false },
-                { id: "btn-export-excel", label: "Download All (Excel)",    icon: "table_view", endpoint: "/api/export/excel", refresh: false, selection: false }
-            ]);
+            UPLOAD_TABLES.forEach(table => ACTION_CONFIG[table] = [{
+                id: "btn-export-table", icon: "download", endpoint: "/api/export/table", refresh: false, selection: false, table: true,
+                label: count => count > 0 ? `Download Selected (${count})` : "Download Table",
+                title: "Download the selected rows as an Excel workbook, or the whole table when no rows are selected. The workbook can be edited and uploaded again."
+            }]);
     
             const gridOptions = {
                 theme: agGrid.themeQuartz.withPart(agGrid.colorSchemeDarkBlue),
@@ -340,6 +345,58 @@
                 setTimeout(() => URL.revokeObjectURL(url), 0);
             }
 
+            // Sends an action's request, showing a spinner on its button meanwhile.
+            async function runAction(btn, action) {
+                if (actionInFlight) return;
+                actionInFlight = true;
+
+                const selectedData = gridApi.getSelectedRows();
+                const payloadData = selectedData.map(row => row.hvp_id).filter(Boolean);
+                
+                const iconSpan = btn.querySelector('.action-icon');
+                const originalIcon = iconSpan.textContent;
+                iconSpan.textContent = 'sync'; 
+                iconSpan.style.animation = 'spin 1s linear infinite'; 
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+    
+                try {
+                    // Actions name the rows to act on. A table's download also names the table.
+                    const body = action.table ? { table: currentTable, hvp_ids: payloadData } : { hvp_ids: payloadData };
+                    const response = await fetch(action.endpoint, action.method === 'GET' ? {} : {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+                    
+                    // NEW: Handle 401 Unauthorized
+                    if (response.status === 401) {
+                        showErrorModal('Your session has expired. Please reload the page to continue.');
+                        return; // Exit before trying to parse JSON
+                    }
+                    
+                    const data = await response.json();
+                    if (!response.ok || data.error) {
+                        showErrorModal(data.error || `Server Error: ${response.status}`);
+                    } else {
+                        if (data.download) saveDownload(data.download);
+                        if (action.refresh !== false) {
+                            gridApi.deselectAll();
+                            await loadClientData();
+                        }
+                    }
+                } catch (err) {
+                    showErrorModal(`Network Error: ${err.message}`);
+                } finally {
+                    actionInFlight = false;
+                    iconSpan.textContent = originalIcon;
+                    iconSpan.style.animation = 'none';
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    actionListeners.forEach(l => l());
+                }
+            }
+
             function updateActionBar() {
               
                 actionBar.innerHTML = '';
@@ -355,63 +412,22 @@
                     btn.disabled = true;
                     btn.style.opacity = '0.5';
 
-                    btn.innerHTML = `<span class="material-symbols-outlined action-icon">${action.icon}</span> <span class="action-label">${action.label}</span>`;
+                    const labelFor = count => typeof action.label === 'function' ? action.label(count) : action.label;
+                    btn.innerHTML = `<span class="material-symbols-outlined action-icon">${action.icon}</span> <span class="action-label">${labelFor(0)}</span>`;
+                    if (action.title) btn.title = action.title;
 
                     const selectionListener = () => {
-                        const enabled = !actionInFlight && (action.selection === false || gridApi.getSelectedRows().length > 0);
+                        const count   = gridApi.getSelectedRows().length;
+                        const enabled = !actionInFlight && (action.selection === false || count > 0);
                         btn.disabled = !enabled;
                         btn.style.opacity = enabled ? '1' : '0.5';
+                        btn.querySelector('.action-label').textContent = labelFor(count);
                     };
                     gridApi.addEventListener('selectionChanged', selectionListener);
                     actionListeners.push(selectionListener);
                     selectionListener();
 
-                    btn.addEventListener('click', async () => {
-                        if (actionInFlight) return;
-                        actionInFlight = true;
-
-                        const selectedData = gridApi.getSelectedRows();
-                        const payloadData = selectedData.map(row => row.hvp_id).filter(Boolean);
-                        
-                        const iconSpan = btn.querySelector('.action-icon');
-                        const originalIcon = iconSpan.textContent;
-                        iconSpan.textContent = 'sync'; 
-                        iconSpan.style.animation = 'spin 1s linear infinite'; 
-                        btn.disabled = true;
-                        btn.style.opacity = '0.5';
-            
-                        try {
-                            const response = await fetch(action.endpoint, action.selection === false ? {} : {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ hvp_ids: payloadData })
-                            });
-                            
-                            // NEW: Handle 401 Unauthorized
-                            if (response.status === 401) {
-                                showErrorModal('Your session has expired. Please reload the page to continue.');
-                                return; // Exit before trying to parse JSON
-                            }
-                            
-                            const data = await response.json();
-                            if (!response.ok || data.error) {
-                                showErrorModal(data.error || `Server Error: ${response.status}`);
-                            } else {
-                                if (data.download) saveDownload(data.download);
-                                if (action.refresh !== false) {
-                                    gridApi.deselectAll();
-                                    await loadClientData();
-                                }
-                            }
-                        } catch (err) {
-                            showErrorModal(`Network Error: ${err.message}`);
-                        } finally {
-                            actionInFlight = false;
-                            iconSpan.textContent = originalIcon;
-                            iconSpan.style.animation = 'none';
-                            actionListeners.forEach(l => l());
-                        }
-                    });
+                    btn.addEventListener('click', () => runAction(btn, action));
                     
                     actionBar.appendChild(btn);
                 });
@@ -451,6 +467,10 @@
                 gridApi.deselectAll();
                 loadClientData();
             });
+
+            // Every record in all of the uploadable tables, whichever table is showing.
+            const exportAllBtn = document.getElementById('export-all-btn');
+            exportAllBtn.addEventListener('click', () => runAction(exportAllBtn, { endpoint: '/api/export/all', method: 'GET', refresh: false }));
 
             // Pagination Listeners
             pageSizeSelect.addEventListener('change', e => gridApi.setGridOption('paginationPageSize', Number(e.target.value)));
