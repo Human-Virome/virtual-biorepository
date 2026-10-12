@@ -1,9 +1,27 @@
 
+# Adds SRA records for the libraries of the user's sequence files that don't
+# have one yet.
 sra_refresh <- function (env) {
+
+  sra <- sra_derive(env$db, "sra.file_path IS NULL AND files.user = @user")
+
+  if (nrow(sra) > 0)
+    db_insert(env$db, 'sra', sra, 'ApiSra2')
+
+  invisible()
+}
+
+
+# The SRA record of each library matching the SQL `where` condition, as
+# derived from the library and its scrubbed sequence files. `_source` and
+# `_hvp_id` identify the library and its existing SRA record, if any.
+sra_derive <- function (db, where) {
   
   sql <- "
     SELECT
       
+      libraries.hvp_id                      as _source,
+      sra.hvp_id                            as _hvp_id,
       libraries.library_uid                 as library_name,
       libraries.sample_uid                  as sample_name,
       libraries.sequencing_instrument_model as instrument_model,
@@ -24,22 +42,40 @@ sra_refresh <- function (env) {
       LEFT JOIN files      ON files.library_uid = libraries.library_uid
       LEFT JOIN biosamples ON biosamples.sample_name = libraries.sample_uid
 
-    WHERE sra.file_path IS NULL
-      AND files.data_type = 'scrubbed_sequence_reads'
-      AND files.user = @user"
-  
-  sra <- db_query(env$db, sql, 'SraRefr1', simplify = FALSE)
-  
-  if (nrow(sra) == 0) return (invisible())
-  
-  sra <- plyr::ddply(sra, 'library_name', function (x) {
+    WHERE files.data_type = 'scrubbed_sequence_reads'
+      AND %s
+
+    ORDER BY files.file_uniq_name"
+
+  sra <- db_query(db, sprintf(sql, where), 'SraRefr1', simplify = FALSE)
+
+  if (nrow(sra) == 0) return (sra)
+
+  plyr::ddply(sra, 'library_name', function (x) {
     res <- x[1,,drop=FALSE]
-    res[['file_path']] <- jsonlite::toJSON(x[['file_path']])
+    res[['file_path']] <- as.character(jsonlite::toJSON(x[['file_path']]))
     return (res)
   })
+}
 
 
-  db_insert(env$db, 'sra', sra, 'ApiSra2')
+# Brings SRA records in line with changes made to the libraries and files
+# they're derived from. `before` is what sra_derive() returned, for existing
+# records, before those changes.
+sra_sync <- function (env, before) {
+
+  if (nrow(before) == 0) return (invisible())
+
+  after <- sra_derive(env$db, "TRUE")
+  i     <- match(before[['_source']], after[['_source']])
+
+  # Libraries left without any scrubbed sequence files.
+  if (any(is.na(i)))
+    db_query(env$db, "DELETE FROM sra WHERE hvp_id = ?", 'SraSync1', list(before[['_hvp_id']][is.na(i)]))
+
+  k <- which(!is.na(i) & rows_differ(before, after[i, , drop = FALSE]))
+  if (length(k))
+    db_update(env$db, 'sra', after[i[k], , drop = FALSE], list(hvp_id = before[['_hvp_id']][k]), 'SraSync2')
 
   invisible()
 }
@@ -95,7 +131,7 @@ api_sra_export <- function (db, hvp_ids) {
       row      = rep(seq_len(nrow(res)), lengths(file_names)),
       filename = as.character(unlist(file_names)) )
 
-    sql   <- "SELECT file_uniq_name, file_format, md5_checksum FROM files WHERE `user` = @user AND file_uniq_name IN (%s)"
+    sql   <- "SELECT file_uniq_name, file_format, md5_checksum FROM files WHERE file_uniq_name IN (%s)"
     sql   <- sprintf(sql, paste(rep("?", nrow(runs)), collapse = ", "))
     files <- db_query(db, sql, 'ApiSraEx2', as.list(runs[['filename']]), simplify = FALSE)
 

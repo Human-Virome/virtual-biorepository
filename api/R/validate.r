@@ -427,7 +427,10 @@ validate_primary <- function (env, field) {
   sql     <- sprintf('SELECT `%s` FROM `%s`', field, env$tbl)
   current <- db_query(env$db, sql, 'ValPri')
   
-  if (length(i <- head(which(x %in% current)))) {
+  # A record being updated may keep its own UID.
+  is_own <- (x == old_value(env, field)) %in% TRUE
+  
+  if (length(i <- head(which(x %in% current & !is_own)))) {
     msg    <- "%s:%s:%d: UID already exists in database: \"%s\""
     msg    <- sprintf(msg, env$tbl, field, i + 1, x[i])
     errors <- c(errors, msg)
@@ -552,7 +555,10 @@ validate_number <- function (env, field) {
     }
   }
   
-  env$df[[field]] <- x_num
+  # Numbers are stored as FLOATs. Using the stored precision from here on
+  # means that values derived from them (e.g. `bmi`) come out the same when
+  # a record is downloaded and uploaded again.
+  env$df[[field]] <- as_float(x_num)
   
   return(errors)   
 }
@@ -675,7 +681,8 @@ validate_url  <- function (env, field) {
     errors <- c(errors, msg)
   }
   
-  urls <- unique(x[is_a_url])
+  # A URL was reachable when it was uploaded, so isn't checked again.
+  urls <- unique(x[is_a_url & !is_stored(env, field)])
   if (length(urls) > 0) {
     
     reqs <- crul::Async$new(urls = urls)
@@ -770,6 +777,9 @@ validate_bioproject <- function (env, field) {
   x <- env$df[[field]]
   errors <- c()
     
+  # An accession that's already stored was found in NCBI when it was uploaded.
+  x[is_stored(env, field)] <- NA
+  
   unique_ids <- unique(x)
   unique_ids <- unique_ids[!is.na(unique_ids)]
   
@@ -815,17 +825,22 @@ validate_biosample <- function (env, field) {
     errors <- c(errors, msg)
   }
   
-  sql     <- 'SELECT `biosample_accession` FROM `biosamples`'
-  current <- db_query(env$db, sql, 'ValBioS')
+  sql     <- 'SELECT `sample_name`, `biosample_accession` FROM `biosamples`'
+  current <- db_query(env$db, sql, 'ValBioS', simplify = FALSE)
   
-  if (length(i <- head(which(x %in% current & !is.na(x))))) {
+  # A sample being updated may keep its own accession, which was found in
+  # NCBI when it was uploaded.
+  own    <- current[['biosample_accession']][match(old_value(env, 'sample_uid'), current[['sample_name']])]
+  is_own <- (x == own) %in% TRUE
+  
+  if (length(i <- head(which(x %in% current[['biosample_accession']] & !is.na(x) & !is_own)))) {
     msg <- "%s:%d: `%s` is already assigned to another sample: \"%s\""
     msg <- sprintf(msg, env$tbl, i + 1, field, x[i])
     errors <- c(errors, msg)
   }
   
-  unique_ids <- unique(x[!is.na(x)])
-  valid_ids  <- c()
+  unique_ids <- unique(x[!is.na(x) & !is_own])
+  valid_ids  <- c(own[is_own])
   
   # Query NCBI in batches to keep the request URLs short.
   for (ids in split(unique_ids, ceiling(seq_along(unique_ids) / 100))) {

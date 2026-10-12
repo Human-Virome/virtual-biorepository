@@ -141,6 +141,14 @@
                 "sra": [{ id: "btn-export-sra", label: "Export for SRA", icon: "ios_share", endpoint: "/api/sra/export" }]
             };
     
+            // Records of the tables that users upload can be downloaded, edited, and
+            // uploaded again. The workbook holds every record, so needs no selection.
+            const UPLOAD_TABLES = ["participants", "participant_event_attributes", "samples", "libraries", "analyses", "files"];
+            UPLOAD_TABLES.forEach(table => ACTION_CONFIG[table] = [
+                { id: "btn-export-csv",   label: "Download Selected (CSV)", icon: "download",   endpoint: "/api/export/csv",   refresh: false },
+                { id: "btn-export-excel", label: "Download All (Excel)",    icon: "table_view", endpoint: "/api/export/excel", refresh: false, selection: false }
+            ]);
+    
             const gridOptions = {
                 theme: agGrid.themeQuartz.withPart(agGrid.colorSchemeDarkBlue),
                 pagination: true,
@@ -210,10 +218,14 @@
                         
                         const firstVisibleKey = keys.find(k => k !== 'hvp_id');
                         
+                        // Users need a record's `hvp_id` to update or delete it by upload.
+                        // The derived tables' IDs are only for selecting rows.
+                        const hideIds = !UPLOAD_TABLES.includes(currentTable);
+
                         const colDefs = keys.map(k => ({
                             field: k,
                             headerName: k,
-                            hide: k === 'hvp_id' ? true : (hideEmptyColumns && emptyCols.includes(k)),
+                            hide: k === 'hvp_id' ? hideIds : (hideEmptyColumns && emptyCols.includes(k)),
                             pinned: k === firstVisibleKey ? 'left' : null,
                             cellClassRules: k === 'submission_status' ? STATUS_CLASSES : undefined
                         }));
@@ -292,6 +304,7 @@
                 gridApi.setGridOption('rowSelection', hasActions ? {
                     mode: 'multiRow',
                     headerCheckbox: true,
+                    selectAll: 'filtered',
                     checkboxes: true,
                     enableClickSelection: true,
                     isRowSelectable: rowNode => {
@@ -316,7 +329,9 @@
             }
 
             // Save a file returned by an action, e.g. the SRA submission XML.
-            function saveDownload({ filename, type, content }) {
+            function saveDownload({ filename, type, content, base64 }) {
+                // Binary files, e.g. Excel workbooks, arrive base64-encoded.
+                if (base64) content = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
                 const url  = URL.createObjectURL(new Blob([content], { type }));
                 const link = Object.assign(document.createElement('a'), { href: url, download: filename });
                 document.body.appendChild(link);
@@ -343,12 +358,13 @@
                     btn.innerHTML = `<span class="material-symbols-outlined action-icon">${action.icon}</span> <span class="action-label">${action.label}</span>`;
 
                     const selectionListener = () => {
-                        const enabled = !actionInFlight && gridApi.getSelectedRows().length > 0;
+                        const enabled = !actionInFlight && (action.selection === false || gridApi.getSelectedRows().length > 0);
                         btn.disabled = !enabled;
                         btn.style.opacity = enabled ? '1' : '0.5';
                     };
                     gridApi.addEventListener('selectionChanged', selectionListener);
                     actionListeners.push(selectionListener);
+                    selectionListener();
 
                     btn.addEventListener('click', async () => {
                         if (actionInFlight) return;
@@ -365,7 +381,7 @@
                         btn.style.opacity = '0.5';
             
                         try {
-                            const response = await fetch(action.endpoint, {
+                            const response = await fetch(action.endpoint, action.selection === false ? {} : {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ hvp_ids: payloadData })
@@ -382,8 +398,10 @@
                                 showErrorModal(data.error || `Server Error: ${response.status}`);
                             } else {
                                 if (data.download) saveDownload(data.download);
-                                gridApi.deselectAll();
-                                await loadClientData(); 
+                                if (action.refresh !== false) {
+                                    gridApi.deselectAll();
+                                    await loadClientData();
+                                }
                             }
                         } catch (err) {
                             showErrorModal(`Network Error: ${err.message}`);

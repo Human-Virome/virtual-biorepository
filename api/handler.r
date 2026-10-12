@@ -6,7 +6,7 @@ invisible(sapply(list.files("R", pattern = "\\.r$", full.names = TRUE), source))
 READ_ONLY_APIS <- c(
   "api_browse_participants", "api_browse_participant_event_attributes",
   "api_browse_samples", "api_browse_libraries", "api_browse_analyses",
-  "api_browse_files" )
+  "api_browse_files", "api_export_csv", "api_export_excel" )
 
 
 # Define the httpuv application router

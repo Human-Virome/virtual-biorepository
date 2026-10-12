@@ -1,20 +1,31 @@
-export_excel <- function () {
+# Builds the Excel workbook that metadata is uploaded in: a worksheet per
+# table, with the dictionary's definitions, controlled vocabularies, and
+# range checks. `data` optionally fills the worksheets with records. It is a
+# list of data frames named by table, as returned by export_records(). Those
+# worksheets also get an `hvp_id` column, so that uploading the workbook
+# updates the records rather than adding them again.
+export_excel <- function (data = NULL, file = "html/app/vbr_metadata_template.xlsx") {
   
-  dict <- local({
-    fp <- 'html/app/dictionary.js'
-    js <- readChar(con = fp, nchars = file.size(fp))
-    js <- sub('const vbrDictionary = ', '', js)
-    js <- sub('};', '}', js)
-    jsonlite::parse_json(js)
-  })
+  dict <- read_dictionary()
+  
+  if (!is.null(data)) {
+    for (sheet in names(dict)) {
+      dict[[sheet]][['hvp_id']] <- list(
+        fmt = list(),
+        def = paste(
+          "Identifies the stored record that this row updates.",
+          "Leave blank for new records.",
+          "A row with an hvp_id and no other values deletes that record." ))
+    }
+  }
 
   # 1. Initialize Workbook
   wb <- openxlsx2::wb_workbook()
 
   # Create hidden worksheet for controlled vocabularies and cell styles.
-  wb <- openxlsx2::wb_add_worksheet(wb, 'cv')
-  wb <- openxlsx2::wb_add_numfmt(wb, 'cv', "A1", numfmt = 49)
-  text_style     <- openxlsx2::wb_get_cell_style(wb, 'cv', "A1")
+  wb$add_worksheet('cv')
+  wb$add_numfmt('cv', "A1", numfmt = 49)
+  text_style     <- wb$get_cell_style('cv', "A1")
   next_cv_col    <- 2L
   cv_error_title <- "Not in Controlled Vocabulary"
   cv_error_msg   <- paste(
@@ -25,18 +36,18 @@ export_excel <- function () {
     
     stopifnot(nchar(sheet) < 32)
 
-    wb <- openxlsx2::wb_add_worksheet(wb, sheet = sheet)
+    wb$add_worksheet(sheet = sheet)
 
     fields <- names(dict[[sheet]])
 
     # Write field names to header row
     header_row <- paste0("A1:", openxlsx2::int2col(length(fields)), "1")
-    wb <- openxlsx2::wb_add_data(wb, sheet, fields, header_row)
-    wb <- openxlsx2::wb_set_row_heights(wb, sheet, rows = 1, heights = 20)
-    wb <- openxlsx2::wb_freeze_pane(wb, sheet, first_row = TRUE)
-    wb <- openxlsx2::wb_add_font(      wb, sheet, header_row, bold = TRUE, size = "12")
-    wb <- openxlsx2::wb_add_cell_style(wb, sheet, header_row, vertical = "center" )
-    wb <- openxlsx2::wb_add_border(    wb, sheet, header_row, 
+    wb$add_data(sheet, fields, header_row)
+    wb$set_row_heights(sheet, rows = 1, heights = 20)
+    wb$freeze_pane(sheet, first_row = TRUE)
+    wb$add_font(sheet, header_row, bold = TRUE, size = "12")
+    wb$add_cell_style(sheet, header_row, vertical = "center" )
+    wb$add_border(sheet, header_row, 
       bottom_border = "thick",
       inner_vgrid   = "thin",
       bottom_color  = openxlsx2::wb_color(hex = "00333333"),
@@ -52,7 +63,9 @@ export_excel <- function () {
       dev.off()
       return ((name_widths / zero_width) + 3)
     })
-    wb <- openxlsx2::wb_set_col_widths(wb, sheet, cols = seq_along(fields), widths = widths)
+    wb$set_col_widths(sheet, cols = seq_along(fields), widths = widths)
+
+    text_cols <- c()
 
     for (i in seq_along(fields)) {
 
@@ -79,7 +92,7 @@ export_excel <- function () {
 
       # Freeze up to this column in addition to the first row.
       if ('primary' %in% fmt)
-        wb <- openxlsx2::wb_freeze_pane(wb, sheet, first_active_row = 2L, first_active_col = i + 1L)
+        wb$freeze_pane(sheet, first_active_row = 2L, first_active_col = i + 1L)
 
       # --- 2. Header Prompt's Title and Message ---
       if ('required' %in% fmt) {
@@ -113,9 +126,8 @@ export_excel <- function () {
       prompt_msg <- gsub("\\n", "&#10;",  prompt_msg)
       
       # --- 3. Header Validation (Read-only popup) ---
-      wb <- openxlsx2::wb_add_fill(wb, sheet, header_cell, color = header_color)
-      wb <- openxlsx2::wb_add_data_validation(
-        wb             = wb,
+      wb$add_fill(sheet, header_cell, color = header_color)
+      wb$add_data_validation(
         sheet          = sheet,
         dims           = header_cell,
         type           = "textLength",
@@ -136,14 +148,13 @@ export_excel <- function () {
           cv_header     <- sprintf("%s1", cv_col_letter)
           cv_cells      <- sprintf("%s2:%s%d", cv_col_letter, cv_col_letter, length(cv_terms) + 1)
           dropdown_ref  <- sprintf("'cv'!$%s$2:$%s$%d", cv_col_letter, cv_col_letter, length(cv_terms) + 1)
-          wb <- openxlsx2::wb_set_cell_style_across(wb, 'cv', style = text_style, cols = next_cv_col)
-          wb <- openxlsx2::wb_add_data(  wb, 'cv', dims = cv_header, x = field)
-          wb <- openxlsx2::wb_add_data(  wb, 'cv', dims = cv_cells,  x = cv_terms)
+          wb$set_cell_style_across('cv', style = text_style, cols = next_cv_col)
+          wb$add_data('cv', dims = cv_header, x = field)
+          wb$add_data('cv', dims = cv_cells,  x = cv_terms)
           next_cv_col <- next_cv_col + 1L
         }
 
-        wb <- openxlsx2::wb_add_data_validation(
-          wb             = wb,
+        wb$add_data_validation(
           sheet          = sheet,
           dims           = column_cells,
           type           = "list",
@@ -168,8 +179,7 @@ export_excel <- function () {
         msg   <- "Please enter a %s number between %s and %s."
         msg   <- sprintf(msg, num_type, value[1], value[2])
 
-        wb <- openxlsx2::wb_add_data_validation(
-          wb             = wb,
+        wb$add_data_validation(
           sheet          = sheet,
           dims           = column_cells,
           type           = num_type,
@@ -182,17 +192,35 @@ export_excel <- function () {
       }
       else {
         # Force Column to Display as Text
-        wb <- openxlsx2::wb_set_cell_style_across(wb, sheet, style = text_style, cols = i)
+        wb$set_cell_style_across(sheet, style = text_style, cols = i)
+        text_cols <- c(text_cols, i)
       }
 
     }
+
+    # --- 6. Records ---
+    df <- data[[sheet]]
+    if (NROW(df) > 0) {
+
+      df <- df[, fields, drop = FALSE]
+      for (i in setdiff(seq_along(fields), text_cols))
+        df[[i]] <- as.numeric(df[[i]])
+
+      wb$add_data(sheet, x = df, dims = "A2", col_names = FALSE, na.strings = NULL)
+
+      # Written cells don't take on their column's text format. Without it,
+      # Excel turns e.g. "2025-07" into a date when the cell is edited.
+      col_letters <- openxlsx2::int2col(text_cols)
+      dims <- sprintf("%s2:%s%d", col_letters, col_letters, nrow(df) + 1L)
+      wb$set_cell_style(sheet, paste(dims, collapse = ","), text_style)
+    }
   }
 
-  # 6. Finalize and Save
-  wb <- openxlsx2::wb_set_active_sheet(wb, sheet = 2)
-  wb <- openxlsx2::wb_set_sheet_visibility(wb, "cv", value = "hidden")
+  # 7. Finalize and Save
+  wb$set_active_sheet(sheet = 2)
+  wb$set_sheet_visibility("cv", value = "hidden")
   
-  openxlsx2::wb_save(wb, "html/app/vbr_metadata_template.xlsx", overwrite = TRUE)
+  wb$save(file, overwrite = TRUE)
   message("Success!")
 }
 

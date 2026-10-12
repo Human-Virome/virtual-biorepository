@@ -14,6 +14,18 @@ MODE_SUFFIXES <- c(
 
 FREQ_SUFFIXES <- c("daily", "weekly", "occasionally", "prior_months", "prior_years")
 
+# Each table's `hvp_id`s begin with its own prefix, e.g. "hvpsq1etq2".
+HVP_PREFIXES <- c(
+  'participants'                 = "hvpp",
+  'participant_event_attributes' = "hvpe",
+  'samples'                      = "hvps",
+  'libraries'                    = "hvpl",
+  'analyses'                     = "hvpa",
+  'files'                        = "hvpf",
+  'submissions'                  = "hvpu",
+  'biosamples'                   = "hvpb",
+  'sra'                          = "hvpr" )
+
 # Folder on NCBI's SFTP server for BioSample submissions and their reports.
 NCBI_SUBMIT_DIR <- "submit/Test/"
 
@@ -39,7 +51,7 @@ MODE_REGEX <- paste0("\\:(", paste0(MODE_SUFFIXES, collapse = "|"), ")")
 FREQ_REGEX <- paste0("\\:(", paste0(FREQ_SUFFIXES, collapse = "|"), ")")
 
 # Read the javascript definition of the data dictionaries.
-DICT <- local({
+read_dictionary <- function () {
   
   fp <- '../html/app/dictionary.js'
   if (!file.exists(fp)) fp <- 'html/app/dictionary.js'
@@ -48,7 +60,13 @@ DICT <- local({
   js <- sub('const vbrDictionary = ', '', js)
   js <- sub('};', '}', js)
   
-  dict <- jsonlite::parse_json(js)
+  jsonlite::parse_json(js)
+}
+
+# The data dictionaries, without the parts only shown to users.
+DICT <- local({
+  
+  dict <- read_dictionary()
   
   for (tbl in names(dict)) {
     for (field in names(dict[[tbl]])) {

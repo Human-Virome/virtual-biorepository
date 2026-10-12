@@ -80,8 +80,8 @@ db_query <- function (db, sql, err_code, params = NULL, simplify = TRUE, req1 = 
 
 DESC <- NULL
 
-# Append data frame's rows to mariadb table, each with a new unique `hvp_id`.
-db_insert <- function (db, tbl, df, err_code) {
+# A mariadb table's column names. Leaves out `user`.
+db_fields <- function (db, tbl) {
   
   if (is.null(DESC)) {
     DESC <<- local({
@@ -96,20 +96,17 @@ db_insert <- function (db, tbl, df, err_code) {
     })
   }
 
-  df <- df[, intersect(DESC[[tbl]], colnames(df)), drop = FALSE]
+  DESC[[tbl]]
+}
+
+
+# Append data frame's rows to mariadb table, each with a new unique `hvp_id`.
+db_insert <- function (db, tbl, df, err_code) {
   
-  prefix <- switch(
-    EXPR = tbl,
-    'participants'                 = "hvpp",
-    'participant_event_attributes' = "hvpe",
-    'samples'                      = "hvps",
-    'libraries'                    = "hvpl",
-    'analyses'                     = "hvpa",
-    'files'                        = "hvpf",
-    'submissions'                  = "hvpu",
-    'biosamples'                   = "hvpb",
-    'sra'                          = "hvpr",
-    stop('invalid table name: ', tbl) )
+  df <- df[, intersect(db_fields(db, tbl), colnames(df)), drop = FALSE]
+  
+  if (!hasName(HVP_PREFIXES, tbl)) stop('invalid table name: ', tbl)
+  prefix <- HVP_PREFIXES[[tbl]]
 
   # `hvp_id` compares case-insensitively (utf8mb4_general_ci), so IDs use
   # only lowercase letters and digits, e.g. "hvpsq1etq2". IDs in the table's
@@ -131,6 +128,27 @@ db_insert <- function (db, tbl, df, err_code) {
   sql <- sprintf(fmt, tbl, colnames, placeholders)
   
   db_query(db, sql, err_code, params = unname(as.list(df)))
+}
+
+
+# Overwrite mariadb table rows with a data frame's rows. `where` names the
+# column and values that identify each row, e.g. `list(hvp_id = ids)`.
+db_update <- function (db, tbl, df, where, err_code) {
+
+  df <- df[, intersect(db_fields(db, tbl), colnames(df)), drop = FALSE]
+
+  set <- paste0("`", names(df), "` = ?", collapse = ", ")
+  sql <- sprintf("UPDATE `%s` SET %s WHERE `%s` = ?", tbl, set, names(where))
+
+  db_query(db, sql, err_code, params = c(unname(as.list(df)), unname(where)))
+}
+
+
+# Rounds numbers to the precision that mariadb stores in a FLOAT column.
+as_float <- function (x) {
+  res <- readBin(writeBin(as.numeric(x), raw(), size = 4L), "numeric", n = length(x), size = 4L)
+  res[is.na(x)] <- NA
+  return (res)
 }
 
 

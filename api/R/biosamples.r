@@ -138,7 +138,47 @@ api_biosamples_assign <- function (db, hvp_ids) {
 }
 
 
+# Whether a BioSample record can still change. "provided" ones hold just the
+# user's own accession, and "submitted" ones are with NCBI (pending or
+# accessioned). See `submission_status` in api_browse_biosamples().
+BIOSAMPLE_STATE <- "
+  CASE
+    WHEN biosamples.submission_hvp_id IS NULL
+      THEN IF(biosamples.biosample_accession IS NULL, 'editable', 'provided')
+    WHEN biosamples.biosample_accession IS NOT NULL
+      THEN 'submitted'
+    WHEN biosamples.submission_error IS NULL AND submissions.complete = 'no'
+      THEN 'submitted'
+    ELSE 'editable'
+  END"
+
+
+# Adds BioSample records for the user's samples that don't have one yet.
 biosamples_refresh <- function (env) {
+
+  biosamples <- biosamples_derive(env$db, "biosamples.sample_name IS NULL AND samples.user = @user")
+
+  # Samples with a user-provided BioSample accession only need a minimal
+  # record, which prevents them from being submitted to NCBI by us.
+  accession <- env$df[['biosample_id']][match(biosamples[['sample_name']], env$df[['sample_uid']])]
+  if (any(has_acc <- !is.na(accession))) {
+    minimal <- biosamples[has_acc, c('sample_name', 'host_subject_id', 'sampling_event_id'), drop = FALSE]
+    minimal[['biosample_accession']] <- accession[has_acc]
+    db_insert(env$db, 'biosamples', minimal, 'BioRefr2')
+    biosamples <- biosamples[!has_acc, , drop = FALSE]
+  }
+
+  if (nrow(biosamples) > 0)
+    db_insert(env$db, 'biosamples', biosamples_format(biosamples), 'BioRefr1')
+
+  invisible()
+}
+
+
+# The BioSample record of each sample matching the SQL `where` condition, as
+# derived from the sample and its participant and event. `_source` and
+# `_hvp_id` identify the sample and its existing BioSample record, if any.
+biosamples_derive <- function (db, where) {
   
   # Subsamples have a `parent_sample_uid` instead of an `event_uid`, so they
   # inherit the event of their parent (or grandparent). Composite samples with
@@ -147,6 +187,10 @@ biosamples_refresh <- function (env) {
   # An `event_uid` is only unique per participant, so events join on both.
   sql <- "
       SELECT
+        samples.hvp_id                        as _source,
+        biosamples.hvp_id                     as _hvp_id,
+        %s                                    as _state,
+        IF(samples.user = @user, NULL, samples.user) as _owner,
         samples.sample_uid                    as sample_name,
         participants.participant_uid          as host_subject_id,
         samples.anatomical_site               as host_tissue_sampled,
@@ -194,66 +238,127 @@ biosamples_refresh <- function (env) {
         
       FROM samples
         LEFT JOIN biosamples                   ON biosamples.sample_name = samples.sample_uid
+        LEFT JOIN submissions                  ON submissions.hvp_id     = biosamples.submission_hvp_id
         LEFT JOIN samples AS parent            ON parent.sample_uid      = samples.parent_sample_uid
         LEFT JOIN samples AS grandparent       ON grandparent.sample_uid = parent.parent_sample_uid
         LEFT JOIN participant_event_attributes ON participant_event_attributes.event_uid       = COALESCE(samples.event_uid, parent.event_uid, grandparent.event_uid)
                                               AND participant_event_attributes.participant_uid = samples.participant_uid
         LEFT JOIN participants           ON participants.participant_uid = samples.participant_uid
 
-      WHERE biosamples.sample_name IS NULL 
-        AND samples.user = @user"
-  
-  biosamples <- db_query(env$db, sql, 'ApiBio1', simplify = FALSE)
+      WHERE %s"
 
-  # Samples with a user-provided BioSample accession only need a minimal
-  # record, which prevents them from being submitted to NCBI by us.
-  accession <- env$df[['biosample_id']][match(biosamples[['sample_name']], env$df[['sample_uid']])]
-  if (any(has_acc <- !is.na(accession))) {
-    minimal <- biosamples[has_acc, c('sample_name', 'host_subject_id', 'sampling_event_id'), drop = FALSE]
-    minimal[['biosample_accession']] <- accession[has_acc]
-    db_insert(env$db, 'biosamples', minimal, 'BioRefr2')
-    biosamples <- biosamples[!has_acc, , drop = FALSE]
+  db_query(db, sprintf(sql, BIOSAMPLE_STATE, where), 'ApiBio1', simplify = FALSE)
+}
+
+
+# Converts biosamples_derive()'s values into the ones submitted to NCBI.
+biosamples_format <- function (biosamples) {
+
+  # Standardized (converted_*) values, e.g. "42.5 years".
+  with_units <- function (x, units) {
+    data.table::fifelse(is.na(x), 'not collected', paste(signif(x, 4), units))
+  }
+  biosamples[['host_age']]      <- with_units(biosamples[['host_age']],      'years')
+  biosamples[['host_height']]   <- with_units(biosamples[['host_height']],   'cm')
+  biosamples[['host_tot_mass']] <- with_units(biosamples[['host_tot_mass']], 'kg')
+
+  biosamples[['smoker']] <- data.table::fcase(
+    is.na(biosamples[['smoker']]),                                     'not collected',
+    biosamples[['smoker']] == "non-smoker (<100 cigarettes lifetime)", 'no',
+    default = 'yes' )
+
+  # E.g. "yes;domestic;Canis lupus familiaris"
+  biosamples[['pet_farm_animal']] <- local({
+    exposure <- biosamples[['_animal_exposure']]
+    animal   <- txid_to_name(biosamples[['_exposure_animal_type']])
+    yes      <- apply(cbind('yes', exposure, animal), 1L, \(x) paste(na.omit(x), collapse = ';'))
+    data.table::fcase(
+      exposure %in% 'none',            'no',
+      is.na(exposure) & is.na(animal), 'not collected',
+      default = yes )
+  })
+
+  biosamples[['collection_date']] <- data.table::fcoalesce(
+    biosamples[['collection_date']],
+    biosamples[['_collection_month_year']],
+    'not provided' )
+
+  biosamples[['host']]     <- txid_to_name(biosamples[['host']])
+  biosamples[['organism']] <- txid_to_name(biosamples[['organism']])
+
+  tmp <- startsWith(names(biosamples), "_")
+  biosamples[, !tmp, drop = FALSE]
+}
+
+
+# Brings BioSample records in line with changes made to the samples,
+# participants, and events they're derived from. `before` is what
+# biosamples_derive() returned, for existing records, before those changes.
+biosamples_sync <- function (env, before) {
+
+  if (nrow(before) == 0) return (invisible())
+
+  after <- biosamples_derive(env$db, "TRUE")
+  i     <- match(before[['_source']], after[['_source']])
+  k     <- which(!is.na(i) & rows_differ(before, after[i, , drop = FALSE]))
+  if (length(k) == 0) return (invisible())
+
+  state  <- before[['_state']][k]
+  hvp_id <- before[['_hvp_id']][k]
+  owner  <- before[['_owner']][k]
+  old    <- biosamples_format(before[k, , drop = FALSE])
+  new    <- biosamples_format(after[i[k], , drop = FALSE])
+
+  # Values that NCBI already has (or is processing) can no longer change.
+  errors <- c()
+  blank  <- function (x) ifelse(is.na(x), "", as.character(x))
+  for (field in names(new)) {
+    j      <- which(state == 'submitted' & rows_differ(old[field], new[field]))
+    msg    <- "%s: Sample \"%s\"%s was submitted to NCBI, so its BioSample attribute `%s` cannot change from \"%s\" to \"%s\"."
+    errors <- c(errors, sprintf(msg, env$tbl, old[['sample_name']][j], by_owner(owner[j]), field, blank(old[[field]][j]), blank(new[[field]][j])))
+  }
+  if (length(errors))
+    stop(paste(head(errors), collapse = "\n"))
+
+  j <- which(state == 'editable' & rows_differ(old, new))
+  if (length(j))
+    db_update(env$db, 'biosamples', new[j, , drop = FALSE], list(hvp_id = hvp_id[j]), 'BioSync1')
+
+  # Records with a user-provided accession stay minimal.
+  keys <- c('sample_name', 'host_subject_id', 'sampling_event_id')
+  j    <- which(state == 'provided' & rows_differ(old[keys], new[keys]))
+  if (length(j))
+    db_update(env$db, 'biosamples', new[j, keys, drop = FALSE], list(hvp_id = hvp_id[j]), 'BioSync2')
+
+  invisible()
+}
+
+
+# A `biosample_id` given to an existing sample replaces its BioSample record
+# with a minimal one. A blank `biosample_id` leaves the record as it is.
+biosamples_provide <- function (env) {
+
+  sql <- "
+    SELECT biosamples.sample_name, biosamples.biosample_accession, %s AS state
+    FROM biosamples
+      LEFT JOIN submissions ON submissions.hvp_id = biosamples.submission_hvp_id"
+  current <- db_query(env$db, sprintf(sql, BIOSAMPLE_STATE), 'BioProv1', simplify = FALSE)
+
+  accession <- env$df[['biosample_id']]
+  i         <- match(env$df[['sample_uid']], current[['sample_name']])
+  is_new    <- !is.na(accession) & !is.na(i) & !(accession == current[['biosample_accession']][i]) %in% TRUE
+  if (!any(is_new)) return (invisible())
+
+  if (length(j <- head(which(is_new & current[['state']][i] == 'submitted')))) {
+    msg <- "%s:%d: `biosample_id` cannot be changed; sample \"%s\" was submitted to NCBI."
+    stop(paste(sprintf(msg, env$tbl, j + 1, env$df[['sample_uid']][j]), collapse = "\n"))
   }
 
-  if (nrow(biosamples) > 0) {
-    
-    # Standardized (converted_*) values, e.g. "42.5 years".
-    with_units <- function (x, units) {
-      data.table::fifelse(is.na(x), 'not collected', paste(signif(x, 4), units))
-    }
-    biosamples[['host_age']]      <- with_units(biosamples[['host_age']],      'years')
-    biosamples[['host_height']]   <- with_units(biosamples[['host_height']],   'cm')
-    biosamples[['host_tot_mass']] <- with_units(biosamples[['host_tot_mass']], 'kg')
-
-    biosamples[['smoker']] <- data.table::fcase(
-      is.na(biosamples[['smoker']]),                                     'not collected',
-      biosamples[['smoker']] == "non-smoker (<100 cigarettes lifetime)", 'no',
-      default = 'yes' )
-
-    # E.g. "yes;domestic;Canis lupus familiaris"
-    biosamples[['pet_farm_animal']] <- local({
-      exposure <- biosamples[['_animal_exposure']]
-      animal   <- txid_to_name(biosamples[['_exposure_animal_type']])
-      yes      <- apply(cbind('yes', exposure, animal), 1L, \(x) paste(na.omit(x), collapse = ';'))
-      data.table::fcase(
-        exposure %in% 'none',            'no',
-        is.na(exposure) & is.na(animal), 'not collected',
-        default = yes )
-    })
-
-    biosamples[['collection_date']] <- data.table::fcoalesce(
-      biosamples[['collection_date']],
-      biosamples[['_collection_month_year']],
-      'not provided' )
-    
-    biosamples[['host']]     <- txid_to_name(biosamples[['host']])
-    biosamples[['organism']] <- txid_to_name(biosamples[['organism']])
-    
-    tmp        <- startsWith(names(biosamples), "_")
-    biosamples <- biosamples[, !tmp, drop = FALSE]
-    
-    db_insert(env$db, 'biosamples', biosamples, 'BioRefr1')
-  }
+  # biosamples_refresh() adds the new record, and sra_sync_biosamples()
+  # points the sample's SRA records at it.
+  uids <- env$df[['sample_uid']][is_new]
+  db_query(env$db, "UPDATE sra SET BioSample = NULL WHERE sample_name = ? AND BioSample IS NOT NULL", 'BioProv2', list(uids))
+  db_query(env$db, "DELETE FROM biosamples WHERE sample_name = ?", 'BioProv3', list(uids))
   
   invisible()
 }

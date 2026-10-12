@@ -101,6 +101,21 @@
                 </div>
             </div>
 
+            <div id="changes-alert-box" style="display: none; background-color: var(--surface-high); border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 1.25rem; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span class="material-symbols-outlined text-secondary" style="font-size: 1.25rem;">fact_check</span>
+                        <span id="changes-alert-title" style="font-weight: 600; color: var(--text-main);"></span>
+                    </div>
+                    <button class="btn btn-ghost" style="position: static; padding: 0.25rem;" onclick="document.getElementById('changes-alert-box').style.display='none'">
+                        <span class="material-symbols-outlined" style="font-size: 1.25rem;">close</span>
+                    </button>
+                </div>
+                <div style="max-height: 120px; overflow-y: auto; padding-right: 0.5rem;">
+                    <div id="changes-alert-message" class="text-sm text-muted pre-wrap mb-0" style="line-height: 1.6;"></div>
+                </div>
+            </div>
+
             <div class="workspace-layout">
                 <aside class="sidebar">
                     <div class="sidebar-header input-group">
@@ -149,11 +164,26 @@
                                 </div>
                             </div>
                             
-                            <div class="flex-row" style="align-items: flex-start;">
+                            <div class="flex-row mb-3" style="align-items: flex-start;">
                                 <div class="icon-box icon-box-sm text-primary">4</div>
                                 <div>
                                     <h4 class="mb-1" style="margin-top:0; font-size: 1rem; color: var(--text-main);">Upload for Validation</h4>
                                     <p class="text-sm text-muted mb-0">Submit your completed file. The system will perform automated checks and highlight any discrepancies before allowing submission to the repository.</p>
+                                </div>
+                            </div>
+
+                            <div class="flex-row" style="align-items: flex-start;">
+                                <div class="icon-box icon-box-sm text-primary">5</div>
+                                <div>
+                                    <h4 class="mb-1" style="margin-top:0; font-size: 1rem; color: var(--text-main);">Update or Delete Existing Records</h4>
+                                    <p class="text-sm text-muted mb-2">To change records you uploaded earlier, download them from the Browse page, edit the file, and upload it here. Each row of a download has its record's ID in the <span class="prefix-tag">hvp_id</span> column.</p>
+                                    <ul class="text-sm text-muted mb-0" style="padding-left: 1.5rem;">
+                                        <li style="margin-bottom: 0.25rem;"><strong>Update:</strong> a row with an <span class="prefix-tag">hvp_id</span> replaces that record with the row's values, so a blank cell clears the stored value.</li>
+                                        <li style="margin-bottom: 0.25rem;"><strong>Delete:</strong> a row with an <span class="prefix-tag">hvp_id</span> and nothing else deletes that record.</li>
+                                        <li style="margin-bottom: 0.25rem;"><strong>Add:</strong> rows without an <span class="prefix-tag">hvp_id</span> are added as new records.</li>
+                                        <li style="margin-bottom: 0.25rem;">Values already submitted to NCBI through <em>Assign BioSample IDs</em> can no longer be changed.</li>
+                                        <li>Excel reformats dates such as <span class="prefix-tag">2025-07</span> when it opens a CSV file. Use the Excel workbook download to edit records in Excel.</li>
+                                    </ul>
                                 </div>
                             </div>
                         </div>
@@ -656,6 +686,10 @@
             const errorBox     = document.getElementById('error-alert-box');
             const errorMessage = document.getElementById('error-alert-message');
             
+            const changesBox     = document.getElementById('changes-alert-box');
+            const changesTitle   = document.getElementById('changes-alert-title');
+            const changesMessage = document.getElementById('changes-alert-message');
+            
             // State tracking
             let currentValidatedFile = null;
             
@@ -668,6 +702,18 @@
                 badgeSaving.style.display      = 'none';
                 badgeSaveError.style.display   = 'none';
                 badgeSaveSuccess.style.display = 'none';
+            }
+            
+            // Lists how many records the file adds, updates, and deletes in each table.
+            function showChanges(title, changes) {
+                const lines = (changes || []).map(c => {
+                    const counts = ['added', 'updated', 'deleted'].filter(k => c[k] > 0).map(k => `${c[k]} ${k}`);
+                    return counts.length > 0 ? `${c.table}: ${counts.join(', ')}` : null;
+                }).filter(Boolean);
+
+                changesTitle.textContent   = title;
+                changesMessage.textContent = lines.length > 0 ? lines.join('\n') : 'No changes: the repository already matches this file.';
+                changesBox.style.display   = 'block';
             }
             
             // 1. Trigger file selection
@@ -684,6 +730,7 @@
                 currentValidatedFile   = null;
                 saveBtn.disabled       = true;
                 errorBox.style.display = 'none'; 
+                changesBox.style.display = 'none';
                 hideAllBadges();
                 badgeValidating.style.display = 'flex';
             
@@ -724,6 +771,7 @@
                         // SUCCESS: Store the file in memory and enable the Save button
                         currentValidatedFile = file;
                         saveBtn.disabled     = false;
+                        showChanges('Saving this file to the repository will make these changes', result.changes);
                     }
                 } catch (error) {
                     console.error("Validation error:", error);
@@ -745,6 +793,7 @@
                 // Update UI for saving state
                 saveBtn.disabled          = true; 
                 errorBox.style.display    = 'none';
+                changesBox.style.display  = 'none';
                 hideAllBadges();
                 badgeSaving.style.display = 'flex';
             
@@ -786,6 +835,8 @@
                         // SUCCESS!
                         badgeSaving.style.display      = 'none';
                         badgeSaveSuccess.style.display = 'flex';
+                        
+                        showChanges('Saved to the repository', result.changes);
                         
                         // Clear the file from memory so they can't save it twice
                         currentValidatedFile = null; 

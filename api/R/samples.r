@@ -48,12 +48,13 @@ samples_before_insert <- function (env) {
   }
 
   # `event_uid` must match the event of each parent sample (which may itself
-  # be inherited from a grandparent). Parents may be in this upload.
+  # be inherited from a grandparent). Parents may be in this upload, which
+  # takes precedence over what's stored for a sample being updated.
   has_parent <- has_event & !is.na(df[['parent_sample_uid']])
   if (any(has_parent)) {
     cols    <- c('sample_uid', 'event_uid', 'parent_sample_uid')
     sql     <- "SELECT sample_uid, event_uid, parent_sample_uid FROM samples"
-    lineage <- rbind(db_query(env$db, sql, 'SaBfIn2', simplify = FALSE), as.data.frame(df[, cols]))
+    lineage <- rbind(as.data.frame(df[, cols]), db_query(env$db, sql, 'SaBfIn2', simplify = FALSE))
 
     event_of <- function (uid, depth = 0) {
       i <- match(uid, lineage[['sample_uid']])
@@ -83,6 +84,7 @@ samples_before_insert <- function (env) {
 
 samples_after_insert <- function (env) {
 
+  biosamples_provide(env)
   biosamples_refresh(env)
 
 }
