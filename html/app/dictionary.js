@@ -1997,10 +1997,11 @@ const vbrDictionary = {
         },
         "sample_additive":{
             "def":"Additive/preservative in which sample is stored or initially stored.",
-            "fmt":["required", "cv", "unavailable"],
+            "fmt":["required", "cv", "unavailable", "multiple"],
             "cv":[
-              "RNA Later", "Qiagen Allprotect", "Glycerol", "Ethanol", "Oral Cocktail", "PBS/Saline", 
-              "VTM", "Zymo DNA/RNA Shield", "None/Neat", "PIC", "DNA Shield"]
+              "RNA Later", "Qiagen Allprotect", "Glycerol", "Ethanol", "Oral Cocktail ", 
+              "PBS/Saline", "VTM ", "Zymo DNA/RNA Shield", "None/Neat", "PIC", "DNA Shield", 
+              "EDTA", "Elution Buffer (AVE)", "Distilled water"]
         },
         "control_sample_uid":{
             "def":"Sample identifier of linked control. This can be a semicolon separated list, if there are multiple controls associated with the sample. This field is to be populated only for experimental samples, not for control samples. The purpose of this field is to link to an experimental sample to any control samples that were generated in association with the experimental sample.",
