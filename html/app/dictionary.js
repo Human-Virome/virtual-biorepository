@@ -161,7 +161,7 @@ const vbrDictionary = {
             "examples":["vast_subj_294", "wu_wylie_p827"]
         },
         "event_uid":{
-            "def":"Event at which participant was assayed. This value must be the same for any sampling that occured at the same event.",
+            "def":"A sampling event at which subject was assayed. This value must be the same for any sampling that occured at the same event. Each study is expected to have a small set of unique event_uid values that can be reused across participants for corresponding sampling events (e.g., baseline, 6-month follow-up, or annual visit).",
             "fmt":["required", "uid"],
             "examples":["vast_subj_294_t1", "vast_subj_294_t2", "suny_e101"]
         },
