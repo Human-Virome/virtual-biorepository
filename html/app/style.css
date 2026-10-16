@@ -129,6 +129,10 @@ footer nav a:hover { color: #f1f5f9; }
 .data-table tbody tr { transition: background-color 0.2s ease; }
 .data-table tbody tr:hover { background-color: var(--surface-high); }
 .data-table tfoot th, .data-table tfoot td { background-color: var(--bg-main); font-weight: 600; border-top: 1px solid var(--border-color); border-bottom: none; }
+.data-table th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+.data-table th.sortable:hover { color: var(--text-main); }
+.data-table th.sortable .sort-icon { font-size: 0.875rem; vertical-align: middle; margin-left: 0.25rem; opacity: 0.5; }
+.data-table th.sortable:not([aria-sort="none"]) .sort-icon { opacity: 1; color: var(--primary); }
 .row-dimmed td { background-color: rgba(11, 19, 38, 0.4); }
 .row-dimmed:hover td { background-color: var(--surface-high); }
 

@@ -244,7 +244,7 @@
                                 <h4 class="text-muted mb-1">Labs</h4>
                                 <div class="data-table-container scroll-box" style="max-height: 400px;">
                                     <table class="data-table">
-                                        <thead><tr><th>Lab</th><th>Project</th><th>PI</th><th>PI Organization</th></tr></thead>
+                                        <thead><tr><th class="sortable">Lab</th><th class="sortable">Project</th><th class="sortable">PI</th><th class="sortable">PI Organization</th></tr></thead>
                                         <tbody id="detail-labs"></tbody>
                                     </table>
                                 </div>
@@ -337,32 +337,32 @@
 
             // [lab_name, project_abbrev, PI, PI Organization] - lab names lowercased to match the case-sensitive CV
             const labRows = [
-                ["anderson",        "vast",       "Mattew Anderson",           "UW-Madison"],
-                ["baldridge",       "wu_dantas",  "Megan Baldridge",           "Washington University School of Medicine in St Louis"],
-                ["bhatt",           "vast",       "Ami Bhatt",                 "Stanford"],
-                ["bittinger",       "penn",       "Kyle Bittinger",            "Children's hospital of Philadelphia"],
-                ["bushman",         "penn",       "Rick Bushman",              "University of Pennsylvania"],
-                ["cmmr",            "ucla",       "",                          "Baylor College of Medicine"],
-                ["dantas",          "wu_dantas",  "Gautam Dantas",             "Washington University School of Medicine in St Louis"],
-                ["de melo-martin",  "vast",       "Inmaculada de Melo-Martin", "Cornell"],
-                ["dittmer",         "uncch",      "Dirk Dittmer",              "U. North Carolina at Chapel Hill"],
-                ["emerson",         "ucdavis",    "Joanne Emerson",            "UC Davis"],
-                ["foxman",          "yu_foxman",  "Ellen Foxman",              "Yale School of Medicine"],
-                ["gilbert",         "yu_gilbert", "Wendy Gilbert",             "Yale University"],
-                ["glmc",            "ucla",       "Yvonne Kapila",             "University of California Los Angeles"],
-                ["ismagilov",       "caltech",    "Rustem Ismagilov",          "California Institute of Technology"],
-                ["kapila",          "ucla",       "Yvonne Kapila",             "University of California Los Angeles"],
-                ["lareau",          "mskcc",      "Caleb Lareau",              "Memorial Sloan Kettering"],
-                ["li",              "penn",       "Hongzhe Li",                "University of Pennsylvania"],
-                ["mason",           "vast",       "Christopher Mason",         "Cornell"],
-                ["moustafa",        "penn",       "Ahmed Moustafa",            "Children's hospital of Philadelphia"],
-                ["naik",            "vast",       "Hetanshi Naik",             "Stanford"],
-                ["sabeti",          "boston",     "Pardis Sabeti",             "Broad Institute"],
-                ["snyder",          "vast",       "Michael Snyder",            "Stanford"],
-                ["tcgb",            "ucla",       "Yvonne Kapila",             "University of California Los Angeles"],
-                ["thoreen",         "yu_gilbert", "Carson Thoreen",            "Yale University"],
-                ["yracheta",        "vast",       "Joseph Yracheta",           "NBDC"],
-                ["zhou",            "vast",       "Yanjiao Zhou",              "UConn Health Center"]
+                ["anderson",        "vast",       "Mattew Anderson",                    "UW-Madison"],
+                ["baldridge",       "wu_dantas",  "Megan Baldridge",                    "Washington University School of Medicine in St Louis"],
+                ["bhatt",           "vast",       "Ami Bhatt",                          "Stanford"],
+                ["bittinger",       "penn",       "Kyle Bittinger",                     "Children's hospital of Philadelphia"],
+                ["bushman",         "penn",       "Rick Bushman",                       "University of Pennsylvania"],
+                ["cmmr",            "ucla",       "Yvonne Kapila and Joseph Petrosino", "Baylor College of Medicine"],
+                ["dantas",          "wu_dantas",  "Gautam Dantas",                      "Washington University School of Medicine in St Louis"],
+                ["de melo-martin",  "vast",       "Inmaculada de Melo-Martin",          "Cornell"],
+                ["dittmer",         "uncch",      "Dirk Dittmer",                       "U. North Carolina at Chapel Hill"],
+                ["emerson",         "ucdavis",    "Joanne Emerson",                     "UC Davis"],
+                ["foxman",          "yu_foxman",  "Ellen Foxman",                       "Yale School of Medicine"],
+                ["gilbert",         "yu_gilbert", "Wendy Gilbert",                      "Yale University"],
+                ["glmc",            "ucla",       "Yvonne Kapila",                      "University of California Los Angeles"],
+                ["ismagilov",       "caltech",    "Rustem Ismagilov",                   "California Institute of Technology"],
+                ["kapila",          "ucla",       "Yvonne Kapila",                      "University of California Los Angeles"],
+                ["lareau",          "mskcc",      "Caleb Lareau",                       "Memorial Sloan Kettering"],
+                ["li",              "penn",       "Hongzhe Li",                         "University of Pennsylvania"],
+                ["mason",           "vast",       "Christopher Mason",                  "Cornell"],
+                ["moustafa",        "penn",       "Ahmed Moustafa",                     "Children's hospital of Philadelphia"],
+                ["naik",            "vast",       "Hetanshi Naik",                      "Stanford"],
+                ["sabeti",          "boston",     "Pardis Sabeti",                      "Broad Institute"],
+                ["snyder",          "vast",       "Michael Snyder",                     "Stanford"],
+                ["tcgb",            "ucla",       "Yvonne Kapila",                      "University of California Los Angeles"],
+                ["thoreen",         "yu_gilbert", "Carson Thoreen",                     "Yale University"],
+                ["yracheta",        "vast",       "Joseph Yracheta",                    "NBDC"],
+                ["zhou",            "vast",       "Yanjiao Zhou",                       "UConn Health Center"]
             ];
 
             // First column of both tables: a non-wrapping code tag.
@@ -392,17 +392,46 @@
                 elProjects.appendChild(tr);
             });
 
-            const elLabs = document.getElementById('detail-labs');
-            labRows.forEach(([lab, ...rest]) => {
-                const tr = document.createElement('tr');
-                tr.appendChild(tagCell(lab));
-                rest.forEach(val => {
-                    const td = document.createElement('td');
-                    td.textContent = val;
-                    tr.appendChild(td);
+            // Labs table, re-sorted by clicking a column header (again to reverse).
+            // The sort is stable, so ties stay in lab name order.
+            const elLabs     = document.getElementById('detail-labs');
+            const labHeaders = document.querySelectorAll('#detail-has-labs th');
+            let labSort      = { col: 0, dir: 1 };
+
+            function renderLabs() {
+                const rows = [...labRows].sort((a, b) =>
+                    labSort.dir * a[labSort.col].localeCompare(b[labSort.col], undefined, { sensitivity: 'base' }));
+
+                elLabs.replaceChildren();
+                rows.forEach(([lab, ...rest]) => {
+                    const tr = document.createElement('tr');
+                    tr.appendChild(tagCell(lab));
+                    rest.forEach(val => {
+                        const td = document.createElement('td');
+                        td.textContent = val;
+                        tr.appendChild(td);
+                    });
+                    elLabs.appendChild(tr);
                 });
-                elLabs.appendChild(tr);
+
+                labHeaders.forEach((th, i) => {
+                    const dir = i !== labSort.col ? 'none' : labSort.dir > 0 ? 'ascending' : 'descending';
+                    th.setAttribute('aria-sort', dir);
+                    th.querySelector('.sort-icon').textContent =
+                        { none: 'unfold_more', ascending: 'arrow_upward', descending: 'arrow_downward' }[dir];
+                });
+            }
+
+            labHeaders.forEach((th, i) => {
+                const icon = document.createElement('span');
+                icon.className = 'material-symbols-outlined sort-icon';
+                th.appendChild(icon);
+                th.addEventListener('click', () => {
+                    labSort = { col: i, dir: labSort.col === i ? -labSort.dir : 1 };
+                    renderLabs();
+                });
             });
+            renderLabs();
 
             // --- 1. Dynamic Initialization ---
             const dictionaryCache = {};
