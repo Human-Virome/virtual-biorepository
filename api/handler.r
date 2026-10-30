@@ -11,6 +11,16 @@ READ_ONLY_APIS <- c(
 
 # Define the httpuv application router
 app <- list(
+
+  # The OS's temp cleaner can delete R's session temp directory while this
+  # process runs. Recreate it before httpuv buffers the request body there,
+  # and before endpoints write files with tempfile(). NULL lets the request
+  # continue.
+  onHeaders = function(req) {
+    tempdir(check = TRUE)
+    return (NULL)
+  },
+
   call = function(req) {
     
     response <- tryCatch(
