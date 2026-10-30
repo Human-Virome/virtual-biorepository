@@ -2000,8 +2000,8 @@ const vbrDictionary = {
             "def":"Additive/preservative in which sample is stored or initially stored.",
             "fmt":["required", "cv", "unavailable", "multiple"],
             "cv":[
-              "RNA Later", "Qiagen Allprotect", "Glycerol", "Ethanol", "Oral Cocktail ", 
-              "PBS/Saline", "VTM ", "Zymo DNA/RNA Shield", "None/Neat", "PIC", "DNA Shield", 
+              "RNA Later", "Qiagen Allprotect", "Glycerol", "Ethanol", "Oral Cocktail", 
+              "PBS/Saline", "VTM", "Zymo DNA/RNA Shield", "None/Neat", "PIC", "DNA Shield", 
               "EDTA", "Elution Buffer (AVE)", "Distilled water"]
         },
         "control_sample_uid":{
