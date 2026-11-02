@@ -24,13 +24,15 @@ const vbrDictionary = {
             "cv":[
               "Asian", "Black or African American", "American Indian/Alaska Native", 
               "Native Hawaiian or Other Pacific Islander", "Middle Eastern or North African", 
-              "White", "Multi-racial"
+              "White", "Multi-racial", "declined to answer", "other / not listed"
             ]
         },
         "ethnicity":{
             "def":"Ethnicity of the participant.",
             "fmt":["required", "cv", "unavailable"],
-            "cv":["Hispanic or Latino", "Not Hispanic or Latino"]
+            "cv":[
+              "Hispanic or Latino", "Not Hispanic or Latino", 
+              "declined to answer", "other / not listed" ]
         },
         "sex_at_birth":{
             "def":"Participant's sex assigned at birth.",
@@ -1637,7 +1639,7 @@ const vbrDictionary = {
             "cv":[
               "viral_particles", "acellular_fraction", "cellular_fraction", "whole_neat_blood",
               "whole_blood", "blood_fraction_plasma", "blood_fraction_buffy_coat",
-              "blood_fraction_erythrocytes", "tissue"
+              "blood_fraction_erythrocytes", "tissue", "supernatant", "biofilm"
             ]
         },
         "parent_sample_uid":{
@@ -1663,7 +1665,7 @@ const vbrDictionary = {
         },
         "anatomical_site":{
             "def":"Uberon Ontology ID or Cell Ontology ID for the anatomical structure from which sample was obtained. Use the most specific term that applies to your data from the Uberon ontology \"anatomical structure\" branch. Only the ID (e.g. \"UBERON:0002372\") is needed; the rest of the text is ignored/discarded.",
-            "fmt":["condition", "ontology"],
+            "fmt":["condition", "ontology", "multiple"],
             "condition":{
               "description":"At least one of `anatomical_site` or `body_product` must be provided."},
             "ontology":["UBERON:", "CL:"],
@@ -2002,7 +2004,7 @@ const vbrDictionary = {
             "cv":[
               "RNA Later", "Qiagen Allprotect", "Glycerol", "Ethanol", "Oral Cocktail", 
               "PBS/Saline", "VTM", "Zymo DNA/RNA Shield", "None/Neat", "PIC", "DNA Shield", 
-              "EDTA", "Elution Buffer (AVE)", "Distilled water"]
+              "EDTA", "Elution Buffer (AVE)", "Phosphate Buffer", "Distilled Water"]
         },
         "control_sample_uid":{
             "def":"Sample identifier of linked control. This can be a semicolon separated list, if there are multiple controls associated with the sample. This field is to be populated only for experimental samples, not for control samples. The purpose of this field is to link to an experimental sample to any control samples that were generated in association with the experimental sample.",
@@ -2051,9 +2053,8 @@ const vbrDictionary = {
             "condition":{
               "description":"Either `negative_control_type` or `positive_control_type` must be provided when `is_control_sample` is \"yes\"." },
             "cv":[
-              "distilled water", "phosphate buffer", "empty collection device", 
-              "DNA-free PCR mix", "sterile swab", "sterile syringe", "synthetic community"
-            ]
+              "distilled water", "template-free PCR mix", "synthetic community", 
+              "sample additive blank", "collection device blank" ]
         },
         "positive_control_type":{
             "def":"If this sample is a positive or negative control, specify the type. If this is an experimental sample (not a control sample), then leave this field blank.",
@@ -2062,6 +2063,10 @@ const vbrDictionary = {
               "description":"Either `negative_control_type` or `positive_control_type` must be provided when `is_control_sample` is \"yes\"." },
             "assert":{"NAND":"negative_control_type"},
             "cv":["synthetic community", "spike-in sample"]
+        },
+        "comment":{
+            "def":"This is a catch all field for details about the sample that don't fit in the other fieds. Please do not include any identifiable notes.",
+            "fmt":["text"]
         }
     },
     "libraries":{
@@ -2115,6 +2120,11 @@ const vbrDictionary = {
             "def":"A term to describe the nature of the sample to differentiate between processes focusing on single cells or nuclei and processes that operate on many cells in a mixture.",
             "fmt":["cv"],
             "cv":["single cells", "single nuclei", "bulk"]
+        },
+        "library_input":{
+            "def":"The type of biological material or extracted biomolecule used to prepare the sequencing library or other downstream assay. Select the applicable input type based on the material used for library preparation.",
+            "fmt":["cv"],
+            "cv":["DNA extract", "RNA extract", "DNA and RNA extract", "Protein extract", "Metabolite extract"]
         },
         "library_processing_url":{
             "def":"Processes applied during library/processed sample preparation. A stable, permanent url where documentation on the details of the library preparation or sample processing protocol can be found. The description must be detailed enough that others can reproduce the process. Suggested locations for this information include, but are not limited to, GitHub, Read the Docs, and protocols.io. This could also be a PubMed link if you are using protocol decribed in a publication.",
